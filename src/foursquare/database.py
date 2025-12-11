@@ -35,6 +35,9 @@ class FoursquareDatabase:
     
     def init_tables(self) -> None:
         """Create all tables if they don't exist."""
+        from pathlib import Path
+        is_new = not Path(self.db_path).exists()
+        
         with self.get_connection() as conn:
             cursor = conn.cursor()
             for table_sql in ALL_TABLES:
@@ -43,7 +46,9 @@ class FoursquareDatabase:
                 cursor.execute(index_sql)
             for view_sql in CREATE_VIEWS:
                 cursor.execute(view_sql)
-        print(f"Foursquare database initialized at: {self.db_path}")
+        
+        if is_new:
+            print(f"Foursquare database initialized at: {self.db_path}")
     
     # ==========================================================================
     # User Operations

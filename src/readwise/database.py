@@ -37,13 +37,18 @@ class DatabaseManager:
     
     def init_tables(self) -> None:
         """Create all tables if they don't exist."""
+        from pathlib import Path
+        is_new = not Path(self.db_path).exists()
+        
         with self.get_connection() as conn:
             cursor = conn.cursor()
             for table_sql in ALL_TABLES:
                 cursor.execute(table_sql)
             for index_sql in CREATE_INDEXES:
                 cursor.execute(index_sql)
-        print(f"Database initialized at: {self.db_path}")
+        
+        if is_new:
+            print(f"Database initialized at: {self.db_path}")
     
     # ==========================================================================
     # Sync State Operations
