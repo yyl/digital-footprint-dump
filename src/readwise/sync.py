@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from .config import Config
+from ..config import Config
 from .database import DatabaseManager
 from .api_client import ReadwiseAPIClient
 

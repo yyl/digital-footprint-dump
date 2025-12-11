@@ -21,7 +21,7 @@ def cmd_init():
     print("Initializing databases...\n")
     
     # Readwise
-    from src.database import DatabaseManager
+    from src.readwise.database import DatabaseManager
     db = DatabaseManager()
     db.init_tables()
     
@@ -41,9 +41,9 @@ def cmd_readwise_sync():
         print(f"Error: {e}")
         sys.exit(1)
     
-    from src.api_client import ReadwiseAPIClient
-    from src.database import DatabaseManager
-    from src.sync import SyncManager
+    from src.readwise.api_client import ReadwiseAPIClient
+    from src.readwise.database import DatabaseManager
+    from src.readwise.sync import SyncManager
     
     api = ReadwiseAPIClient()
     
@@ -94,8 +94,8 @@ def cmd_status():
     # Readwise
     print("--- Readwise ---")
     try:
-        from src.database import DatabaseManager
-        from src.sync import SyncManager
+        from src.readwise.database import DatabaseManager
+        from src.readwise.sync import SyncManager
         
         db = DatabaseManager()
         db.init_tables()

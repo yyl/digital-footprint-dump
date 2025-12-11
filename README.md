@@ -49,8 +49,9 @@ On first sync, you'll be prompted to authorize via browser. The access token is 
 ```
 ├── main.py
 ├── src/
-│   ├── config.py
-│   ├── database.py, models.py, api_client.py, sync.py  # Readwise
+│   ├── config.py              # Shared configuration
+│   ├── readwise/
+│   │   ├── database.py, models.py, api_client.py, sync.py
 │   └── foursquare/
 │       ├── database.py, models.py, api_client.py, sync.py
 └── data/

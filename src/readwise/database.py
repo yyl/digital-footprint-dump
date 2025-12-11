@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 
-from .config import Config
+from ..config import Config
 from .models import ALL_TABLES, CREATE_INDEXES
 
 

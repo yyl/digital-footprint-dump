@@ -4,7 +4,7 @@ import time
 from typing import Optional, Generator, Dict, Any, List
 import requests
 
-from .config import Config
+from ..config import Config
 
 
 class ReadwiseAPIClient:
