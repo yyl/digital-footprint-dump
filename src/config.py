@@ -35,6 +35,12 @@ class Config:
     FOURSQUARE_ACCESS_TOKEN: str = os.getenv("FOURSQUARE_ACCESS_TOKEN", "")
     FOURSQUARE_DATABASE_PATH = DATA_DIR / "foursquare.db"
     
+    # ==========================================================================
+    # Letterboxd Configuration
+    # ==========================================================================
+    FILES_DIR = PROJECT_ROOT / "files"
+    LETTERBOXD_DATABASE_PATH = DATA_DIR / "letterboxd.db"
+    
     @classmethod
     def validate_readwise(cls) -> bool:
         """Validate Readwise configuration."""

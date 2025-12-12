@@ -2,14 +2,15 @@
 """
 Digital Footprint Dump - Main Entry Point
 
-Export your digital footprints (Readwise, Foursquare) to local SQLite databases.
+Export your digital footprints to local SQLite databases.
 
 Usage:
-    python main.py init            # Initialize all databases
-    python main.py sync            # Sync all services
-    python main.py readwise-sync   # Sync Readwise only
-    python main.py foursquare-sync # Sync Foursquare only
-    python main.py status          # Show sync status
+    python main.py init             # Initialize all databases
+    python main.py sync             # Sync all services
+    python main.py readwise-sync    # Sync Readwise only
+    python main.py foursquare-sync  # Sync Foursquare only
+    python main.py letterboxd-sync  # Import Letterboxd data
+    python main.py status           # Show sync status
 """
 
 import sys
@@ -29,6 +30,11 @@ def cmd_init():
     from src.foursquare.database import FoursquareDatabase
     fsq_db = FoursquareDatabase()
     fsq_db.init_tables()
+    
+    # Letterboxd
+    from src.letterboxd.database import LetterboxdDatabase
+    lbxd_db = LetterboxdDatabase()
+    lbxd_db.init_tables()
     
     print("\nDone!")
 
@@ -68,6 +74,14 @@ def cmd_foursquare_sync():
     sync_manager.sync()
 
 
+def cmd_letterboxd_sync():
+    """Import Letterboxd data from CSV export."""
+    from src.letterboxd.importer import LetterboxdImporter
+    
+    importer = LetterboxdImporter()
+    importer.sync()
+
+
 def cmd_sync():
     """Sync all services."""
     print("=== Syncing All Services ===\n")
@@ -85,6 +99,12 @@ def cmd_sync():
     # Foursquare
     print("--- Foursquare ---")
     cmd_foursquare_sync()
+    
+    print()
+    
+    # Letterboxd
+    print("--- Letterboxd ---")
+    cmd_letterboxd_sync()
 
 
 def cmd_status():
@@ -130,6 +150,27 @@ def cmd_status():
             print(f"  has_token: {status.get('has_token', False)}")
     except Exception as e:
         print(f"  Error: {e}")
+    
+    print()
+    
+    # Letterboxd
+    print("--- Letterboxd ---")
+    try:
+        from src.letterboxd.importer import LetterboxdImporter
+        
+        importer = LetterboxdImporter()
+        status = importer.get_status()
+        
+        if "error" in status:
+            print(f"  Error: {status['error']}")
+        else:
+            for entity, count in status.get("database_stats", {}).items():
+                print(f"  {entity}: {count}")
+            latest = status.get("latest_export")
+            if latest:
+                print(f"  latest_export: {latest.name}")
+    except Exception as e:
+        print(f"  Error: {e}")
 
 
 def main():
@@ -145,6 +186,7 @@ def main():
         "sync": cmd_sync,
         "readwise-sync": cmd_readwise_sync,
         "foursquare-sync": cmd_foursquare_sync,
+        "letterboxd-sync": cmd_letterboxd_sync,
         "status": cmd_status,
     }
     

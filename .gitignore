@@ -2,6 +2,7 @@
 *.pdf
 *.db
 contexts/
+files/
 .DS_Store
 
 # Byte-compiled / optimized / DLL files

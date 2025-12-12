@@ -13,11 +13,12 @@ cp .env.example .env
 ## Commands
 
 ```bash
-uv run main.py init            # Initialize all databases
-uv run main.py sync            # Sync all services
-uv run main.py readwise-sync   # Sync Readwise only
-uv run main.py foursquare-sync # Sync Foursquare only
-uv run main.py status          # Show sync status
+uv run main.py init             # Initialize all databases
+uv run main.py sync             # Sync all services
+uv run main.py readwise-sync    # Sync Readwise only
+uv run main.py foursquare-sync  # Sync Foursquare only
+uv run main.py letterboxd-sync  # Import Letterboxd data
+uv run main.py status           # Show sync status
 ```
 
 ---
@@ -40,7 +41,16 @@ Exports checkins and places to `data/foursquare.db`.
 - `FOURSQUARE_CLIENT_SECRET`
 - `FOURSQUARE_API_KEY` - Service key for Places API
 
-On first sync, you'll be prompted to authorize via browser. The access token is saved automatically.
+---
+
+## Letterboxd
+
+Imports watched movies and ratings from CSV export to `data/letterboxd.db`.
+
+**Setup:**
+1. Export your data from [letterboxd.com/settings/data](https://letterboxd.com/settings/data/)
+2. Unzip and place folder in `files/` (e.g., `files/letterboxd-username-2025-...`)
+3. Run `uv run main.py letterboxd-sync` (auto-discovers latest export)
 
 ---
 
@@ -49,12 +59,14 @@ On first sync, you'll be prompted to authorize via browser. The access token is 
 ```
 ├── main.py
 ├── src/
-│   ├── config.py              # Shared configuration
+│   ├── config.py
 │   ├── readwise/
-│   │   ├── database.py, models.py, api_client.py, sync.py
-│   └── foursquare/
-│       ├── database.py, models.py, api_client.py, sync.py
-└── data/
-    ├── readwise.db
-    └── foursquare.db
+│   ├── foursquare/
+│   └── letterboxd/
+├── data/
+│   ├── readwise.db
+│   ├── foursquare.db
+│   └── letterboxd.db
+└── files/
+    └── letterboxd-*/
 ```
