@@ -2,10 +2,11 @@
 name = "readwise-exporter"
 version = "0.1.0"
 description = "Export Readwise data to SQLite"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "requests>=2.28.0",
     "python-dotenv>=1.0.0",
+    "overcast-to-sqlite>=0.3.0",
 ]
 
 [build-system]

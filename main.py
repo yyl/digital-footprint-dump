@@ -10,6 +10,7 @@ Usage:
     python main.py readwise-sync    # Sync Readwise only
     python main.py foursquare-sync  # Sync Foursquare only
     python main.py letterboxd-sync  # Import Letterboxd data
+    python main.py overcast-sync    # Import Overcast data
     python main.py status           # Show sync status
 """
 
@@ -82,6 +83,14 @@ def cmd_letterboxd_sync():
     importer.sync()
 
 
+def cmd_overcast_sync():
+    """Import Overcast data from OPML export."""
+    from src.overcast.importer import OvercastImporter
+    
+    importer = OvercastImporter()
+    importer.sync()
+
+
 def cmd_sync():
     """Sync all services."""
     print("=== Syncing All Services ===\n")
@@ -105,6 +114,12 @@ def cmd_sync():
     # Letterboxd
     print("--- Letterboxd ---")
     cmd_letterboxd_sync()
+    
+    print()
+    
+    # Overcast
+    print("--- Overcast ---")
+    cmd_overcast_sync()
 
 
 def cmd_status():
@@ -171,6 +186,24 @@ def cmd_status():
                 print(f"  latest_export: {latest.name}")
     except Exception as e:
         print(f"  Error: {e}")
+    
+    print()
+    
+    # Overcast
+    print("--- Overcast ---")
+    try:
+        from src.overcast.importer import OvercastImporter
+        
+        importer = OvercastImporter()
+        status = importer.get_status()
+        
+        for entity, count in status.get("database_stats", {}).items():
+            print(f"  {entity}: {count}")
+        latest = status.get("latest_export")
+        if latest:
+            print(f"  latest_export: {latest.name}")
+    except Exception as e:
+        print(f"  Error: {e}")
 
 
 def main():
@@ -187,6 +220,7 @@ def main():
         "readwise-sync": cmd_readwise_sync,
         "foursquare-sync": cmd_foursquare_sync,
         "letterboxd-sync": cmd_letterboxd_sync,
+        "overcast-sync": cmd_overcast_sync,
         "status": cmd_status,
     }
     

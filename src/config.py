@@ -41,6 +41,11 @@ class Config:
     FILES_DIR = PROJECT_ROOT / "files"
     LETTERBOXD_DATABASE_PATH = DATA_DIR / "letterboxd.db"
     
+    # ==========================================================================
+    # Overcast Configuration
+    # ==========================================================================
+    OVERCAST_DATABASE_PATH = DATA_DIR / "overcast.db"
+    
     @classmethod
     def validate_readwise(cls) -> bool:
         """Validate Readwise configuration."""

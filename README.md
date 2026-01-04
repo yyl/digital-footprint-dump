@@ -18,6 +18,7 @@ uv run main.py sync             # Sync all services
 uv run main.py readwise-sync    # Sync Readwise only
 uv run main.py foursquare-sync  # Sync Foursquare only
 uv run main.py letterboxd-sync  # Import Letterboxd data
+uv run main.py overcast-sync    # Import Overcast data
 uv run main.py status           # Show sync status
 ```
 
@@ -50,7 +51,18 @@ Imports watched movies and ratings from CSV export to `data/letterboxd.db`.
 **Setup:**
 1. Export your data from [letterboxd.com/settings/data](https://letterboxd.com/settings/data/)
 2. Unzip and place folder in `files/` (e.g., `files/letterboxd-username-2025-...`)
-3. Run `uv run main.py letterboxd-sync` (auto-discovers latest export)
+3. Run `uv run main.py letterboxd-sync`
+
+---
+
+## Overcast
+
+Imports podcast feeds and episodes from OPML export to `data/overcast.db`.
+
+**Setup:**
+1. Export from [overcast.fm/account](https://overcast.fm/account) → "All data" OPML
+2. Place file in `files/` (e.g., `files/overcast.opml`)
+3. Run `uv run main.py overcast-sync`
 
 ---
 
@@ -62,11 +74,14 @@ Imports watched movies and ratings from CSV export to `data/letterboxd.db`.
 │   ├── config.py
 │   ├── readwise/
 │   ├── foursquare/
-│   └── letterboxd/
+│   ├── letterboxd/
+│   └── overcast/
 ├── data/
 │   ├── readwise.db
 │   ├── foursquare.db
-│   └── letterboxd.db
+│   ├── letterboxd.db
+│   └── overcast.db
 └── files/
-    └── letterboxd-*/
+    ├── letterboxd-*/
+    └── overcast*.opml
 ```
