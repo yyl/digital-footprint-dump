@@ -49,6 +49,24 @@ class DatabaseManager:
         
         if is_new:
             print(f"Database initialized at: {self.db_path}")
+
+    def check_tables_exist(self) -> bool:
+        """Check if required tables exist in the database.
+
+        Returns:
+            True if all required tables exist, False otherwise.
+        """
+        required_tables = ["books", "highlights", "documents"]
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            for table in required_tables:
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    (table,)
+                )
+                if not cursor.fetchone():
+                    return False
+        return True
     
     # ==========================================================================
     # Sync State Operations

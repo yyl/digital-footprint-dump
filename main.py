@@ -76,8 +76,11 @@ def cmd_readwise_analyze():
     print("Analyzing Readwise archive...")
 
     db = DatabaseManager()
-    # Ensure tables exist (though we assume data is already there)
-    db.init_tables()
+
+    if not db.check_tables_exist():
+        print("Error: Readwise database tables not found.")
+        print("Please run 'python main.py readwise-sync' first to populate the database.")
+        sys.exit(1)
 
     analytics = ReadwiseAnalytics(db=db)
     output_path = analytics.analyze_archived()
