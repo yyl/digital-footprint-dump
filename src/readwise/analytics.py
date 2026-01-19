@@ -38,7 +38,7 @@ class ReadwiseAnalytics:
             COUNT(*) as article_count,
             SUM(word_count) as total_words
         FROM documents
-        WHERE location = 'archive'
+        WHERE location = 'archive' AND last_moved_at IS NOT NULL
         GROUP BY year, month
         ORDER BY year DESC, month DESC
         """
