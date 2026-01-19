@@ -16,6 +16,7 @@ cp .env.example .env
 uv run main.py init             # Initialize all databases
 uv run main.py sync             # Sync all services
 uv run main.py readwise-sync    # Sync Readwise only
+uv run main.py readwise-analyze # Analyze Readwise archive
 uv run main.py foursquare-sync  # Sync Foursquare only
 uv run main.py letterboxd-sync  # Import Letterboxd data
 uv run main.py overcast-sync    # Import Overcast data
@@ -27,6 +28,10 @@ uv run main.py status           # Show sync status
 ## Readwise
 
 Exports books, highlights, and Reader documents to `data/readwise.db`.
+
+**Commands:**
+- `readwise-sync`: Syncs data from Readwise API to the local database.
+- `readwise-analyze`: Generates a CSV report (`data/readwise_analysis.csv`) with monthly counts of archived articles and total words read.
 
 **Required in .env:**
 - `READWISE_ACCESS_TOKEN` - Get from [readwise.io/access_token](https://readwise.io/access_token)
