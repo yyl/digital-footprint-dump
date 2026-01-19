@@ -8,6 +8,7 @@ Usage:
     python main.py init             # Initialize all databases
     python main.py sync             # Sync all services
     python main.py readwise-sync    # Sync Readwise only
+    python main.py readwise-analyze # Analyze Readwise archive
     python main.py foursquare-sync  # Sync Foursquare only
     python main.py letterboxd-sync  # Import Letterboxd data
     python main.py overcast-sync    # Import Overcast data
@@ -65,6 +66,23 @@ def cmd_readwise_sync():
     
     sync_manager = SyncManager(db=db, api=api)
     sync_manager.sync_all()
+
+
+def cmd_readwise_analyze():
+    """Analyze Readwise archived articles."""
+    from src.readwise.database import DatabaseManager
+    from src.readwise.analytics import ReadwiseAnalytics
+
+    print("Analyzing Readwise archive...")
+
+    db = DatabaseManager()
+    # Ensure tables exist (though we assume data is already there)
+    db.init_tables()
+
+    analytics = ReadwiseAnalytics(db=db)
+    output_path = analytics.analyze_archived()
+
+    print(f"Analysis complete! Results written to: {output_path}")
 
 
 def cmd_foursquare_sync():
@@ -218,6 +236,7 @@ def main():
         "init": cmd_init,
         "sync": cmd_sync,
         "readwise-sync": cmd_readwise_sync,
+        "readwise-analyze": cmd_readwise_analyze,
         "foursquare-sync": cmd_foursquare_sync,
         "letterboxd-sync": cmd_letterboxd_sync,
         "overcast-sync": cmd_overcast_sync,
