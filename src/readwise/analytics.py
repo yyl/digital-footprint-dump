@@ -33,9 +33,8 @@ class ReadwiseAnalytics:
     def analyze_archived(self) -> Path:
         """Analyze archived articles by month.
 
-        Computes the number of articles, total words, reading time,
-        location counts, and site counts for archived items each month.
-        Writes the result to a CSV file.
+        Computes the number of articles, total words, and reading time
+        for archived items each month. Writes the result to a CSV file.
 
         Returns:
             Path to the generated CSV file.
