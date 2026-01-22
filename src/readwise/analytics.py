@@ -33,9 +33,8 @@ class ReadwiseAnalytics:
     def analyze_archived(self) -> Path:
         """Analyze archived articles by month.
 
-        Computes the number of articles, total words, reading time,
-        location counts, and site counts for archived items each month.
-        Writes the result to a CSV file.
+        Computes the number of articles, total words, and reading time
+        for archived items each month. Writes the result to a CSV file.
 
         Returns:
             Path to the generated CSV file.
@@ -47,8 +46,6 @@ class ReadwiseAnalytics:
         SELECT
             strftime('%m', last_moved_at) as month,
             strftime('%Y', last_moved_at) as year,
-            location,
-            site_name,
             reading_time,
             word_count
         FROM documents
@@ -65,9 +62,7 @@ class ReadwiseAnalytics:
         stats = defaultdict(lambda: {
             'articles': 0,
             'words': 0,
-            'reading_time_mins': 0,
-            'locations': defaultdict(int),
-            'sites': defaultdict(int)
+            'reading_time_mins': 0
         })
 
         for row in rows:
@@ -77,16 +72,10 @@ class ReadwiseAnalytics:
             stats[key]['words'] += (row['word_count'] or 0)
             stats[key]['reading_time_mins'] += self._parse_reading_time(row['reading_time'])
 
-            loc = row['location'] or 'unknown'
-            stats[key]['locations'][loc] += 1
-
-            site = row['site_name'] or 'unknown'
-            stats[key]['sites'][site] += 1
-
         with open(output_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             # Header
-            writer.writerow(['month', 'year', 'articles', 'words', 'reading_time_mins', 'location_counts', 'site_counts'])
+            writer.writerow(['month', 'year', 'articles', 'words', 'reading_time_mins'])
 
             # Sort by year desc, month desc
             sorted_keys = sorted(stats.keys(), key=lambda x: (x[0], x[1]), reverse=True)
@@ -98,9 +87,7 @@ class ReadwiseAnalytics:
                     year,
                     data['articles'],
                     data['words'],
-                    data['reading_time_mins'],
-                    dict(data['locations']),
-                    dict(data['sites'])
+                    data['reading_time_mins']
                 ])
 
         return output_path
