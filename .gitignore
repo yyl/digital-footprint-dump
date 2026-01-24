@@ -1,6 +1,7 @@
 # customized ignores
 *.pdf
 *.db
+data/
 contexts/
 files/
 .DS_Store
