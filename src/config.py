@@ -46,6 +46,14 @@ class Config:
     # ==========================================================================
     OVERCAST_DATABASE_PATH = DATA_DIR / "overcast.db"
     
+    # ==========================================================================
+    # GitHub Publishing Configuration
+    # ==========================================================================
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+    GITHUB_REPO_OWNER: str = os.getenv("GITHUB_REPO_OWNER", "")
+    GITHUB_REPO_NAME: str = os.getenv("GITHUB_REPO_NAME", "")
+    GITHUB_TARGET_BRANCH: str = os.getenv("GITHUB_TARGET_BRANCH", "main")
+    
     @classmethod
     def validate_readwise(cls) -> bool:
         """Validate Readwise configuration."""
@@ -62,6 +70,23 @@ class Config:
         if not cls.FOURSQUARE_CLIENT_ID or not cls.FOURSQUARE_CLIENT_SECRET:
             raise ValueError(
                 "FOURSQUARE_CLIENT_ID and FOURSQUARE_CLIENT_SECRET must be set. "
+                "Please add them to your .env file."
+            )
+        return True
+    
+    @classmethod
+    def validate_github(cls) -> bool:
+        """Validate GitHub publishing configuration."""
+        missing = []
+        if not cls.GITHUB_TOKEN:
+            missing.append("GITHUB_TOKEN")
+        if not cls.GITHUB_REPO_OWNER:
+            missing.append("GITHUB_REPO_OWNER")
+        if not cls.GITHUB_REPO_NAME:
+            missing.append("GITHUB_REPO_NAME")
+        if missing:
+            raise ValueError(
+                f"Missing GitHub configuration: {', '.join(missing)}. "
                 "Please add them to your .env file."
             )
         return True

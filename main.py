@@ -12,6 +12,7 @@ Usage:
     python main.py foursquare-sync  # Sync Foursquare only
     python main.py letterboxd-sync  # Import Letterboxd data
     python main.py overcast-sync    # Import Overcast data
+    python main.py publish          # Publish monthly summary to blog
     python main.py status           # Show sync status
 """
 
@@ -89,6 +90,25 @@ def cmd_readwise_analyze():
     record_count = analytics.analyze_archived()
 
     print(f"Analysis complete! {record_count} monthly records written to the analysis table in readwise.db")
+
+
+def cmd_publish():
+    """Publish monthly summary to blog repository."""
+    # First ensure we have the latest analysis
+    cmd_readwise_analyze()
+    
+    print("\nPublishing monthly summary...")
+    
+    from src.publish import Publisher
+    
+    try:
+        publisher = Publisher()
+        result = publisher.publish()
+        print(f"\nPublished successfully!")
+        print(f"Commit: {result['url']}")
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
 def cmd_foursquare_sync():
@@ -246,6 +266,7 @@ def main():
         "foursquare-sync": cmd_foursquare_sync,
         "letterboxd-sync": cmd_letterboxd_sync,
         "overcast-sync": cmd_overcast_sync,
+        "publish": cmd_publish,
         "status": cmd_status,
     }
     

@@ -20,6 +20,7 @@ uv run main.py readwise-analyze # Analyze Readwise archive
 uv run main.py foursquare-sync  # Sync Foursquare only
 uv run main.py letterboxd-sync  # Import Letterboxd data
 uv run main.py overcast-sync    # Import Overcast data
+uv run main.py publish          # Publish monthly summary to blog
 uv run main.py status           # Show sync status
 ```
 
@@ -68,6 +69,21 @@ Imports podcast feeds and episodes from OPML export to `data/overcast.db`.
 1. Export from [overcast.fm/account](https://overcast.fm/account) → "All data" OPML
 2. Place file in `files/` (e.g., `files/overcast.opml`)
 3. Run `uv run main.py overcast-sync`
+
+---
+
+## Publishing
+
+Generates a monthly activity summary as a Hugo blog article (draft) and commits it to a GitHub repository.
+
+**Commands:**
+- `publish`: Syncs latest data, runs analysis, generates markdown, and commits to GitHub.
+
+**Required in .env:**
+- `GITHUB_TOKEN` - Personal access token with repo write access
+- `GITHUB_REPO_OWNER` - Repository owner username
+- `GITHUB_REPO_NAME` - Repository name
+- `GITHUB_TARGET_BRANCH` - (optional) Branch to commit to, defaults to `main`
 
 ---
 
