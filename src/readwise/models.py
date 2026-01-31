@@ -115,6 +115,18 @@ CREATE TABLE IF NOT EXISTS sync_state (
 );
 """
 
+CREATE_ANALYSIS_TABLE = """
+CREATE TABLE IF NOT EXISTS analysis (
+    year_month TEXT PRIMARY KEY,
+    year TEXT NOT NULL,
+    month TEXT NOT NULL,
+    articles INTEGER DEFAULT 0,
+    words INTEGER DEFAULT 0,
+    reading_time_mins INTEGER DEFAULT 0,
+    updated_at TEXT
+);
+"""
+
 # List of all table creation statements
 ALL_TABLES = [
     CREATE_BOOKS_TABLE,
@@ -124,6 +136,7 @@ ALL_TABLES = [
     CREATE_DOCUMENTS_TABLE,
     CREATE_DOCUMENT_TAGS_TABLE,
     CREATE_SYNC_STATE_TABLE,
+    CREATE_ANALYSIS_TABLE,
 ]
 
 # Index creation for better query performance
@@ -135,4 +148,5 @@ CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_documents_parent_id ON documents(parent_id);",
     "CREATE INDEX IF NOT EXISTS idx_books_category ON books(category);",
     "CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category);",
+    "CREATE INDEX IF NOT EXISTS idx_analysis_year_month ON analysis(year, month);",
 ]

@@ -31,7 +31,7 @@ Exports books, highlights, and Reader documents to `data/readwise.db`.
 
 **Commands:**
 - `readwise-sync`: Syncs data from Readwise API to the local database.
-- `readwise-analyze`: Generates a CSV report (`data/readwise_analysis.csv`) with monthly counts of archived articles, total words read, and reading time.
+- `readwise-analyze`: Generates monthly reading stats (archived articles, total words, reading time) and writes to the `analysis` table in `data/readwise.db`.
 
 **Required in .env:**
 - `READWISE_ACCESS_TOKEN` - Get from [readwise.io/access_token](https://readwise.io/access_token)

@@ -86,9 +86,9 @@ def cmd_readwise_analyze():
         sys.exit(1)
 
     analytics = ReadwiseAnalytics(db=db)
-    output_path = analytics.analyze_archived()
+    record_count = analytics.analyze_archived()
 
-    print(f"Analysis complete! Results written to: {output_path}")
+    print(f"Analysis complete! {record_count} monthly records written to the analysis table in readwise.db")
 
 
 def cmd_foursquare_sync():

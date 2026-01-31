@@ -1,13 +1,11 @@
 """Analytics module for Readwise data."""
 
-import csv
 import re
 from collections import defaultdict
-from pathlib import Path
+from datetime import datetime
 from typing import Optional
 
 from .database import DatabaseManager
-from ..config import Config
 
 
 class ReadwiseAnalytics:
@@ -30,18 +28,16 @@ class ReadwiseAnalytics:
             return int(match.group(1))
         return 0
 
-    def analyze_archived(self) -> Path:
+    def analyze_archived(self) -> int:
         """Analyze archived articles by month.
 
         Computes the number of articles, total words, and reading time
-        for archived items each month. Writes the result to a CSV file.
+        for archived items each month. Writes the result to the analysis
+        table in the database.
 
         Returns:
-            Path to the generated CSV file.
+            Number of monthly records written to the database.
         """
-        output_path = Config.DATA_DIR / "readwise_analysis.csv"
-        Config.ensure_data_dir()
-
         query = """
         SELECT
             strftime('%m', last_moved_at) as month,
@@ -72,22 +68,29 @@ class ReadwiseAnalytics:
             stats[key]['words'] += (row['word_count'] or 0)
             stats[key]['reading_time_mins'] += self._parse_reading_time(row['reading_time'])
 
-        with open(output_path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            # Header
-            writer.writerow(['month', 'year', 'articles', 'words', 'reading_time_mins'])
+        # Write to database
+        updated_at = datetime.utcnow().isoformat() + "Z"
 
-            # Sort by year desc, month desc
-            sorted_keys = sorted(stats.keys(), key=lambda x: (x[0], x[1]), reverse=True)
-
-            for year, month in sorted_keys:
-                data = stats[(year, month)]
-                writer.writerow([
-                    month,
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            for (year, month), data in stats.items():
+                year_month = f"{year}-{month}"
+                cursor.execute("""
+                    INSERT INTO analysis (year_month, year, month, articles, words, reading_time_mins, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(year_month) DO UPDATE SET
+                        articles = excluded.articles,
+                        words = excluded.words,
+                        reading_time_mins = excluded.reading_time_mins,
+                        updated_at = excluded.updated_at
+                """, (
+                    year_month,
                     year,
+                    month,
                     data['articles'],
                     data['words'],
-                    data['reading_time_mins']
-                ])
+                    data['reading_time_mins'],
+                    updated_at
+                ))
 
-        return output_path
+        return len(stats)
