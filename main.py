@@ -188,6 +188,20 @@ def cmd_status():
                 print(f"  {entity} last synced: {state['last_sync_at']}")
             else:
                 print(f"  {entity}: never synced")
+        
+        # Analysis status
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM analysis")
+            analysis_count = cursor.fetchone()[0]
+            cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
+            latest = cursor.fetchone()
+        
+        if analysis_count > 0 and latest:
+            print(f"  analysis records: {analysis_count}")
+            print(f"  latest analysis: {latest['year_month']} (updated: {latest['updated_at']})")
+        else:
+            print(f"  analysis: no records")
     except Exception as e:
         print(f"  Error: {e}")
     
