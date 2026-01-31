@@ -70,6 +70,9 @@ def cmd_readwise_sync():
 
 def cmd_readwise_analyze():
     """Analyze Readwise archived articles."""
+    # Ensure latest data
+    cmd_readwise_sync()
+
     from src.readwise.database import DatabaseManager
     from src.readwise.analytics import ReadwiseAnalytics
 
