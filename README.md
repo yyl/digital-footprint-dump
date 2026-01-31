@@ -96,7 +96,8 @@ Generates a monthly activity summary as a Hugo blog article (draft) and commits 
 │   ├── readwise/
 │   ├── foursquare/
 │   ├── letterboxd/
-│   └── overcast/
+│   ├── overcast/
+│   └── publish/
 ├── data/
 │   ├── readwise.db
 │   ├── foursquare.db
