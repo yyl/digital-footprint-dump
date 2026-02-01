@@ -14,6 +14,7 @@ Usage:
     python main.py letterboxd-sync   # Import Letterboxd data
     python main.py letterboxd-analyze # Analyze Letterboxd movies
     python main.py overcast-sync     # Import Overcast data
+    python main.py overcast-analyze  # Analyze Overcast podcasts
     python main.py publish           # Publish monthly summary to blog
     python main.py status            # Show sync status
 """
@@ -105,6 +106,9 @@ def cmd_publish():
     print("\n--- Letterboxd ---")
     cmd_letterboxd_analyze()
     
+    print("\n--- Overcast ---")
+    cmd_overcast_analyze()
+    
     print("\n=== Publishing ===")
     print("Publishing monthly summary...")
     
@@ -194,6 +198,22 @@ def cmd_analyze():
     except Exception as e:
         print(f"  Error: {e}")
     
+    print()
+    
+    # Overcast
+    print("--- Overcast ---")
+    try:
+        from src.overcast.analytics import OvercastAnalytics
+        
+        # Sync first
+        cmd_overcast_sync()
+        
+        analytics = OvercastAnalytics()
+        count = analytics.analyze_podcasts()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error: {e}")
+    
     print("\nAnalysis complete!")
 
 
@@ -203,6 +223,21 @@ def cmd_overcast_sync():
     
     importer = OvercastImporter()
     importer.sync()
+
+
+def cmd_overcast_analyze():
+    """Analyze Overcast podcast data."""
+    # Ensure latest data
+    cmd_overcast_sync()
+
+    from src.overcast.analytics import OvercastAnalytics
+
+    print("Analyzing Overcast podcasts...")
+
+    analytics = OvercastAnalytics()
+    record_count = analytics.analyze_podcasts()
+
+    print(f"Analysis complete! {record_count} monthly records written to the analysis table in overcast.db")
 
 
 def cmd_sync():
@@ -346,6 +381,28 @@ def cmd_status():
         latest = status.get("latest_export")
         if latest:
             print(f"  latest_export: {latest.name}")
+        
+        # Analysis status
+        import sqlite3
+        db_path = Config.OVERCAST_DATABASE_PATH
+        if db_path.exists():
+            conn = sqlite3.connect(str(db_path))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            try:
+                cursor.execute("SELECT COUNT(*) FROM analysis")
+                analysis_count = cursor.fetchone()[0]
+                cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
+                latest_analysis = cursor.fetchone()
+                
+                if analysis_count > 0 and latest_analysis:
+                    print(f"  analysis records: {analysis_count}")
+                    print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
+                else:
+                    print(f"  analysis: no records")
+            except sqlite3.OperationalError:
+                print(f"  analysis: no records")
+            conn.close()
     except Exception as e:
         print(f"  Error: {e}")
 
@@ -368,6 +425,7 @@ def main():
         "letterboxd-sync": cmd_letterboxd_sync,
         "letterboxd-analyze": cmd_letterboxd_analyze,
         "overcast-sync": cmd_overcast_sync,
+        "overcast-analyze": cmd_overcast_analyze,
         "publish": cmd_publish,
         "status": cmd_status,
     }

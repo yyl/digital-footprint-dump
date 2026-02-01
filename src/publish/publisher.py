@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 from ..config import Config
 from ..readwise.database import DatabaseManager
 from ..letterboxd.database import LetterboxdDatabase
+from ..overcast.database import OvercastDatabase
 from .github_client import GitHubClient
 from .markdown_generator import MarkdownGenerator
 
@@ -19,6 +20,7 @@ class Publisher:
         self,
         readwise_db: Optional[DatabaseManager] = None,
         letterboxd_db: Optional[LetterboxdDatabase] = None,
+        overcast_db: Optional[OvercastDatabase] = None,
         github_client: Optional[GitHubClient] = None
     ):
         """Initialize publisher.
@@ -26,10 +28,12 @@ class Publisher:
         Args:
             readwise_db: Readwise database manager for reading analysis data.
             letterboxd_db: Letterboxd database manager.
+            overcast_db: Overcast database manager.
             github_client: GitHub client for committing files.
         """
         self.readwise_db = readwise_db or DatabaseManager()
         self.letterboxd_db = letterboxd_db or LetterboxdDatabase()
+        self.overcast_db = overcast_db or OvercastDatabase()
         self.github_client = github_client
         self.markdown_generator = MarkdownGenerator()
     
@@ -66,6 +70,29 @@ class Publisher:
             if row:
                 return dict(row)
             return None
+    
+    def _get_overcast_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
+        """Get Overcast analysis for a specific month."""
+        if not self.overcast_db.exists():
+            return None
+        
+        query = """
+        SELECT year_month, year, month, feeds_added, feeds_removed, episodes_played
+        FROM analysis
+        WHERE year_month = ?
+        """
+        
+        try:
+            with self.overcast_db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (year_month,))
+                row = cursor.fetchone()
+                
+                if row:
+                    return dict(row)
+        except Exception:
+            pass
+        return None
     
     def _get_latest_year_month(self) -> Optional[str]:
         """Get the latest year_month from any analysis source."""
@@ -125,6 +152,15 @@ class Publisher:
                 'min_rating': letterboxd['min_rating'],
                 'max_rating': letterboxd['max_rating'],
                 'avg_years_since_release': letterboxd['avg_years_since_release']
+            }
+        
+        # Get Overcast analysis
+        overcast = self._get_overcast_analysis(year_month)
+        if overcast:
+            data['overcast'] = {
+                'feeds_added': overcast['feeds_added'],
+                'feeds_removed': overcast['feeds_removed'],
+                'episodes_played': overcast['episodes_played']
             }
         
         # Generate markdown

@@ -30,6 +30,10 @@ class MarkdownGenerator:
         if data.get('letterboxd'):
             parts.append(self._generate_letterboxd_section(data['letterboxd']))
         
+        # Overcast section
+        if data.get('overcast'):
+            parts.append(self._generate_overcast_section(data['overcast']))
+        
         return "\n".join(parts)
     
     def _generate_front_matter(self, data: Dict[str, Any]) -> str:
@@ -49,6 +53,8 @@ class MarkdownGenerator:
             tags.append("readwise")
         if data.get('letterboxd'):
             tags.append("letterboxd")
+        if data.get('overcast'):
+            tags.append("overcast")
         
         tags_str = ", ".join(f'"{t}"' for t in tags)
         
@@ -107,4 +113,17 @@ categories: ["Summary"]
 - **Highest Rating**: {max_rating:.2f} ⭐
 - **Average Years Since Release**: {avg_years:.2f}
 """
+    
+    def _generate_overcast_section(self, overcast_data: Dict[str, Any]) -> str:
+        """Generate the Overcast/Podcast statistics section."""
+        feeds_added = int(overcast_data.get('feeds_added', 0))
+        feeds_removed = int(overcast_data.get('feeds_removed', 0))
+        episodes_played = int(overcast_data.get('episodes_played', 0))
+        
+        return f"""
+## Podcast (Overcast)
 
+- **New Feeds Subscribed**: {feeds_added}
+- **Feeds Removed**: {feeds_removed}
+- **Episodes Played**: {episodes_played}
+"""

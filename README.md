@@ -22,6 +22,7 @@ uv run main.py foursquare-sync   # Sync Foursquare only
 uv run main.py letterboxd-sync   # Import Letterboxd data
 uv run main.py letterboxd-analyze # Analyze Letterboxd movies
 uv run main.py overcast-sync     # Import Overcast data
+uv run main.py overcast-analyze  # Analyze Overcast podcasts
 uv run main.py publish           # Publish monthly summary to blog
 uv run main.py status            # Show sync status
 ```
@@ -70,6 +71,10 @@ Imports watched movies and ratings from CSV export to `data/letterboxd.db`.
 ## Overcast
 
 Imports podcast feeds and episodes from OPML export to `data/overcast.db`.
+
+**Commands:**
+- `overcast-sync`: Imports data from Overcast OPML export.
+- `overcast-analyze`: Generates monthly podcast stats (feeds added, feeds removed, episodes played) and writes to the `analysis` table.
 
 **Setup:**
 1. Export from [overcast.fm/account](https://overcast.fm/account) → "All data" OPML
