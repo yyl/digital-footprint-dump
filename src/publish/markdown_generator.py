@@ -94,7 +94,7 @@ categories: ["Summary"]
             speed_display = "N/A"
         
         return f"""
-## Reading - Readwise
+## Reading
 
 - **Articles Archived**: {articles}
 - **Total Words Read**: {words:,}
@@ -108,7 +108,7 @@ categories: ["Summary"]
         unique_places = int(foursquare_data.get('unique_places', 0))
         
         return f"""
-## Travel - Foursquare
+## Travel
 
 - **Checkins**: {checkins}
 - **Unique Places Visited**: {unique_places}
@@ -123,7 +123,7 @@ categories: ["Summary"]
         avg_years = letterboxd_data.get('avg_years_since_release', 0)
         
         return f"""
-## Movies - Letterboxd
+## Movies
 
 - **Movies Watched**: {int(movies)}
 - **Average Rating**: {avg_rating:.2f} ⭐
@@ -139,7 +139,7 @@ categories: ["Summary"]
         episodes_played = int(overcast_data.get('episodes_played', 0))
         
         return f"""
-## Podcasts - Overcast
+## Podcasts
 
 - **New Feeds Subscribed**: {feeds_added}
 - **Feeds Removed**: {feeds_removed}
