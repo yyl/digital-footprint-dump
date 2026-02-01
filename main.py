@@ -5,15 +5,17 @@ Digital Footprint Dump - Main Entry Point
 Export your digital footprints to local SQLite databases.
 
 Usage:
-    python main.py init             # Initialize all databases
-    python main.py sync             # Sync all services
-    python main.py readwise-sync    # Sync Readwise only
-    python main.py readwise-analyze # Analyze Readwise archive
-    python main.py foursquare-sync  # Sync Foursquare only
-    python main.py letterboxd-sync  # Import Letterboxd data
-    python main.py overcast-sync    # Import Overcast data
-    python main.py publish          # Publish monthly summary to blog
-    python main.py status           # Show sync status
+    python main.py init              # Initialize all databases
+    python main.py sync              # Sync all services
+    python main.py analyze           # Analyze all sources
+    python main.py readwise-sync     # Sync Readwise only
+    python main.py readwise-analyze  # Analyze Readwise archive
+    python main.py foursquare-sync   # Sync Foursquare only
+    python main.py letterboxd-sync   # Import Letterboxd data
+    python main.py letterboxd-analyze # Analyze Letterboxd movies
+    python main.py overcast-sync     # Import Overcast data
+    python main.py publish           # Publish monthly summary to blog
+    python main.py status            # Show sync status
 """
 
 import sys
@@ -127,6 +129,67 @@ def cmd_letterboxd_sync():
     importer.sync()
 
 
+def cmd_letterboxd_analyze():
+    """Analyze Letterboxd watched movies."""
+    # Ensure latest data
+    cmd_letterboxd_sync()
+
+    from src.letterboxd.database import LetterboxdDatabase
+    from src.letterboxd.analytics import LetterboxdAnalytics
+
+    print("Analyzing Letterboxd movies...")
+
+    db = LetterboxdDatabase()
+    db.init_tables()
+
+    analytics = LetterboxdAnalytics(db=db)
+    record_count = analytics.analyze_watched()
+
+    print(f"Analysis complete! {record_count} monthly records written to the analysis table in letterboxd.db")
+
+
+def cmd_analyze():
+    """Analyze all sources."""
+    print("=== Analyzing All Sources ===\n")
+    
+    # Readwise
+    print("--- Readwise ---")
+    try:
+        from src.readwise.database import DatabaseManager
+        from src.readwise.analytics import ReadwiseAnalytics
+        
+        # Sync first
+        cmd_readwise_sync()
+        
+        db = DatabaseManager()
+        analytics = ReadwiseAnalytics(db=db)
+        count = analytics.analyze_archived()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error: {e}")
+    
+    print()
+    
+    # Letterboxd
+    print("--- Letterboxd ---")
+    try:
+        from src.letterboxd.database import LetterboxdDatabase
+        from src.letterboxd.analytics import LetterboxdAnalytics
+        
+        # Sync first
+        cmd_letterboxd_sync()
+        
+        db = LetterboxdDatabase()
+        db.init_tables()
+        analytics = LetterboxdAnalytics(db=db)
+        count = analytics.analyze_watched()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error: {e}")
+    
+    print("\nAnalysis complete!")
+
+
 def cmd_overcast_sync():
     """Import Overcast data from OPML export."""
     from src.overcast.importer import OvercastImporter
@@ -230,6 +293,7 @@ def cmd_status():
     print("--- Letterboxd ---")
     try:
         from src.letterboxd.importer import LetterboxdImporter
+        from src.letterboxd.database import LetterboxdDatabase
         
         importer = LetterboxdImporter()
         status = importer.get_status()
@@ -242,6 +306,21 @@ def cmd_status():
             latest = status.get("latest_export")
             if latest:
                 print(f"  latest_export: {latest.name}")
+        
+        # Analysis status
+        db = LetterboxdDatabase()
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM analysis")
+            analysis_count = cursor.fetchone()[0]
+            cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
+            latest_analysis = cursor.fetchone()
+        
+        if analysis_count > 0 and latest_analysis:
+            print(f"  analysis records: {analysis_count}")
+            print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
+        else:
+            print(f"  analysis: no records")
     except Exception as e:
         print(f"  Error: {e}")
     
@@ -275,10 +354,12 @@ def main():
     commands = {
         "init": cmd_init,
         "sync": cmd_sync,
+        "analyze": cmd_analyze,
         "readwise-sync": cmd_readwise_sync,
         "readwise-analyze": cmd_readwise_analyze,
         "foursquare-sync": cmd_foursquare_sync,
         "letterboxd-sync": cmd_letterboxd_sync,
+        "letterboxd-analyze": cmd_letterboxd_analyze,
         "overcast-sync": cmd_overcast_sync,
         "publish": cmd_publish,
         "status": cmd_status,

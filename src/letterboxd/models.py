@@ -43,10 +43,25 @@ CREATE TABLE IF NOT EXISTS ratings (
 );
 """
 
+CREATE_ANALYSIS_TABLE = """
+CREATE TABLE IF NOT EXISTS analysis (
+    year_month TEXT PRIMARY KEY,
+    year TEXT NOT NULL,
+    month TEXT NOT NULL,
+    movies_watched REAL DEFAULT 0,
+    avg_rating REAL DEFAULT 0,
+    min_rating REAL DEFAULT 0,
+    max_rating REAL DEFAULT 0,
+    avg_years_since_release REAL DEFAULT 0,
+    updated_at TEXT
+);
+"""
+
 ALL_TABLES = [
     CREATE_USERS_TABLE,
     CREATE_WATCHED_TABLE,
     CREATE_RATINGS_TABLE,
+    CREATE_ANALYSIS_TABLE,
 ]
 
 CREATE_INDEXES = [
@@ -55,4 +70,5 @@ CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_ratings_username ON ratings(username);",
     "CREATE INDEX IF NOT EXISTS idx_ratings_date ON ratings(rated_at);",
     "CREATE INDEX IF NOT EXISTS idx_ratings_rating ON ratings(rating);",
+    "CREATE INDEX IF NOT EXISTS idx_analysis_year_month ON analysis(year, month);",
 ]

@@ -13,15 +13,17 @@ cp .env.example .env
 ## Commands
 
 ```bash
-uv run main.py init             # Initialize all databases
-uv run main.py sync             # Sync all services
-uv run main.py readwise-sync    # Sync Readwise only
-uv run main.py readwise-analyze # Analyze Readwise archive
-uv run main.py foursquare-sync  # Sync Foursquare only
-uv run main.py letterboxd-sync  # Import Letterboxd data
-uv run main.py overcast-sync    # Import Overcast data
-uv run main.py publish          # Publish monthly summary to blog
-uv run main.py status           # Show sync status
+uv run main.py init              # Initialize all databases
+uv run main.py sync              # Sync all services
+uv run main.py analyze           # Analyze all sources
+uv run main.py readwise-sync     # Sync Readwise only
+uv run main.py readwise-analyze  # Analyze Readwise archive
+uv run main.py foursquare-sync   # Sync Foursquare only
+uv run main.py letterboxd-sync   # Import Letterboxd data
+uv run main.py letterboxd-analyze # Analyze Letterboxd movies
+uv run main.py overcast-sync     # Import Overcast data
+uv run main.py publish           # Publish monthly summary to blog
+uv run main.py status            # Show sync status
 ```
 
 ---
@@ -53,6 +55,10 @@ Exports checkins and places to `data/foursquare.db`.
 ## Letterboxd
 
 Imports watched movies and ratings from CSV export to `data/letterboxd.db`.
+
+**Commands:**
+- `letterboxd-sync`: Imports data from Letterboxd CSV export.
+- `letterboxd-analyze`: Generates monthly movie stats (count, avg/min/max rating, avg years since release) and writes to the `analysis` table.
 
 **Setup:**
 1. Export your data from [letterboxd.com/settings/data](https://letterboxd.com/settings/data/)
