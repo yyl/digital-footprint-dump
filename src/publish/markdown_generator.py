@@ -44,7 +44,7 @@ class MarkdownGenerator:
         """Generate YAML front matter for the markdown file."""
         month = data['month']
         year = data['year']
-        title = f"Monthly activity summary - {month}/{year}"
+        title = f"What did I do this month - {month}/{year} edition"
         
         # Use current time in PDT for the date
         pdt = ZoneInfo("America/Los_Angeles")
@@ -94,7 +94,7 @@ categories: ["Summary"]
             speed_display = "N/A"
         
         return f"""
-## Readwise
+## Reading - Readwise
 
 - **Articles Archived**: {articles}
 - **Total Words Read**: {words:,}
@@ -108,7 +108,7 @@ categories: ["Summary"]
         unique_places = int(foursquare_data.get('unique_places', 0))
         
         return f"""
-## Foursquare
+## Travel - Foursquare
 
 - **Checkins**: {checkins}
 - **Unique Places Visited**: {unique_places}
@@ -123,7 +123,7 @@ categories: ["Summary"]
         avg_years = letterboxd_data.get('avg_years_since_release', 0)
         
         return f"""
-## Letterboxd
+## Movies - Letterboxd
 
 - **Movies Watched**: {int(movies)}
 - **Average Rating**: {avg_rating:.2f} ⭐
@@ -139,7 +139,7 @@ categories: ["Summary"]
         episodes_played = int(overcast_data.get('episodes_played', 0))
         
         return f"""
-## Podcast (Overcast)
+## Podcasts - Overcast
 
 - **New Feeds Subscribed**: {feeds_added}
 - **Feeds Removed**: {feeds_removed}
