@@ -101,20 +101,34 @@ Generates a monthly activity summary as a Hugo blog article (draft) and commits 
 ## Project Structure
 
 ```
-├── main.py
+├── main.py                 # CLI entry point
 ├── src/
-│   ├── config.py
+│   ├── config.py           # Configuration and environment variables
 │   ├── readwise/
 │   ├── foursquare/
 │   ├── letterboxd/
 │   ├── overcast/
 │   └── publish/
-├── data/
-│   ├── readwise.db
-│   ├── foursquare.db
-│   ├── letterboxd.db
-│   └── overcast.db
-└── files/
-    ├── letterboxd-*/
-    └── overcast*.opml
+├── data/                   # SQLite databases (generated)
+└── files/                  # Import files (user-provided)
 ```
+
+### Module Files
+
+Each source module (`readwise/`, `foursquare/`, `letterboxd/`, `overcast/`) follows a consistent pattern:
+
+| File | Description |
+|------|-------------|
+| `models.py` | SQL schema definitions (table creation statements) |
+| `database.py` | Database manager with connection handling and CRUD operations |
+| `api_client.py` | API wrapper for external service calls (API sources only) |
+| `sync.py` | Sync orchestration between API and database (API sources only) |
+| `importer.py` | File parser for CSV/OPML imports (file-based sources only) |
+| `analytics.py` | Monthly analysis logic, writes to `analysis` table |
+
+The `publish/` module contains:
+| File | Description |
+|------|-------------|
+| `github_client.py` | GitHub API wrapper for committing files |
+| `markdown_generator.py` | Hugo-compatible markdown generation |
+| `publisher.py` | Orchestrates analysis fetching and publishing |
