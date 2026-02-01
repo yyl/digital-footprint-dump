@@ -1,6 +1,6 @@
 # digital-footprint-dump
 
-A dump of all the digital footprints.
+A pipeline to fetch data from digital sources, analyze them, and publish monthly summary to a markdown blog site.
 
 ## Setup
 
@@ -12,20 +12,17 @@ cp .env.example .env
 
 ## Commands
 
-```bash
-uv run main.py init              # Initialize all databases
-uv run main.py sync              # Sync all services
-uv run main.py analyze           # Analyze all sources
-uv run main.py readwise-sync     # Sync Readwise only
-uv run main.py readwise-analyze  # Analyze Readwise archive
-uv run main.py foursquare-sync   # Sync Foursquare only
-uv run main.py letterboxd-sync   # Import Letterboxd data
-uv run main.py letterboxd-analyze # Analyze Letterboxd movies
-uv run main.py overcast-sync     # Import Overcast data
-uv run main.py overcast-analyze  # Analyze Overcast podcasts
-uv run main.py publish           # Publish monthly summary to blog
-uv run main.py status            # Show sync status
-```
+| Command | Description |
+|---------|-------------|
+| `init` | Initialize all databases |
+| `sync` | Sync all services |
+| `analyze` | Analyze all sources |
+| `publish` | Publish monthly summary to blog |
+| `status` | Show sync status |
+| `{source}-sync` | Sync specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`) |
+| `{source}-analyze` | Analyze specific source (`readwise`, `letterboxd`, `overcast`) |
+
+Run with: `uv run main.py <command>`
 
 ---
 
