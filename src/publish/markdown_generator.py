@@ -26,6 +26,10 @@ class MarkdownGenerator:
         if data.get('readwise'):
             parts.append(self._generate_readwise_section(data['readwise']))
         
+        # Letterboxd section
+        if data.get('letterboxd'):
+            parts.append(self._generate_letterboxd_section(data['letterboxd']))
+        
         return "\n".join(parts)
     
     def _generate_front_matter(self, data: Dict[str, Any]) -> str:
@@ -39,11 +43,20 @@ class MarkdownGenerator:
         now = datetime.now(pdt)
         date_iso = now.isoformat(timespec='seconds')
         
+        # Build tags based on available data
+        tags = ["monthly", "digest", "automated"]
+        if data.get('readwise'):
+            tags.append("readwise")
+        if data.get('letterboxd'):
+            tags.append("letterboxd")
+        
+        tags_str = ", ".join(f'"{t}"' for t in tags)
+        
         return f"""---
 title: "{title}"
 date: {date_iso}
 draft: true
-tags: ["monthly", "readwise", "digest", "automated"]
+tags: [{tags_str}]
 categories: ["Summary"]
 ---"""
     
@@ -76,3 +89,22 @@ categories: ["Summary"]
 - **Time Spent Reading**: {time_display}
 - **Average Reading Speed**: {speed_display}
 """
+    
+    def _generate_letterboxd_section(self, letterboxd_data: Dict[str, Any]) -> str:
+        """Generate the Letterboxd statistics section."""
+        movies = letterboxd_data.get('movies_watched', 0)
+        avg_rating = letterboxd_data.get('avg_rating', 0)
+        min_rating = letterboxd_data.get('min_rating', 0)
+        max_rating = letterboxd_data.get('max_rating', 0)
+        avg_years = letterboxd_data.get('avg_years_since_release', 0)
+        
+        return f"""
+## Letterboxd
+
+- **Movies Watched**: {int(movies)}
+- **Average Rating**: {avg_rating:.2f} ⭐
+- **Lowest Rating**: {min_rating:.2f} ⭐
+- **Highest Rating**: {max_rating:.2f} ⭐
+- **Average Years Since Release**: {avg_years:.2f}
+"""
+

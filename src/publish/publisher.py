@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 
 from ..config import Config
 from ..readwise.database import DatabaseManager
+from ..letterboxd.database import LetterboxdDatabase
 from .github_client import GitHubClient
 from .markdown_generator import MarkdownGenerator
 
@@ -16,36 +17,75 @@ class Publisher:
     
     def __init__(
         self,
-        db: Optional[DatabaseManager] = None,
+        readwise_db: Optional[DatabaseManager] = None,
+        letterboxd_db: Optional[LetterboxdDatabase] = None,
         github_client: Optional[GitHubClient] = None
     ):
         """Initialize publisher.
         
         Args:
-            db: Database manager for reading analysis data.
+            readwise_db: Readwise database manager for reading analysis data.
+            letterboxd_db: Letterboxd database manager.
             github_client: GitHub client for committing files.
         """
-        self.db = db or DatabaseManager()
+        self.readwise_db = readwise_db or DatabaseManager()
+        self.letterboxd_db = letterboxd_db or LetterboxdDatabase()
         self.github_client = github_client
         self.markdown_generator = MarkdownGenerator()
     
-    def _get_latest_analysis(self) -> Optional[Dict[str, Any]]:
-        """Get the latest month's analysis from the database."""
+    def _get_readwise_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
+        """Get Readwise analysis for a specific month."""
         query = """
         SELECT year_month, year, month, articles, words, reading_time_mins
         FROM analysis
-        ORDER BY year_month DESC
-        LIMIT 1
+        WHERE year_month = ?
         """
         
-        with self.db.get_connection() as conn:
+        with self.readwise_db.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query)
+            cursor.execute(query, (year_month,))
             row = cursor.fetchone()
             
             if row:
                 return dict(row)
             return None
+    
+    def _get_letterboxd_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
+        """Get Letterboxd analysis for a specific month."""
+        query = """
+        SELECT year_month, year, month, movies_watched, avg_rating, min_rating, max_rating, avg_years_since_release
+        FROM analysis
+        WHERE year_month = ?
+        """
+        
+        with self.letterboxd_db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (year_month,))
+            row = cursor.fetchone()
+            
+            if row:
+                return dict(row)
+            return None
+    
+    def _get_latest_year_month(self) -> Optional[str]:
+        """Get the latest year_month from any analysis source."""
+        # Check Readwise first
+        with self.readwise_db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT year_month FROM analysis ORDER BY year_month DESC LIMIT 1")
+            row = cursor.fetchone()
+            if row:
+                return row['year_month']
+        
+        # Check Letterboxd
+        with self.letterboxd_db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT year_month FROM analysis ORDER BY year_month DESC LIMIT 1")
+            row = cursor.fetchone()
+            if row:
+                return row['year_month']
+        
+        return None
     
     def publish(self) -> Dict[str, Any]:
         """Generate and publish the monthly summary.
@@ -53,23 +93,39 @@ class Publisher:
         Returns:
             Dictionary with commit information.
         """
-        # Get latest analysis
-        analysis = self._get_latest_analysis()
-        if not analysis:
-            raise ValueError("No analysis data found. Run 'readwise-analyze' first.")
+        # Get latest year_month
+        year_month = self._get_latest_year_month()
+        if not year_month:
+            raise ValueError("No analysis data found. Run 'analyze' first.")
         
-        logger.info(f"Publishing summary for {analysis['year']}-{analysis['month']}")
+        year, month = year_month.split('-')
+        logger.info(f"Publishing summary for {year_month}")
         
         # Prepare data for markdown generation
         data = {
-            'year': analysis['year'],
-            'month': analysis['month'],
-            'readwise': {
-                'articles': analysis['articles'],
-                'words': analysis['words'],
-                'reading_time_mins': analysis['reading_time_mins']
-            }
+            'year': year,
+            'month': month,
         }
+        
+        # Get Readwise analysis
+        readwise = self._get_readwise_analysis(year_month)
+        if readwise:
+            data['readwise'] = {
+                'articles': readwise['articles'],
+                'words': readwise['words'],
+                'reading_time_mins': readwise['reading_time_mins']
+            }
+        
+        # Get Letterboxd analysis
+        letterboxd = self._get_letterboxd_analysis(year_month)
+        if letterboxd:
+            data['letterboxd'] = {
+                'movies_watched': letterboxd['movies_watched'],
+                'avg_rating': letterboxd['avg_rating'],
+                'min_rating': letterboxd['min_rating'],
+                'max_rating': letterboxd['max_rating'],
+                'avg_years_since_release': letterboxd['avg_years_since_release']
+            }
         
         # Generate markdown
         markdown_content = self.markdown_generator.generate_monthly_summary(data)
@@ -85,8 +141,8 @@ class Publisher:
             )
         
         # Create file path
-        file_path = f"content/posts/{analysis['year']}-{analysis['month']}-monthly-summary.md"
-        commit_message = f"feat: Add monthly summary draft for {analysis['month']}/{analysis['year']}"
+        file_path = f"content/posts/{year}-{month}-monthly-summary.md"
+        commit_message = f"feat: Add monthly summary draft for {month}/{year}"
         
         # Commit to GitHub
         result = self.github_client.create_or_update_file(
@@ -97,3 +153,4 @@ class Publisher:
         
         logger.info(f"Published to {result['url']}")
         return result
+

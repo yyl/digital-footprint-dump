@@ -96,10 +96,17 @@ def cmd_readwise_analyze():
 
 def cmd_publish():
     """Publish monthly summary to blog repository."""
-    # First ensure we have the latest analysis
+    # First ensure we have the latest analysis from all sources
+    print("=== Updating Analysis ===\n")
+    
+    print("--- Readwise ---")
     cmd_readwise_analyze()
     
-    print("\nPublishing monthly summary...")
+    print("\n--- Letterboxd ---")
+    cmd_letterboxd_analyze()
+    
+    print("\n=== Publishing ===")
+    print("Publishing monthly summary...")
     
     from src.publish import Publisher
     
