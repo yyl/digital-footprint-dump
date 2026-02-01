@@ -20,7 +20,7 @@ cp .env.example .env
 | `publish` | Publish monthly summary to blog |
 | `status` | Show sync status |
 | `{source}-sync` | Sync specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`) |
-| `{source}-analyze` | Analyze specific source (`readwise`, `letterboxd`, `overcast`) |
+| `{source}-analyze` | Analyze specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`) |
 
 Run with: `uv run main.py <command>`
 
@@ -42,6 +42,10 @@ Exports books, highlights, and Reader documents to `data/readwise.db`.
 ## Foursquare
 
 Exports checkins and places to `data/foursquare.db`.
+
+**Commands:**
+- `foursquare-sync`: Syncs checkin history from Foursquare API.
+- `foursquare-analyze`: Generates monthly stats (checkins, unique places) and writes to the `analysis` table.
 
 **Required in .env:**
 - `FOURSQUARE_CLIENT_ID` - From your [Foursquare app](https://foursquare.com/developers/apps)

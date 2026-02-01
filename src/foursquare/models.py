@@ -79,12 +79,24 @@ CREATE TABLE IF NOT EXISTS sync_state (
 );
 """
 
+CREATE_ANALYSIS_TABLE = """
+CREATE TABLE IF NOT EXISTS analysis (
+    year_month TEXT PRIMARY KEY,
+    year TEXT NOT NULL,
+    month TEXT NOT NULL,
+    checkins INTEGER DEFAULT 0,
+    unique_places INTEGER DEFAULT 0,
+    updated_at TEXT
+);
+"""
+
 # List of all table creation statements
 ALL_TABLES = [
     CREATE_USERS_TABLE,
     CREATE_PLACES_TABLE,
     CREATE_CHECKINS_TABLE,
     CREATE_SYNC_STATE_TABLE,
+    CREATE_ANALYSIS_TABLE,
 ]
 
 # Index creation for better query performance

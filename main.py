@@ -106,6 +106,9 @@ def cmd_publish():
     print("\n--- Letterboxd ---")
     cmd_letterboxd_analyze()
     
+    print("\n--- Foursquare ---")
+    cmd_foursquare_analyze()
+    
     print("\n--- Overcast ---")
     cmd_overcast_analyze()
     
@@ -130,6 +133,25 @@ def cmd_foursquare_sync():
     
     sync_manager = FoursquareSyncManager()
     sync_manager.sync()
+
+
+def cmd_foursquare_analyze():
+    """Analyze Foursquare checkins."""
+    # Ensure latest data
+    cmd_foursquare_sync()
+
+    from src.foursquare.database import FoursquareDatabase
+    from src.foursquare.analytics import FoursquareAnalytics
+
+    print("Analyzing Foursquare checkins...")
+
+    db = FoursquareDatabase()
+    db.init_tables()
+
+    analytics = FoursquareAnalytics(db=db)
+    record_count = analytics.analyze_checkins()
+
+    print(f"Analysis complete! {record_count} monthly records written to the analysis table in foursquare.db")
 
 
 def cmd_letterboxd_sync():
@@ -175,6 +197,25 @@ def cmd_analyze():
         db = ReadwiseDatabase()
         analytics = ReadwiseAnalytics(db=db)
         count = analytics.analyze_archived()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error: {e}")
+    
+    print()
+    
+    # Foursquare
+    print("--- Foursquare ---")
+    try:
+        from src.foursquare.database import FoursquareDatabase
+        from src.foursquare.analytics import FoursquareAnalytics
+        
+        # Sync first
+        cmd_foursquare_sync()
+        
+        db = FoursquareDatabase()
+        db.init_tables()
+        analytics = FoursquareAnalytics(db=db)
+        count = analytics.analyze_checkins()
         print(f"  {count} monthly records written")
     except Exception as e:
         print(f"  Error: {e}")
@@ -422,6 +463,7 @@ def main():
         "readwise-sync": cmd_readwise_sync,
         "readwise-analyze": cmd_readwise_analyze,
         "foursquare-sync": cmd_foursquare_sync,
+        "foursquare-analyze": cmd_foursquare_analyze,
         "letterboxd-sync": cmd_letterboxd_sync,
         "letterboxd-analyze": cmd_letterboxd_analyze,
         "overcast-sync": cmd_overcast_sync,

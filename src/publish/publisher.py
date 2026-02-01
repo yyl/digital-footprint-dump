@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 
 from ..config import Config
 from ..readwise.database import ReadwiseDatabase
+from ..foursquare.database import FoursquareDatabase
 from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
 from .github_client import GitHubClient
@@ -19,6 +20,7 @@ class Publisher:
     def __init__(
         self,
         readwise_db: Optional[ReadwiseDatabase] = None,
+        foursquare_db: Optional[FoursquareDatabase] = None,
         letterboxd_db: Optional[LetterboxdDatabase] = None,
         overcast_db: Optional[OvercastDatabase] = None,
         github_client: Optional[GitHubClient] = None
@@ -27,11 +29,13 @@ class Publisher:
         
         Args:
             readwise_db: Readwise database manager for reading analysis data.
+            foursquare_db: Foursquare database manager.
             letterboxd_db: Letterboxd database manager.
             overcast_db: Overcast database manager.
             github_client: GitHub client for committing files.
         """
         self.readwise_db = readwise_db or ReadwiseDatabase()
+        self.foursquare_db = foursquare_db or FoursquareDatabase()
         self.letterboxd_db = letterboxd_db or LetterboxdDatabase()
         self.overcast_db = overcast_db or OvercastDatabase()
         self.github_client = github_client
@@ -53,6 +57,26 @@ class Publisher:
             if row:
                 return dict(row)
             return None
+    
+    def _get_foursquare_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
+        """Get Foursquare analysis for a specific month."""
+        query = """
+        SELECT year_month, year, month, checkins, unique_places
+        FROM analysis
+        WHERE year_month = ?
+        """
+        
+        try:
+            with self.foursquare_db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (year_month,))
+                row = cursor.fetchone()
+                
+                if row:
+                    return dict(row)
+        except Exception:
+            pass
+        return None
     
     def _get_letterboxd_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Letterboxd analysis for a specific month."""
@@ -141,6 +165,14 @@ class Publisher:
                 'articles': readwise['articles'],
                 'words': readwise['words'],
                 'reading_time_mins': readwise['reading_time_mins']
+            }
+        
+        # Get Foursquare analysis
+        foursquare = self._get_foursquare_analysis(year_month)
+        if foursquare:
+            data['foursquare'] = {
+                'checkins': foursquare['checkins'],
+                'unique_places': foursquare['unique_places']
             }
         
         # Get Letterboxd analysis

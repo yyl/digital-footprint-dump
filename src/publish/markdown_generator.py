@@ -26,6 +26,10 @@ class MarkdownGenerator:
         if data.get('readwise'):
             parts.append(self._generate_readwise_section(data['readwise']))
         
+        # Foursquare section
+        if data.get('foursquare'):
+            parts.append(self._generate_foursquare_section(data['foursquare']))
+        
         # Letterboxd section
         if data.get('letterboxd'):
             parts.append(self._generate_letterboxd_section(data['letterboxd']))
@@ -51,6 +55,8 @@ class MarkdownGenerator:
         tags = ["monthly", "digest", "automated"]
         if data.get('readwise'):
             tags.append("readwise")
+        if data.get('foursquare'):
+            tags.append("foursquare")
         if data.get('letterboxd'):
             tags.append("letterboxd")
         if data.get('overcast'):
@@ -94,6 +100,18 @@ categories: ["Summary"]
 - **Total Words Read**: {words:,}
 - **Time Spent Reading**: {time_display}
 - **Average Reading Speed**: {speed_display}
+"""
+    
+    def _generate_foursquare_section(self, foursquare_data: Dict[str, Any]) -> str:
+        """Generate the Foursquare statistics section."""
+        checkins = int(foursquare_data.get('checkins', 0))
+        unique_places = int(foursquare_data.get('unique_places', 0))
+        
+        return f"""
+## Foursquare
+
+- **Checkins**: {checkins}
+- **Unique Places Visited**: {unique_places}
 """
     
     def _generate_letterboxd_section(self, letterboxd_data: Dict[str, Any]) -> str:
