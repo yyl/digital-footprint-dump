@@ -5,19 +5,19 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Optional
 
-from .database import DatabaseManager
+from .database import ReadwiseDatabase
 
 
 class ReadwiseAnalytics:
     """Analyzes Readwise data."""
 
-    def __init__(self, db: Optional[DatabaseManager] = None):
+    def __init__(self, db: Optional[ReadwiseDatabase] = None):
         """Initialize analytics.
 
         Args:
             db: Database manager instance.
         """
-        self.db = db or DatabaseManager()
+        self.db = db or ReadwiseDatabase()
 
     def _parse_reading_time(self, reading_time_str: str) -> int:
         """Extract minutes from reading time string."""

@@ -28,8 +28,8 @@ def cmd_init():
     print("Initializing databases...\n")
     
     # Readwise
-    from src.readwise.database import DatabaseManager
-    db = DatabaseManager()
+    from src.readwise.database import ReadwiseDatabase
+    db = ReadwiseDatabase()
     db.init_tables()
     
     # Foursquare
@@ -54,7 +54,7 @@ def cmd_readwise_sync():
         sys.exit(1)
     
     from src.readwise.api_client import ReadwiseAPIClient
-    from src.readwise.database import DatabaseManager
+    from src.readwise.database import ReadwiseDatabase
     from src.readwise.sync import SyncManager
     
     api = ReadwiseAPIClient()
@@ -65,7 +65,7 @@ def cmd_readwise_sync():
         sys.exit(1)
     print("Token validated!\n")
     
-    db = DatabaseManager()
+    db = ReadwiseDatabase()
     db.init_tables()
     
     sync_manager = SyncManager(db=db, api=api)
@@ -77,12 +77,12 @@ def cmd_readwise_analyze():
     # Ensure latest data
     cmd_readwise_sync()
 
-    from src.readwise.database import DatabaseManager
+    from src.readwise.database import ReadwiseDatabase
     from src.readwise.analytics import ReadwiseAnalytics
 
     print("Analyzing Readwise archive...")
 
-    db = DatabaseManager()
+    db = ReadwiseDatabase()
 
     if not db.check_tables_exist():
         print("Error: Readwise database tables not found.")
@@ -166,13 +166,13 @@ def cmd_analyze():
     # Readwise
     print("--- Readwise ---")
     try:
-        from src.readwise.database import DatabaseManager
+        from src.readwise.database import ReadwiseDatabase
         from src.readwise.analytics import ReadwiseAnalytics
         
         # Sync first
         cmd_readwise_sync()
         
-        db = DatabaseManager()
+        db = ReadwiseDatabase()
         analytics = ReadwiseAnalytics(db=db)
         count = analytics.analyze_archived()
         print(f"  {count} monthly records written")
@@ -278,10 +278,10 @@ def cmd_status():
     # Readwise
     print("--- Readwise ---")
     try:
-        from src.readwise.database import DatabaseManager
+        from src.readwise.database import ReadwiseDatabase
         from src.readwise.sync import SyncManager
         
-        db = DatabaseManager()
+        db = ReadwiseDatabase()
         db.init_tables()
         sync_manager = SyncManager(db=db)
         status = sync_manager.get_sync_status()

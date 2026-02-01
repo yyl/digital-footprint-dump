@@ -9,7 +9,7 @@ from ..config import Config
 from .models import ALL_TABLES, CREATE_INDEXES
 
 
-class DatabaseManager:
+class ReadwiseDatabase:
     """Manages SQLite database connections and operations."""
     
     def __init__(self, db_path: Optional[str] = None):

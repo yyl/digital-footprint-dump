@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Any, Optional
 
 from ..config import Config
-from ..readwise.database import DatabaseManager
+from ..readwise.database import ReadwiseDatabase
 from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
 from .github_client import GitHubClient
@@ -18,7 +18,7 @@ class Publisher:
     
     def __init__(
         self,
-        readwise_db: Optional[DatabaseManager] = None,
+        readwise_db: Optional[ReadwiseDatabase] = None,
         letterboxd_db: Optional[LetterboxdDatabase] = None,
         overcast_db: Optional[OvercastDatabase] = None,
         github_client: Optional[GitHubClient] = None
@@ -31,7 +31,7 @@ class Publisher:
             overcast_db: Overcast database manager.
             github_client: GitHub client for committing files.
         """
-        self.readwise_db = readwise_db or DatabaseManager()
+        self.readwise_db = readwise_db or ReadwiseDatabase()
         self.letterboxd_db = letterboxd_db or LetterboxdDatabase()
         self.overcast_db = overcast_db or OvercastDatabase()
         self.github_client = github_client

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from ..config import Config
-from .database import DatabaseManager
+from .database import ReadwiseDatabase
 from .api_client import ReadwiseAPIClient
 
 
@@ -17,7 +17,7 @@ class SyncManager:
     
     def __init__(
         self,
-        db: Optional[DatabaseManager] = None,
+        db: Optional[ReadwiseDatabase] = None,
         api: Optional[ReadwiseAPIClient] = None
     ):
         """Initialize sync manager.
@@ -26,7 +26,7 @@ class SyncManager:
             db: Database manager instance
             api: API client instance
         """
-        self.db = db or DatabaseManager()
+        self.db = db or ReadwiseDatabase()
         self.api = api or ReadwiseAPIClient()
     
     def sync_all(self) -> dict:
