@@ -1,0 +1,97 @@
+"""Tests for cloud configuration validation."""
+
+import os
+import pytest
+from unittest.mock import patch
+
+
+class TestConfigValidation:
+    """Test configuration validation logic."""
+
+    def test_validate_readwise_missing_token(self):
+        """Test that missing Readwise token raises ValueError."""
+        from src.config import Config
+        
+        with patch.object(Config, 'READWISE_ACCESS_TOKEN', ''):
+            with pytest.raises(ValueError, match="READWISE_ACCESS_TOKEN"):
+                Config.validate_readwise()
+
+    def test_validate_readwise_with_token(self):
+        """Test that Readwise validation passes with token."""
+        from src.config import Config
+        
+        with patch.object(Config, 'READWISE_ACCESS_TOKEN', 'test_token'):
+            assert Config.validate_readwise() is True
+
+    def test_validate_foursquare_missing_credentials(self):
+        """Test that missing Foursquare credentials raise ValueError."""
+        from src.config import Config
+        
+        with patch.object(Config, 'FOURSQUARE_CLIENT_ID', ''):
+            with patch.object(Config, 'FOURSQUARE_CLIENT_SECRET', ''):
+                with pytest.raises(ValueError, match="FOURSQUARE_CLIENT_ID"):
+                    Config.validate_foursquare()
+
+    def test_validate_foursquare_with_credentials(self):
+        """Test that Foursquare validation passes with credentials."""
+        from src.config import Config
+        
+        with patch.object(Config, 'FOURSQUARE_CLIENT_ID', 'test_id'):
+            with patch.object(Config, 'FOURSQUARE_CLIENT_SECRET', 'test_secret'):
+                assert Config.validate_foursquare() is True
+
+    def test_validate_github_missing_token(self):
+        """Test that missing GitHub config raises ValueError."""
+        from src.config import Config
+        
+        with patch.object(Config, 'GITHUB_TOKEN', ''):
+            with patch.object(Config, 'BLOG_REPO_OWNER', 'owner'):
+                with patch.object(Config, 'BLOG_REPO_NAME', 'repo'):
+                    with pytest.raises(ValueError, match="GITHUB_TOKEN"):
+                        Config.validate_github()
+
+    def test_validate_github_with_config(self):
+        """Test that GitHub validation passes with full config."""
+        from src.config import Config
+        
+        with patch.object(Config, 'GITHUB_TOKEN', 'test_token'):
+            with patch.object(Config, 'BLOG_REPO_OWNER', 'owner'):
+                with patch.object(Config, 'BLOG_REPO_NAME', 'repo'):
+                    assert Config.validate_github() is True
+
+
+class TestDatabasePaths:
+    """Test database path resolution."""
+
+    def test_database_paths_are_absolute(self):
+        """Test that all database paths are absolute."""
+        from src.config import Config
+        
+        assert Config.DATABASE_PATH.is_absolute()
+        assert Config.FOURSQUARE_DATABASE_PATH.is_absolute()
+        assert Config.LETTERBOXD_DATABASE_PATH.is_absolute()
+        assert Config.OVERCAST_DATABASE_PATH.is_absolute()
+
+    def test_database_paths_in_data_dir(self):
+        """Test that all database paths are in the data directory."""
+        from src.config import Config
+        
+        assert Config.DATABASE_PATH.parent == Config.DATA_DIR
+        assert Config.FOURSQUARE_DATABASE_PATH.parent == Config.DATA_DIR
+        assert Config.LETTERBOXD_DATABASE_PATH.parent == Config.DATA_DIR
+        assert Config.OVERCAST_DATABASE_PATH.parent == Config.DATA_DIR
+
+    def test_ensure_data_dir_creates_directory(self, tmp_path):
+        """Test that ensure_data_dir creates the data directory."""
+        from src.config import Config
+        
+        # Temporarily override DATA_DIR
+        original_data_dir = Config.DATA_DIR
+        Config.DATA_DIR = tmp_path / "test_data"
+        
+        try:
+            assert not Config.DATA_DIR.exists()
+            Config.ensure_data_dir()
+            assert Config.DATA_DIR.exists()
+        finally:
+            Config.DATA_DIR = original_data_dir

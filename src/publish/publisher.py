@@ -203,8 +203,8 @@ class Publisher:
             Config.validate_github()
             self.github_client = GitHubClient(
                 token=Config.GITHUB_TOKEN,
-                repo_owner=Config.GITHUB_REPO_OWNER,
-                repo_name=Config.GITHUB_REPO_NAME,
+                repo_owner=Config.BLOG_REPO_OWNER,
+                repo_name=Config.BLOG_REPO_NAME,
                 target_branch=Config.GITHUB_TARGET_BRANCH
             )
         

@@ -93,9 +93,67 @@ Generates a monthly activity summary as a Hugo blog article (draft) and commits 
 
 **Required in .env:**
 - `GITHUB_TOKEN` - Personal access token with repo write access
-- `GITHUB_REPO_OWNER` - Repository owner username
-- `GITHUB_REPO_NAME` - Repository name
+- `BLOG_REPO_OWNER` - Repository owner username
+- `BLOG_REPO_NAME` - Repository name
 - `GITHUB_TARGET_BRANCH` - (optional) Branch to commit to, defaults to `main`
+
+---
+
+## Cloud Deployment (GitHub Actions)
+
+Automate the pipeline to run monthly using GitHub Actions with a private data repository.
+
+### Setup
+
+1. **Create a private data repository** (e.g., `digital-footprint-data`):
+   ```
+   digital-footprint-data/
+   ├── data/           # Empty initially, DBs auto-created
+   └── files/          # Manual exports (Letterboxd, Overcast)
+       ├── letterboxd-export/
+       └── overcast.opml
+   ```
+
+2. **Create a Personal Access Token (PAT)** with `repo` scope at [github.com/settings/tokens](https://github.com/settings/tokens)
+
+3. **Add secrets** to your public repo (Settings → Secrets → Actions):
+
+   | Secret | Description |
+   |--------|-------------|
+   | `DATA_REPO_OWNER` | Your GitHub username |
+   | `DATA_REPO_NAME` | Private data repo name |
+   | `DATA_REPO_PAT` | PAT with repo access |
+   | `READWISE_ACCESS_TOKEN` | Readwise API token |
+   | `FOURSQUARE_CLIENT_ID` | Foursquare OAuth |
+   | `FOURSQUARE_CLIENT_SECRET` | Foursquare OAuth |
+   | `FOURSQUARE_API_KEY` | Foursquare Places API |
+   | `FOURSQUARE_ACCESS_TOKEN` | Foursquare OAuth token |
+   | `BLOG_GITHUB_TOKEN` | PAT for blog repo push |
+   | `BLOG_REPO_OWNER` | Blog repo owner |
+   | `BLOG_REPO_NAME` | Blog repo name |
+
+### Schedule
+
+The workflow runs automatically on the **last day of each month at 11:00 AM UTC**.
+
+### Manual Trigger
+
+1. Go to **Actions** tab in your repository
+2. Select **"Monthly Pipeline"** workflow
+3. Click **"Run workflow"**
+4. Optionally enable **dry-run mode** to validate without publishing
+
+### Testing Locally
+
+Validate the workflow with [act](https://github.com/nektos/act):
+```bash
+act -n  # Dry-run to check syntax
+```
+
+Test the dry-run mode:
+```bash
+uv run main.py publish --dry-run
+```
 
 ---
 

@@ -50,8 +50,8 @@ class Config:
     # GitHub Publishing Configuration
     # ==========================================================================
     GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
-    GITHUB_REPO_OWNER: str = os.getenv("GITHUB_REPO_OWNER", "")
-    GITHUB_REPO_NAME: str = os.getenv("GITHUB_REPO_NAME", "")
+    BLOG_REPO_OWNER: str = os.getenv("BLOG_REPO_OWNER", "")
+    BLOG_REPO_NAME: str = os.getenv("BLOG_REPO_NAME", "")
     GITHUB_TARGET_BRANCH: str = os.getenv("GITHUB_TARGET_BRANCH", "main")
     
     @classmethod
@@ -80,10 +80,10 @@ class Config:
         missing = []
         if not cls.GITHUB_TOKEN:
             missing.append("GITHUB_TOKEN")
-        if not cls.GITHUB_REPO_OWNER:
-            missing.append("GITHUB_REPO_OWNER")
-        if not cls.GITHUB_REPO_NAME:
-            missing.append("GITHUB_REPO_NAME")
+        if not cls.BLOG_REPO_OWNER:
+            missing.append("BLOG_REPO_OWNER")
+        if not cls.BLOG_REPO_NAME:
+            missing.append("BLOG_REPO_NAME")
         if missing:
             raise ValueError(
                 f"Missing GitHub configuration: {', '.join(missing)}. "

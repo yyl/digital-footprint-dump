@@ -16,10 +16,12 @@ Usage:
     python main.py overcast-sync     # Import Overcast data
     python main.py overcast-analyze  # Analyze Overcast podcasts
     python main.py publish           # Publish monthly summary to blog
+    python main.py publish --dry-run # Validate config without publishing
     python main.py status            # Show sync status
 """
 
 import sys
+import argparse
 from src.config import Config
 
 
@@ -95,8 +97,52 @@ def cmd_readwise_analyze():
     print(f"Analysis complete! {record_count} monthly records written to the analysis table in readwise.db")
 
 
-def cmd_publish():
-    """Publish monthly summary to blog repository."""
+def cmd_publish(dry_run: bool = False):
+    """Publish monthly summary to blog repository.
+    
+    Args:
+        dry_run: If True, validate config and sync data but skip actual publish.
+    """
+    if dry_run:
+        print("=== DRY RUN MODE ===")
+        print("Validating configuration and connectivity...\n")
+        
+        # Validate all configs
+        try:
+            Config.validate_readwise()
+            print("✓ Readwise config valid")
+        except ValueError as e:
+            print(f"✗ Readwise: {e}")
+        
+        try:
+            Config.validate_foursquare()
+            print("✓ Foursquare config valid")
+        except ValueError as e:
+            print(f"✗ Foursquare: {e}")
+        
+        try:
+            Config.validate_github()
+            print("✓ GitHub config valid")
+        except ValueError as e:
+            print(f"✗ GitHub: {e}")
+        
+        # Test API connectivity
+        print("\nTesting API connectivity...")
+        
+        try:
+            from src.readwise.api_client import ReadwiseAPIClient
+            api = ReadwiseAPIClient()
+            if api.validate_token():
+                print("✓ Readwise API accessible")
+            else:
+                print("✗ Readwise API: invalid token")
+        except Exception as e:
+            print(f"✗ Readwise API: {e}")
+        
+        print("\n=== DRY RUN COMPLETE ===")
+        print("No changes were made.")
+        return
+    
     # First ensure we have the latest analysis from all sources
     print("=== Updating Analysis ===\n")
     
@@ -450,11 +496,41 @@ def cmd_status():
 
 def main():
     """Main entry point."""
-    if len(sys.argv) < 2:
-        print(__doc__)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Digital Footprint Dump - Export your digital footprints to local SQLite databases.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
     
-    command = sys.argv[1].lower()
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    
+    # Simple commands (no arguments)
+    subparsers.add_parser("init", help="Initialize all databases")
+    subparsers.add_parser("sync", help="Sync all services")
+    subparsers.add_parser("analyze", help="Analyze all sources")
+    subparsers.add_parser("readwise-sync", help="Sync Readwise only")
+    subparsers.add_parser("readwise-analyze", help="Analyze Readwise archive")
+    subparsers.add_parser("foursquare-sync", help="Sync Foursquare only")
+    subparsers.add_parser("foursquare-analyze", help="Analyze Foursquare checkins")
+    subparsers.add_parser("letterboxd-sync", help="Import Letterboxd data")
+    subparsers.add_parser("letterboxd-analyze", help="Analyze Letterboxd movies")
+    subparsers.add_parser("overcast-sync", help="Import Overcast data")
+    subparsers.add_parser("overcast-analyze", help="Analyze Overcast podcasts")
+    subparsers.add_parser("status", help="Show sync status")
+    
+    # Publish command with --dry-run flag
+    publish_parser = subparsers.add_parser("publish", help="Publish monthly summary to blog")
+    publish_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate configuration and connectivity without publishing"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.command is None:
+        parser.print_help()
+        sys.exit(1)
     
     commands = {
         "init": cmd_init,
@@ -468,16 +544,16 @@ def main():
         "letterboxd-analyze": cmd_letterboxd_analyze,
         "overcast-sync": cmd_overcast_sync,
         "overcast-analyze": cmd_overcast_analyze,
-        "publish": cmd_publish,
         "status": cmd_status,
     }
     
-    if command not in commands:
-        print(f"Unknown command: {command}")
-        print(f"Available commands: {', '.join(commands.keys())}")
+    if args.command == "publish":
+        cmd_publish(dry_run=args.dry_run)
+    elif args.command in commands:
+        commands[args.command]()
+    else:
+        print(f"Unknown command: {args.command}")
         sys.exit(1)
-    
-    commands[command]()
 
 
 if __name__ == "__main__":

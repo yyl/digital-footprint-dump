@@ -1,0 +1,108 @@
+name: Monthly Pipeline
+
+on:
+  schedule:
+    # Run on the last day of each month at 11:00 AM UTC
+    # Cron doesn't support "last day", so we run on the 28th-31st and check the date
+    - cron: '0 11 28-31 * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run in dry-run mode (validate only, no publish)'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER }}
+  DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME }}
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Check if today is the last day of the month (for scheduled runs)
+      - name: Check if last day of month
+        if: github.event_name == 'schedule'
+        run: |
+          tomorrow=$(date -d "+1 day" +%d)
+          if [ "$tomorrow" != "01" ]; then
+            echo "Not the last day of the month, skipping..."
+            exit 1
+          fi
+          echo "Today is the last day of the month, proceeding..."
+
+      - name: Checkout code repository
+        uses: actions/checkout@v4
+
+      - name: Checkout data repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DATA_REPO_OWNER }}/${{ env.DATA_REPO_NAME }}
+          token: ${{ secrets.DATA_REPO_PAT }}
+          path: _data_repo
+
+      - name: Setup data directories
+        run: |
+          # Create directories if they don't exist
+          mkdir -p _data_repo/data
+          mkdir -p _data_repo/files
+          
+          # Symlink data and files directories
+          ln -sf $(pwd)/_data_repo/data $(pwd)/data
+          ln -sf $(pwd)/_data_repo/files $(pwd)/files
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run pipeline (dry-run)
+        if: ${{ inputs.dry_run == 'true' }}
+        env:
+          READWISE_ACCESS_TOKEN: ${{ secrets.READWISE_ACCESS_TOKEN }}
+          FOURSQUARE_CLIENT_ID: ${{ secrets.FOURSQUARE_CLIENT_ID }}
+          FOURSQUARE_CLIENT_SECRET: ${{ secrets.FOURSQUARE_CLIENT_SECRET }}
+          FOURSQUARE_API_KEY: ${{ secrets.FOURSQUARE_API_KEY }}
+          FOURSQUARE_ACCESS_TOKEN: ${{ secrets.FOURSQUARE_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BLOG_GITHUB_TOKEN }}
+          BLOG_REPO_OWNER: ${{ secrets.BLOG_REPO_OWNER }}
+          BLOG_REPO_NAME: ${{ secrets.BLOG_REPO_NAME }}
+        run: uv run main.py publish --dry-run
+
+      - name: Run pipeline
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          READWISE_ACCESS_TOKEN: ${{ secrets.READWISE_ACCESS_TOKEN }}
+          FOURSQUARE_CLIENT_ID: ${{ secrets.FOURSQUARE_CLIENT_ID }}
+          FOURSQUARE_CLIENT_SECRET: ${{ secrets.FOURSQUARE_CLIENT_SECRET }}
+          FOURSQUARE_API_KEY: ${{ secrets.FOURSQUARE_API_KEY }}
+          FOURSQUARE_ACCESS_TOKEN: ${{ secrets.FOURSQUARE_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BLOG_GITHUB_TOKEN }}
+          BLOG_REPO_OWNER: ${{ secrets.BLOG_REPO_OWNER }}
+          BLOG_REPO_NAME: ${{ secrets.BLOG_REPO_NAME }}
+        run: uv run main.py publish
+
+      - name: Commit updated databases
+        if: ${{ inputs.dry_run != 'true' }}
+        run: |
+          cd _data_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add any changed database files
+          git add data/*.db 2>/dev/null || true
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No database changes to commit"
+          else
+            git commit -m "Update databases [automated]"
+            git push
+            echo "Databases updated successfully"
+          fi
