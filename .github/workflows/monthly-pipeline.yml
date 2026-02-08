@@ -7,11 +7,16 @@ on:
     - cron: '0 11 28-31 * *'
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: 'Run in dry-run mode (validate only, no publish)'
-        required: false
-        default: 'false'
-        type: boolean
+      command:
+        description: 'Command to run'
+        required: true
+        default: 'publish'
+        type: choice
+        options:
+          - sync
+          - analyze
+          - publish
+          - publish --dry-run
 
 env:
   DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER }}
@@ -73,15 +78,18 @@ jobs:
           BLOG_REPO_OWNER: ${{ secrets.BLOG_REPO_OWNER }}
           BLOG_REPO_NAME: ${{ secrets.BLOG_REPO_NAME }}
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            uv run main.py publish --dry-run
-          else
-            uv run main.py publish
+          COMMAND="${{ inputs.command }}"
+          # For scheduled runs, default to publish
+          if [ -z "$COMMAND" ]; then
+            COMMAND="publish"
           fi
+          echo "Running: uv run main.py $COMMAND"
+          uv run main.py $COMMAND
 
       - name: Commit updated databases
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          COMMAND="${{ inputs.command }}"
+          if [ "$COMMAND" = "publish --dry-run" ]; then
             echo "Dry run mode - skipping database commit"
             exit 0
           fi
