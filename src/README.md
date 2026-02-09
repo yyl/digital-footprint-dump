@@ -50,12 +50,12 @@ comparisons = compute_comparisons(
     current_stats=data,
     historical_getter=self._get_source_analysis,  # Function that takes year_month
     year_month="2026-02",
-    metrics=['metric1', 'metric2']
+    metrics=['articles', 'words', 'reading_time_mins']
 )
-# Returns: {'metric1': {'mom': 15.0, 'yoy': -5.0}, ...}
+# Returns: {'articles': {'mom': 15.0, 'yoy': -5.0}, ...}
 
 # In markdown_generator.py
-formatted = format_change(comparisons['metric1']['mom'])  # "+15%"
+suffix = self._format_comparison_suffix(comparisons['articles'])  # " (+15% MoM, -5% YoY)"
 ```
 
 **Key functions:**
@@ -63,6 +63,16 @@ formatted = format_change(comparisons['metric1']['mom'])  # "+15%"
 - `get_comparison_periods(year_month)` → `{'mom': '2026-01', 'yoy': '2025-02'}`
 - `format_change(value)` → `"+15%"`, `"-10%"`, or `"N/A"`
 - `compute_comparisons(...)` → dict of metrics with MoM/YoY values
+
+**Readwise example output:**
+```markdown
+- **Articles Archived**: 14 (-46% MoM, +367% YoY)
+- **Total Words Read**: 28,881 (-47% MoM, +523% YoY)
+- **Time Spent Reading**: 1h 56m (-47% MoM, +510% YoY)
+- **Average Reading Speed**: 249 words/min (-0% MoM, +2% YoY)
+```
+
+**Derived metrics:** Average reading speed is computed from words/time, so its comparison is derived mathematically in `_compute_speed_comparison()`.
 
 ### Database Connections
 

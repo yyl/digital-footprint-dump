@@ -167,7 +167,7 @@ class Publisher:
                 current_stats=readwise,
                 historical_getter=self._get_readwise_analysis,
                 year_month=year_month,
-                metrics=['articles', 'reading_time_mins']
+                metrics=['articles', 'words', 'reading_time_mins']
             )
             data['readwise'] = {
                 'articles': readwise['articles'],

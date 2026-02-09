@@ -98,16 +98,49 @@ categories: ["Summary"]
         
         # Format comparison strings
         articles_comparison = self._format_comparison_suffix(comparisons.get('articles'))
+        words_comparison = self._format_comparison_suffix(comparisons.get('words'))
         time_comparison = self._format_comparison_suffix(comparisons.get('reading_time_mins'))
+        
+        # Compute average reading speed comparison
+        # Speed = words / time, so if both words and time change, speed change is derived
+        speed_comparison = self._compute_speed_comparison(comparisons)
         
         return f"""
 ## Reading
 
 - **Articles Archived**: {articles}{articles_comparison}
-- **Total Words Read**: {words:,}
+- **Total Words Read**: {words:,}{words_comparison}
 - **Time Spent Reading**: {time_display}{time_comparison}
-- **Average Reading Speed**: {speed_display}
+- **Average Reading Speed**: {speed_display}{speed_comparison}
 """
+    
+    def _compute_speed_comparison(self, comparisons: Dict[str, Any]) -> str:
+        """Compute reading speed comparison from words and time comparisons.
+        
+        Speed = words / time, so percentage change in speed is approximately:
+        (1 + words_change) / (1 + time_change) - 1
+        """
+        if not comparisons:
+            return ""
+        
+        words_changes = comparisons.get('words', {})
+        time_changes = comparisons.get('reading_time_mins', {})
+        
+        def compute_speed_change(words_pct: Optional[float], time_pct: Optional[float]) -> Optional[float]:
+            if words_pct is None or time_pct is None:
+                return None
+            # Convert percentages back to ratios
+            words_ratio = 1 + (words_pct / 100)
+            time_ratio = 1 + (time_pct / 100)
+            if time_ratio == 0:
+                return None
+            speed_ratio = words_ratio / time_ratio
+            return round((speed_ratio - 1) * 100, 1)
+        
+        speed_mom = compute_speed_change(words_changes.get('mom'), time_changes.get('mom'))
+        speed_yoy = compute_speed_change(words_changes.get('yoy'), time_changes.get('yoy'))
+        
+        return self._format_comparison_suffix({'mom': speed_mom, 'yoy': speed_yoy})
     
     def _format_comparison_suffix(self, changes: Optional[Dict[str, Optional[float]]]) -> str:
         """Format MoM/YoY changes as a suffix string.
