@@ -127,3 +127,21 @@ def format_value_with_changes(
     yoy = format_change(changes.get('yoy'))
     
     return f"{formatted_value} ({mom} MoM, {yoy} YoY)"
+
+
+def format_comparison_suffix(changes: Optional[Dict[str, Optional[float]]]) -> str:
+    """Format MoM/YoY changes as a suffix string.
+    
+    Args:
+        changes: Dictionary with 'mom' and 'yoy' percentage changes, or None.
+        
+    Returns:
+        Formatted string like ' (+15% MoM, -5% YoY)' or empty if no data.
+    """
+    if not changes:
+        return ""
+    
+    mom = format_change(changes.get('mom'))
+    yoy = format_change(changes.get('yoy'))
+    
+    return f" ({mom} MoM, {yoy} YoY)"

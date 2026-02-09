@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from zoneinfo import ZoneInfo
 
-from ..comparison import format_change
+from ..comparison import format_change, format_comparison_suffix
 
 
 class MarkdownGenerator:
@@ -97,9 +97,9 @@ categories: ["Summary"]
             speed_display = "N/A"
         
         # Format comparison strings
-        articles_comparison = self._format_comparison_suffix(comparisons.get('articles'))
-        words_comparison = self._format_comparison_suffix(comparisons.get('words'))
-        time_comparison = self._format_comparison_suffix(comparisons.get('reading_time_mins'))
+        articles_comparison = format_comparison_suffix(comparisons.get('articles'))
+        words_comparison = format_comparison_suffix(comparisons.get('words'))
+        time_comparison = format_comparison_suffix(comparisons.get('reading_time_mins'))
         
         # Compute average reading speed comparison
         # Speed = words / time, so if both words and time change, speed change is derived
@@ -140,35 +140,22 @@ categories: ["Summary"]
         speed_mom = compute_speed_change(words_changes.get('mom'), time_changes.get('mom'))
         speed_yoy = compute_speed_change(words_changes.get('yoy'), time_changes.get('yoy'))
         
-        return self._format_comparison_suffix({'mom': speed_mom, 'yoy': speed_yoy})
-    
-    def _format_comparison_suffix(self, changes: Optional[Dict[str, Optional[float]]]) -> str:
-        """Format MoM/YoY changes as a suffix string.
-        
-        Args:
-            changes: Dictionary with 'mom' and 'yoy' percentage changes.
-            
-        Returns:
-            Formatted string like ' (+15% MoM, -5% YoY)' or empty if no data.
-        """
-        if not changes:
-            return ""
-        
-        mom = format_change(changes.get('mom'))
-        yoy = format_change(changes.get('yoy'))
-        
-        return f" ({mom} MoM, {yoy} YoY)"
+        return format_comparison_suffix({'mom': speed_mom, 'yoy': speed_yoy})
     
     def _generate_foursquare_section(self, foursquare_data: Dict[str, Any]) -> str:
         """Generate the Foursquare statistics section."""
         checkins = int(foursquare_data.get('checkins', 0))
         unique_places = int(foursquare_data.get('unique_places', 0))
+        comparisons = foursquare_data.get('comparisons', {})
+        
+        checkins_cmp = format_comparison_suffix(comparisons.get('checkins'))
+        places_cmp = format_comparison_suffix(comparisons.get('unique_places'))
         
         return f"""
 ## Travel
 
-- **Checkins**: {checkins}
-- **Unique Places Visited**: {unique_places}
+- **Checkins**: {checkins}{checkins_cmp}
+- **Unique Places Visited**: {unique_places}{places_cmp}
 """
     
     def _generate_letterboxd_section(self, letterboxd_data: Dict[str, Any]) -> str:
@@ -178,12 +165,16 @@ categories: ["Summary"]
         min_rating = letterboxd_data.get('min_rating', 0)
         max_rating = letterboxd_data.get('max_rating', 0)
         avg_years = letterboxd_data.get('avg_years_since_release', 0)
+        comparisons = letterboxd_data.get('comparisons', {})
+        
+        movies_cmp = format_comparison_suffix(comparisons.get('movies_watched'))
+        rating_cmp = format_comparison_suffix(comparisons.get('avg_rating'))
         
         return f"""
 ## Movies
 
-- **Movies Watched**: {int(movies)}
-- **Average Rating**: {avg_rating:.2f} ⭐
+- **Movies Watched**: {int(movies)}{movies_cmp}
+- **Average Rating**: {avg_rating:.2f} ⭐{rating_cmp}
 - **Lowest Rating**: {min_rating:.2f} ⭐
 - **Highest Rating**: {max_rating:.2f} ⭐
 - **Average Years Since Release**: {avg_years:.2f}
@@ -194,11 +185,14 @@ categories: ["Summary"]
         feeds_added = int(overcast_data.get('feeds_added', 0))
         feeds_removed = int(overcast_data.get('feeds_removed', 0))
         episodes_played = int(overcast_data.get('episodes_played', 0))
+        comparisons = overcast_data.get('comparisons', {})
+        
+        played_cmp = format_comparison_suffix(comparisons.get('episodes_played'))
         
         return f"""
 ## Podcasts
 
 - **New Feeds Subscribed**: {feeds_added}
 - **Feeds Removed**: {feeds_removed}
-- **Episodes Played**: {episodes_played}
+- **Episodes Played**: {episodes_played}{played_cmp}
 """

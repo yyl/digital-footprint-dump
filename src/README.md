@@ -38,41 +38,42 @@ Each source has an `analysis` table with this common structure:
 - Source-specific metrics (e.g., `articles`, `checkins`, `movies_watched`)
 - `updated_at` (TEXT) - ISO timestamp
 
-### Adding MoM/YoY Comparisons
+### MoM/YoY Comparisons
 
-The `comparison.py` module provides generic utilities for computing percentage changes:
+All sources now display month-over-month and year-over-year percentage changes in their output.
+
+| Source | Metrics with MoM/YoY |
+|--------|---------------------|
+| Readwise | articles, words, reading_time_mins, avg_speed (derived) |
+| Foursquare | checkins, unique_places |
+| Letterboxd | movies_watched, avg_rating |
+| Overcast | feeds_added, feeds_removed, episodes_played |
+
+The `comparison.py` module provides shared utilities:
 
 ```python
-from src.comparison import compute_comparisons, format_change
+from src.comparison import compute_comparisons, format_comparison_suffix
 
-# In publisher.py
+# In publisher.py - compute comparisons
 comparisons = compute_comparisons(
     current_stats=data,
-    historical_getter=self._get_source_analysis,  # Function that takes year_month
+    historical_getter=self._get_source_analysis,
     year_month="2026-02",
-    metrics=['articles', 'words', 'reading_time_mins']
+    metrics=['checkins', 'unique_places']
 )
-# Returns: {'articles': {'mom': 15.0, 'yoy': -5.0}, ...}
 
-# In markdown_generator.py
-suffix = self._format_comparison_suffix(comparisons['articles'])  # " (+15% MoM, -5% YoY)"
+# In markdown_generator.py - format suffix
+suffix = format_comparison_suffix(comparisons.get('checkins'))  # " (-46% MoM, +367% YoY)"
 ```
 
 **Key functions:**
 - `compute_percentage_change(current, previous)` → percentage or None
 - `get_comparison_periods(year_month)` → `{'mom': '2026-01', 'yoy': '2025-02'}`
 - `format_change(value)` → `"+15%"`, `"-10%"`, or `"N/A"`
+- `format_comparison_suffix(changes)` → `" (+15% MoM, -5% YoY)"` or `""`
 - `compute_comparisons(...)` → dict of metrics with MoM/YoY values
 
-**Readwise example output:**
-```markdown
-- **Articles Archived**: 14 (-46% MoM, +367% YoY)
-- **Total Words Read**: 28,881 (-47% MoM, +523% YoY)
-- **Time Spent Reading**: 1h 56m (-47% MoM, +510% YoY)
-- **Average Reading Speed**: 249 words/min (-0% MoM, +2% YoY)
-```
-
-**Derived metrics:** Average reading speed is computed from words/time, so its comparison is derived mathematically in `_compute_speed_comparison()`.
+**Derived metrics:** Readwise average reading speed is derived from words/time in `_compute_speed_comparison()`.
 
 ### Database Connections
 

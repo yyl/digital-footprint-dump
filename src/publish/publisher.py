@@ -179,29 +179,50 @@ class Publisher:
         # Get Foursquare analysis
         foursquare = self._get_foursquare_analysis(year_month)
         if foursquare:
+            foursquare_comparisons = compute_comparisons(
+                current_stats=foursquare,
+                historical_getter=self._get_foursquare_analysis,
+                year_month=year_month,
+                metrics=['checkins', 'unique_places']
+            )
             data['foursquare'] = {
                 'checkins': foursquare['checkins'],
-                'unique_places': foursquare['unique_places']
+                'unique_places': foursquare['unique_places'],
+                'comparisons': foursquare_comparisons
             }
         
         # Get Letterboxd analysis
         letterboxd = self._get_letterboxd_analysis(year_month)
         if letterboxd:
+            letterboxd_comparisons = compute_comparisons(
+                current_stats=letterboxd,
+                historical_getter=self._get_letterboxd_analysis,
+                year_month=year_month,
+                metrics=['movies_watched', 'avg_rating']
+            )
             data['letterboxd'] = {
                 'movies_watched': letterboxd['movies_watched'],
                 'avg_rating': letterboxd['avg_rating'],
                 'min_rating': letterboxd['min_rating'],
                 'max_rating': letterboxd['max_rating'],
-                'avg_years_since_release': letterboxd['avg_years_since_release']
+                'avg_years_since_release': letterboxd['avg_years_since_release'],
+                'comparisons': letterboxd_comparisons
             }
         
         # Get Overcast analysis
         overcast = self._get_overcast_analysis(year_month)
         if overcast:
+            overcast_comparisons = compute_comparisons(
+                current_stats=overcast,
+                historical_getter=self._get_overcast_analysis,
+                year_month=year_month,
+                metrics=['episodes_played']
+            )
             data['overcast'] = {
                 'feeds_added': overcast['feeds_added'],
                 'feeds_removed': overcast['feeds_removed'],
-                'episodes_played': overcast['episodes_played']
+                'episodes_played': overcast['episodes_played'],
+                'comparisons': overcast_comparisons
             }
         
         # Generate markdown
