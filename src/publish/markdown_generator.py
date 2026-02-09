@@ -1,8 +1,10 @@
 """Markdown generator for Hugo-compatible blog articles."""
 
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from zoneinfo import ZoneInfo
+
+from ..comparison import format_change
 
 
 class MarkdownGenerator:
@@ -77,6 +79,7 @@ categories: ["Summary"]
         articles = readwise_data.get('articles', 0)
         words = readwise_data.get('words', 0)
         reading_time_mins = readwise_data.get('reading_time_mins', 0)
+        comparisons = readwise_data.get('comparisons', {})
         
         # Format time spent reading
         if reading_time_mins < 60:
@@ -93,14 +96,35 @@ categories: ["Summary"]
         else:
             speed_display = "N/A"
         
+        # Format comparison strings
+        articles_comparison = self._format_comparison_suffix(comparisons.get('articles'))
+        time_comparison = self._format_comparison_suffix(comparisons.get('reading_time_mins'))
+        
         return f"""
 ## Reading
 
-- **Articles Archived**: {articles}
+- **Articles Archived**: {articles}{articles_comparison}
 - **Total Words Read**: {words:,}
-- **Time Spent Reading**: {time_display}
+- **Time Spent Reading**: {time_display}{time_comparison}
 - **Average Reading Speed**: {speed_display}
 """
+    
+    def _format_comparison_suffix(self, changes: Optional[Dict[str, Optional[float]]]) -> str:
+        """Format MoM/YoY changes as a suffix string.
+        
+        Args:
+            changes: Dictionary with 'mom' and 'yoy' percentage changes.
+            
+        Returns:
+            Formatted string like ' (+15% MoM, -5% YoY)' or empty if no data.
+        """
+        if not changes:
+            return ""
+        
+        mom = format_change(changes.get('mom'))
+        yoy = format_change(changes.get('yoy'))
+        
+        return f" ({mom} MoM, {yoy} YoY)"
     
     def _generate_foursquare_section(self, foursquare_data: Dict[str, Any]) -> str:
         """Generate the Foursquare statistics section."""

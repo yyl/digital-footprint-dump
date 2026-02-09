@@ -4,6 +4,7 @@ import logging
 from typing import Dict, Any, Optional
 
 from ..config import Config
+from ..comparison import compute_comparisons
 from ..readwise.database import ReadwiseDatabase
 from ..foursquare.database import FoursquareDatabase
 from ..letterboxd.database import LetterboxdDatabase
@@ -161,10 +162,18 @@ class Publisher:
         # Get Readwise analysis
         readwise = self._get_readwise_analysis(year_month)
         if readwise:
+            # Compute MoM/YoY comparisons for Readwise metrics
+            readwise_comparisons = compute_comparisons(
+                current_stats=readwise,
+                historical_getter=self._get_readwise_analysis,
+                year_month=year_month,
+                metrics=['articles', 'reading_time_mins']
+            )
             data['readwise'] = {
                 'articles': readwise['articles'],
                 'words': readwise['words'],
-                'reading_time_mins': readwise['reading_time_mins']
+                'reading_time_mins': readwise['reading_time_mins'],
+                'comparisons': readwise_comparisons
             }
         
         # Get Foursquare analysis
