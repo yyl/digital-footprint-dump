@@ -105,42 +105,22 @@ def cmd_publish(dry_run: bool = False):
     """
     if dry_run:
         print("=== DRY RUN MODE ===")
-        print("Validating configuration and connectivity...\n")
+        print("Generating markdown preview...\n")
         
-        # Validate all configs
-        try:
-            Config.validate_readwise()
-            print("✓ Readwise config valid")
-        except ValueError as e:
-            print(f"✗ Readwise: {e}")
+        from src.publish import Publisher
         
         try:
-            Config.validate_foursquare()
-            print("✓ Foursquare config valid")
-        except ValueError as e:
-            print(f"✗ Foursquare: {e}")
-        
-        try:
-            Config.validate_github()
-            print("✓ GitHub config valid")
-        except ValueError as e:
-            print(f"✗ GitHub: {e}")
-        
-        # Test API connectivity
-        print("\nTesting API connectivity...")
-        
-        try:
-            from src.readwise.api_client import ReadwiseAPIClient
-            api = ReadwiseAPIClient()
-            if api.validate_token():
-                print("✓ Readwise API accessible")
-            else:
-                print("✗ Readwise API: invalid token")
+            publisher = Publisher()
+            markdown = publisher.generate_markdown()
+            
+            print("=" * 60)
+            print(markdown)
+            print("=" * 60)
+            print("\n=== DRY RUN COMPLETE ===")
+            print("No changes were made. Use 'publish' without --dry-run to publish.")
         except Exception as e:
-            print(f"✗ Readwise API: {e}")
-        
-        print("\n=== DRY RUN COMPLETE ===")
-        print("No changes were made.")
+            print(f"Error: {e}")
+            sys.exit(1)
         return
     
     # First ensure we have the latest analysis from all sources

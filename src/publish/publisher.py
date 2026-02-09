@@ -153,6 +153,50 @@ class Publisher:
         year, month = year_month.split('-')
         logger.info(f"Publishing summary for {year_month}")
         
+        # Generate markdown using shared method
+        markdown_content = self.generate_markdown(year_month)
+        
+        # Initialize GitHub client if not provided
+        if not self.github_client:
+            Config.validate_github()
+            self.github_client = GitHubClient(
+                token=Config.GITHUB_TOKEN,
+                repo_owner=Config.BLOG_REPO_OWNER,
+                repo_name=Config.BLOG_REPO_NAME,
+                target_branch=Config.GITHUB_TARGET_BRANCH
+            )
+        
+        # Create file path
+        file_path = f"content/posts/{year}-{month}-monthly-summary.md"
+        commit_message = f"feat: Add monthly summary draft for {month}/{year}"
+        
+        # Commit to GitHub
+        result = self.github_client.create_or_update_file(
+            file_path=file_path,
+            content=markdown_content,
+            commit_message=commit_message
+        )
+        
+        logger.info(f"Published to {result['url']}")
+        return result
+    
+    def generate_markdown(self, year_month: Optional[str] = None) -> str:
+        """Generate markdown content for a monthly summary.
+        
+        Args:
+            year_month: Period to generate for (YYYY-MM format). Defaults to latest.
+            
+        Returns:
+            Generated markdown content as string.
+        """
+        if not year_month:
+            year_month = self._get_latest_year_month()
+        
+        if not year_month:
+            raise ValueError("No analysis data found. Run 'analyze' first.")
+        
+        year, month = year_month.split('-')
+        
         # Prepare data for markdown generation
         data = {
             'year': year,
@@ -162,7 +206,6 @@ class Publisher:
         # Get Readwise analysis
         readwise = self._get_readwise_analysis(year_month)
         if readwise:
-            # Compute MoM/YoY comparisons for Readwise metrics
             readwise_comparisons = compute_comparisons(
                 current_stats=readwise,
                 historical_getter=self._get_readwise_analysis,
@@ -225,30 +268,5 @@ class Publisher:
                 'comparisons': overcast_comparisons
             }
         
-        # Generate markdown
-        markdown_content = self.markdown_generator.generate_monthly_summary(data)
-        
-        # Initialize GitHub client if not provided
-        if not self.github_client:
-            Config.validate_github()
-            self.github_client = GitHubClient(
-                token=Config.GITHUB_TOKEN,
-                repo_owner=Config.BLOG_REPO_OWNER,
-                repo_name=Config.BLOG_REPO_NAME,
-                target_branch=Config.GITHUB_TARGET_BRANCH
-            )
-        
-        # Create file path
-        file_path = f"content/posts/{year}-{month}-monthly-summary.md"
-        commit_message = f"feat: Add monthly summary draft for {month}/{year}"
-        
-        # Commit to GitHub
-        result = self.github_client.create_or_update_file(
-            file_path=file_path,
-            content=markdown_content,
-            commit_message=commit_message
-        )
-        
-        logger.info(f"Published to {result['url']}")
-        return result
+        return self.markdown_generator.generate_monthly_summary(data)
 
