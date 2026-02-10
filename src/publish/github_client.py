@@ -1,7 +1,7 @@
 """GitHub client for committing files to a repository."""
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 from github import Github, GithubException
 
 logger = logging.getLogger(__name__)
@@ -37,59 +37,68 @@ class GitHubClient:
         except GithubException as e:
             raise GitHubClientError(f"Failed to access repository {repo_owner}/{repo_name}: {str(e)}")
     
-    def create_or_update_file(self, file_path: str, content: str, commit_message: str) -> Dict[str, Any]:
-        """Create a new file or update an existing file in the repository.
+    
+    def create_or_update_files(
+        self,
+        files: Dict[str, str],
+        commit_message: str
+    ) -> Dict[str, Any]:
+        """Create or update multiple files in a single commit.
+        
+        Uses the Git Data API to build a tree with all file changes
+        and commit them atomically. Preserves all existing files via base_tree.
         
         Args:
-            file_path: Path to the file in the repository.
-            content: File content as string.
-            commit_message: Commit message.
+            files: Dictionary mapping repo file paths to content strings.
+            commit_message: Commit message for the single commit.
             
         Returns:
             Dictionary with commit information.
         """
         try:
-            # Check if file already exists
-            file_exists = False
-            existing_file = None
+            # Get current HEAD commit and its tree
+            ref = self.repo.get_git_ref(f"heads/{self.target_branch}")
+            head_sha = ref.object.sha
+            base_tree = self.repo.get_git_tree(head_sha)
             
-            try:
-                existing_file = self.repo.get_contents(file_path, ref=self.target_branch)
-                file_exists = True
-                logger.info(f"File {file_path} exists, will update")
-            except GithubException as e:
-                if e.status == 404:
-                    logger.info(f"File {file_path} does not exist, will create")
-                else:
-                    raise GitHubClientError(f"Error checking file existence: {str(e)}")
+            # Build tree elements for each file
+            from github import InputGitTreeElement
+            tree_elements = []
+            for file_path, content in files.items():
+                element = InputGitTreeElement(
+                    path=file_path,
+                    mode="100644",
+                    type="blob",
+                    content=content,
+                )
+                tree_elements.append(element)
+                logger.info(f"Adding file to commit: {file_path}")
             
-            # Create or update the file
-            if file_exists:
-                result = self.repo.update_file(
-                    path=file_path,
-                    message=commit_message,
-                    content=content,
-                    sha=existing_file.sha,
-                    branch=self.target_branch
-                )
-                logger.info(f"Updated file: {file_path}")
-            else:
-                result = self.repo.create_file(
-                    path=file_path,
-                    message=commit_message,
-                    content=content,
-                    branch=self.target_branch
-                )
-                logger.info(f"Created file: {file_path}")
+            # Create new tree on top of existing base tree
+            new_tree = self.repo.create_git_tree(tree_elements, base_tree)
+            
+            # Create commit
+            head_commit = self.repo.get_git_commit(head_sha)
+            new_commit = self.repo.create_git_commit(
+                message=commit_message,
+                tree=new_tree,
+                parents=[head_commit],
+            )
+            
+            # Update branch ref to point to new commit
+            ref.edit(sha=new_commit.sha)
+            
+            logger.info(f"Committed {len(files)} files: {new_commit.sha}")
             
             return {
-                'sha': result['commit'].sha,
-                'url': result['commit'].html_url,
+                'sha': new_commit.sha,
+                'url': new_commit.html_url,
                 'message': commit_message,
-                'file_path': file_path
+                'file_paths': list(files.keys()),
             }
             
         except GithubException as e:
-            error_msg = f"GitHub API error for {file_path}: {str(e)}"
+            error_msg = f"GitHub API error during multi-file commit: {str(e)}"
             logger.error(error_msg)
             raise GitHubClientError(error_msg)
+

@@ -12,7 +12,7 @@ src/
 ├── foursquare/         # Foursquare/Swarm integration
 ├── letterboxd/         # Letterboxd CSV import
 ├── overcast/           # Overcast OPML import
-└── publish/            # Markdown generation & GitHub publishing
+└── publish/            # Markdown + data file generation & GitHub publishing
 ```
 
 ## Module Pattern
@@ -47,7 +47,18 @@ All sources now display month-over-month and year-over-year percentage changes i
 | Readwise | articles, words, reading_time_mins, avg_speed (derived) |
 | Foursquare | checkins, unique_places |
 | Letterboxd | movies_watched, avg_rating |
-| Overcast | feeds_added, feeds_removed, episodes_played |
+| Overcast | episodes_played |
+
+### Hugo Data Files
+
+The `publish/data_generator.py` module generates Hugo-compatible YAML data files from all analysis tables. These are committed to `data/activity/` in the blog repo via the `backfill` command:
+
+| File | Source | Fields |
+|------|--------|--------|
+| `reading.yaml` | Readwise | `articles_archived`, `total_words`, `time_spent_minutes`, `avg_reading_speed` |
+| `travel.yaml` | Foursquare | `checkins`, `unique_places` |
+| `movies.yaml` | Letterboxd | `movies_watched`, `avg_rating` |
+| `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played` |
 
 The `comparison.py` module provides shared utilities:
 

@@ -17,7 +17,8 @@ cp .env.example .env
 | `init` | Initialize all databases |
 | `sync` | Sync all services |
 | `analyze` | Analyze all sources |
-| `publish` | Publish monthly summary to blog |
+| `publish` | Publish monthly summary blog post |
+| `backfill` | Commit activity data files to blog repo |
 | `status` | Show sync status |
 | `{source}-sync` | Sync specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`) |
 | `{source}-analyze` | Analyze specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`) |
@@ -86,10 +87,11 @@ Imports podcast feeds and episodes from OPML export to `data/overcast.db`.
 
 ## Publishing
 
-Generates a monthly activity summary as a Hugo blog article (draft) and commits it to a GitHub repository.
+Publishes a monthly activity summary to a GitHub-hosted Hugo blog.
 
 **Commands:**
-- `publish`: Syncs latest data, runs analysis, generates markdown, and commits to GitHub.
+- `publish`: Syncs latest data, runs analysis, generates markdown, and commits the blog post to GitHub.
+- `backfill`: Syncs latest data, runs analysis, generates Hugo data files (`data/activity/*.yaml`), and commits them to GitHub. These power the Activity page charts.
 
 **Required in .env:**
 - `GITHUB_TOKEN` - Personal access token with repo write access
@@ -188,6 +190,7 @@ Each source module (`readwise/`, `foursquare/`, `letterboxd/`, `overcast/`) foll
 The `publish/` module contains:
 | File | Description |
 |------|-------------|
-| `github_client.py` | GitHub API wrapper for committing files |
+| `github_client.py` | GitHub API wrapper for committing files (multi-file atomic commits) |
 | `markdown_generator.py` | Hugo-compatible markdown generation |
-| `publisher.py` | Orchestrates analysis fetching and publishing |
+| `data_generator.py` | Generates Hugo data files (`data/activity/*.yaml`) from analysis tables |
+| `publisher.py` | Orchestrates analysis fetching, data generation, and publishing |

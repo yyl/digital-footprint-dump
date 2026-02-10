@@ -17,6 +17,7 @@ Usage:
     python main.py overcast-analyze  # Analyze Overcast podcasts
     python main.py publish           # Publish monthly summary to blog
     python main.py publish --dry-run # Validate config without publishing
+    python main.py backfill          # Commit activity data files to blog repo
     python main.py status            # Show sync status
 """
 
@@ -148,6 +149,39 @@ def cmd_publish(dry_run: bool = False):
         result = publisher.publish()
         print(f"\nPublished successfully!")
         print(f"Commit: {result['url']}")
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+
+def cmd_backfill():
+    """Generate and commit Hugo data files to blog repository."""
+    # First ensure we have the latest analysis from all sources
+    print("=== Updating Analysis ===\n")
+    
+    print("--- Readwise ---")
+    cmd_readwise_analyze()
+    
+    print("\n--- Letterboxd ---")
+    cmd_letterboxd_analyze()
+    
+    print("\n--- Foursquare ---")
+    cmd_foursquare_analyze()
+    
+    print("\n--- Overcast ---")
+    cmd_overcast_analyze()
+    
+    print("\n=== Backfilling Data ===")
+    print("Generating and committing data files...")
+    
+    from src.publish import Publisher
+    
+    try:
+        publisher = Publisher()
+        result = publisher.backfill()
+        print(f"\nBackfill complete!")
+        print(f"Commit: {result['url']}")
+        print(f"Files: {', '.join(result['file_paths'])}")
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -497,6 +531,7 @@ def main():
     subparsers.add_parser("overcast-sync", help="Import Overcast data")
     subparsers.add_parser("overcast-analyze", help="Analyze Overcast podcasts")
     subparsers.add_parser("status", help="Show sync status")
+    subparsers.add_parser("backfill", help="Commit activity data files to blog repo")
     
     # Publish command with --dry-run flag
     publish_parser = subparsers.add_parser("publish", help="Publish monthly summary to blog")
@@ -529,6 +564,8 @@ def main():
     
     if args.command == "publish":
         cmd_publish(dry_run=args.dry_run)
+    elif args.command == "backfill":
+        cmd_backfill()
     elif args.command in commands:
         commands[args.command]()
     else:

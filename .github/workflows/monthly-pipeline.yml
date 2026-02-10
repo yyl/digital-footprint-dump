@@ -16,6 +16,7 @@ on:
           - sync
           - analyze
           - publish
+          - backfill
           - publish --dry-run
 
 env:
@@ -79,12 +80,17 @@ jobs:
           BLOG_REPO_NAME: ${{ secrets.BLOG_REPO_NAME }}
         run: |
           COMMAND="${{ inputs.command }}"
-          # For scheduled runs, default to publish
+          # For scheduled runs, run both publish and backfill
           if [ -z "$COMMAND" ]; then
-            COMMAND="publish"
+            echo "Running: uv run main.py publish"
+            uv run main.py publish
+            echo ""
+            echo "Running: uv run main.py backfill"
+            uv run main.py backfill
+          else
+            echo "Running: uv run main.py $COMMAND"
+            uv run main.py $COMMAND
           fi
-          echo "Running: uv run main.py $COMMAND"
-          uv run main.py $COMMAND
 
       - name: Commit updated databases
         run: |

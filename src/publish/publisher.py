@@ -11,6 +11,7 @@ from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
 from .github_client import GitHubClient
 from .markdown_generator import MarkdownGenerator
+from .data_generator import DataGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,12 @@ class Publisher:
         self.overcast_db = overcast_db or OvercastDatabase()
         self.github_client = github_client
         self.markdown_generator = MarkdownGenerator()
+        self.data_generator = DataGenerator(
+            readwise_db=self.readwise_db,
+            foursquare_db=self.foursquare_db,
+            letterboxd_db=self.letterboxd_db,
+            overcast_db=self.overcast_db,
+        )
     
     def _get_readwise_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Readwise analysis for a specific month."""
@@ -139,8 +146,19 @@ class Publisher:
         
         return None
     
+    def _ensure_github_client(self):
+        """Initialize GitHub client if not already provided."""
+        if not self.github_client:
+            Config.validate_github()
+            self.github_client = GitHubClient(
+                token=Config.GITHUB_TOKEN,
+                repo_owner=Config.BLOG_REPO_OWNER,
+                repo_name=Config.BLOG_REPO_NAME,
+                target_branch=Config.GITHUB_TARGET_BRANCH
+            )
+    
     def publish(self) -> Dict[str, Any]:
-        """Generate and publish the monthly summary.
+        """Generate and publish the monthly summary blog post.
         
         Returns:
             Dictionary with commit information.
@@ -156,28 +174,45 @@ class Publisher:
         # Generate markdown using shared method
         markdown_content = self.generate_markdown(year_month)
         
-        # Initialize GitHub client if not provided
-        if not self.github_client:
-            Config.validate_github()
-            self.github_client = GitHubClient(
-                token=Config.GITHUB_TOKEN,
-                repo_owner=Config.BLOG_REPO_OWNER,
-                repo_name=Config.BLOG_REPO_NAME,
-                target_branch=Config.GITHUB_TARGET_BRANCH
-            )
+        self._ensure_github_client()
         
-        # Create file path
+        # Commit blog post
         file_path = f"content/posts/{year}-{month}-monthly-summary.md"
         commit_message = f"feat: Add monthly summary draft for {month}/{year}"
         
-        # Commit to GitHub
-        result = self.github_client.create_or_update_file(
-            file_path=file_path,
-            content=markdown_content,
+        result = self.github_client.create_or_update_files(
+            files={file_path: markdown_content},
             commit_message=commit_message
         )
         
         logger.info(f"Published to {result['url']}")
+        return result
+    
+    def backfill(self) -> Dict[str, Any]:
+        """Generate and commit Hugo data files from all analysis data.
+        
+        Returns:
+            Dictionary with commit information.
+        """
+        # Generate Hugo data files
+        data_files = self.data_generator.generate_data_files()
+        
+        if not data_files:
+            raise ValueError("No analysis data found. Run 'analyze' first.")
+        
+        logger.info(f"Generated {len(data_files)} data files")
+        
+        self._ensure_github_client()
+        
+        # Commit data files
+        commit_message = "data: Update activity data files"
+        
+        result = self.github_client.create_or_update_files(
+            files=data_files,
+            commit_message=commit_message
+        )
+        
+        logger.info(f"Backfilled data to {result['url']}")
         return result
     
     def generate_markdown(self, year_month: Optional[str] = None) -> str:
