@@ -94,7 +94,7 @@ Publishes a monthly activity summary to a GitHub-hosted Hugo blog.
 - `backfill`: Syncs latest data, runs analysis, generates Hugo data files (`data/activity/*.yaml`), and commits them to GitHub. These power the Activity page charts.
 
 **Required in .env:**
-- `GITHUB_TOKEN` - Personal access token with repo write access
+- `GITHUB_TOKEN` - Fine-grained PAT scoped to blog repo with **Contents: Read and write** permission
 - `BLOG_REPO_OWNER` - Repository owner username
 - `BLOG_REPO_NAME` - Repository name
 - `GITHUB_TARGET_BRANCH` - (optional) Branch to commit to, defaults to `main`
@@ -116,7 +116,14 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
        └── overcast.opml
    ```
 
-2. **Create a Personal Access Token (PAT)** with `repo` scope at [github.com/settings/tokens](https://github.com/settings/tokens)
+2. **Create two fine-grained Personal Access Tokens** at [github.com/settings/tokens](https://github.com/settings/tokens):
+
+   | Token | Repo scope | Permissions needed |
+   |-------|-----------|--------------------|
+   | `DATA_REPO_PAT` | Private data repo | **Contents: Read and write** |
+   | `BLOG_GITHUB_TOKEN` | Blog repo | **Contents: Read and write** |
+
+   > These can be the same token if it has access to both repos.
 
 3. **Add secrets** to your public repo (Settings → Secrets → Actions):
 
@@ -124,13 +131,13 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
    |--------|-------------|
    | `DATA_REPO_OWNER` | Your GitHub username |
    | `DATA_REPO_NAME` | Private data repo name |
-   | `DATA_REPO_PAT` | PAT with repo access |
+   | `DATA_REPO_PAT` | PAT with Contents read/write on data repo |
    | `READWISE_ACCESS_TOKEN` | Readwise API token |
    | `FOURSQUARE_CLIENT_ID` | Foursquare OAuth |
    | `FOURSQUARE_CLIENT_SECRET` | Foursquare OAuth |
    | `FOURSQUARE_API_KEY` | Foursquare Places API |
    | `FOURSQUARE_ACCESS_TOKEN` | Foursquare OAuth token |
-   | `BLOG_GITHUB_TOKEN` | PAT for blog repo push |
+   | `BLOG_GITHUB_TOKEN` | PAT with Contents read/write on blog repo |
    | `BLOG_REPO_OWNER` | Blog repo owner |
    | `BLOG_REPO_NAME` | Blog repo name |
 
