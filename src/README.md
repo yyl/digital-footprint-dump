@@ -2,17 +2,22 @@
 
 This directory contains the core logic for the digital-footprint-dump pipeline.
 
-## Structure
+## Project Structure
+
+Note: The file structure below is shown from the root directory.
 
 ```
-src/
-├── config.py           # Environment configuration
-├── comparison.py       # Generic MoM/YoY comparison utilities
-├── readwise/           # Readwise Reader integration
-├── foursquare/         # Foursquare/Swarm integration
-├── letterboxd/         # Letterboxd CSV import
-├── overcast/           # Overcast OPML import
-└── publish/            # Markdown + data file generation & GitHub publishing
+├── main.py                 # CLI entry point
+├── src/
+│   ├── config.py           # Environment configuration
+│   ├── comparison.py       # Generic MoM/YoY comparison utilities
+│   ├── readwise/           # Readwise Reader integration
+│   ├── foursquare/         # Foursquare/Swarm integration
+│   ├── letterboxd/         # Letterboxd CSV import
+│   ├── overcast/           # Overcast OPML import
+│   └── publish/            # Markdown + data file generation & GitHub publishing
+├── data/                   # SQLite databases (generated)
+└── files/                  # Import files (user-provided)
 ```
 
 ## Module Pattern
@@ -27,6 +32,15 @@ Each data source follows a consistent structure:
 | `sync.py` | Sync orchestration (API sources only) |
 | `importer.py` | File parser (file-based sources only) |
 | `analytics.py` | Monthly analysis logic → writes to `analysis` table |
+
+The `publish/` module contains:
+
+| File | Description |
+|------|-------------|
+| `github_client.py` | GitHub API wrapper for committing files (multi-file atomic commits) |
+| `markdown_generator.py` | Hugo-compatible markdown generation |
+| `data_generator.py` | Generates Hugo data files (`data/activity/*.yaml`) from analysis tables |
+| `publisher.py` | Orchestrates analysis fetching, data generation, and publishing |
 
 ## Key Concepts
 
