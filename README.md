@@ -95,7 +95,7 @@ Publishes a monthly activity summary to a GitHub-hosted Hugo blog.
 - `backfill`: Syncs latest data, runs analysis, generates Hugo data files (`data/activity/*.yaml`), and commits them to GitHub. These power the Activity page charts.
 
 **Required in .env:**
-- `GITHUB_TOKEN` - Fine-grained PAT scoped to blog repo with **Contents: Read and write** permission
+- `BLOG_GITHUB_TOKEN` - Fine-grained PAT scoped to blog repo with **Contents: Read and write** permission
 - `BLOG_REPO_OWNER` - Repository owner username
 - `BLOG_REPO_NAME` - Repository name
 - `GITHUB_TARGET_BRANCH` - (optional) Branch to commit to, defaults to `main`

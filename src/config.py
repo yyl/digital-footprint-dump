@@ -49,7 +49,7 @@ class Config:
     # ==========================================================================
     # GitHub Publishing Configuration
     # ==========================================================================
-    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+    BLOG_GITHUB_TOKEN: str = os.getenv("BLOG_GITHUB_TOKEN", "")
     BLOG_REPO_OWNER: str = os.getenv("BLOG_REPO_OWNER", "")
     BLOG_REPO_NAME: str = os.getenv("BLOG_REPO_NAME", "")
     GITHUB_TARGET_BRANCH: str = os.getenv("GITHUB_TARGET_BRANCH", "main")
@@ -79,8 +79,8 @@ class Config:
     def validate_github(cls) -> bool:
         """Validate GitHub publishing configuration."""
         missing = []
-        if not cls.GITHUB_TOKEN:
-            missing.append("GITHUB_TOKEN")
+        if not cls.BLOG_GITHUB_TOKEN:
+            missing.append("BLOG_GITHUB_TOKEN")
         if not cls.BLOG_REPO_OWNER:
             missing.append("BLOG_REPO_OWNER")
         if not cls.BLOG_REPO_NAME:

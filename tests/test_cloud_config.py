@@ -42,17 +42,17 @@ class TestConfigValidation:
         """Test that missing GitHub config raises ValueError."""
         from src.config import Config
         
-        with patch.object(Config, 'GITHUB_TOKEN', ''):
+        with patch.object(Config, 'BLOG_GITHUB_TOKEN', ''):
             with patch.object(Config, 'BLOG_REPO_OWNER', 'owner'):
                 with patch.object(Config, 'BLOG_REPO_NAME', 'repo'):
-                    with pytest.raises(ValueError, match="GITHUB_TOKEN"):
+                    with pytest.raises(ValueError, match="BLOG_GITHUB_TOKEN"):
                         Config.validate_github()
 
     def test_validate_github_with_config(self):
         """Test that GitHub validation passes with full config."""
         from src.config import Config
         
-        with patch.object(Config, 'GITHUB_TOKEN', 'test_token'):
+        with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'test_token'):
             with patch.object(Config, 'BLOG_REPO_OWNER', 'owner'):
                 with patch.object(Config, 'BLOG_REPO_NAME', 'repo'):
                     assert Config.validate_github() is True
