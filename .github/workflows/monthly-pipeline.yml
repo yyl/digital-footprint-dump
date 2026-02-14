@@ -71,10 +71,8 @@ jobs:
       - name: Run pipeline
         env:
           READWISE_ACCESS_TOKEN: ${{ secrets.READWISE_ACCESS_TOKEN }}
-          FOURSQUARE_CLIENT_ID: ${{ secrets.FOURSQUARE_CLIENT_ID }}
-          FOURSQUARE_CLIENT_SECRET: ${{ secrets.FOURSQUARE_CLIENT_SECRET }}
-          FOURSQUARE_API_KEY: ${{ secrets.FOURSQUARE_API_KEY }}
           FOURSQUARE_ACCESS_TOKEN: ${{ secrets.FOURSQUARE_ACCESS_TOKEN }}
+          FOURSQUARE_API_KEY: ${{ secrets.FOURSQUARE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.BLOG_GITHUB_TOKEN }}
           BLOG_REPO_OWNER: ${{ secrets.BLOG_REPO_OWNER }}
           BLOG_REPO_NAME: ${{ secrets.BLOG_REPO_NAME }}

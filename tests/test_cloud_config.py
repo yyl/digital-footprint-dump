@@ -23,22 +23,20 @@ class TestConfigValidation:
         with patch.object(Config, 'READWISE_ACCESS_TOKEN', 'test_token'):
             assert Config.validate_readwise() is True
 
-    def test_validate_foursquare_missing_credentials(self):
-        """Test that missing Foursquare credentials raise ValueError."""
+    def test_validate_foursquare_missing_token(self):
+        """Test that missing Foursquare access token raises ValueError."""
         from src.config import Config
         
-        with patch.object(Config, 'FOURSQUARE_CLIENT_ID', ''):
-            with patch.object(Config, 'FOURSQUARE_CLIENT_SECRET', ''):
-                with pytest.raises(ValueError, match="FOURSQUARE_CLIENT_ID"):
-                    Config.validate_foursquare()
+        with patch.object(Config, 'FOURSQUARE_ACCESS_TOKEN', ''):
+            with pytest.raises(ValueError, match="FOURSQUARE_ACCESS_TOKEN"):
+                Config.validate_foursquare()
 
-    def test_validate_foursquare_with_credentials(self):
-        """Test that Foursquare validation passes with credentials."""
+    def test_validate_foursquare_with_token(self):
+        """Test that Foursquare validation passes with access token."""
         from src.config import Config
         
-        with patch.object(Config, 'FOURSQUARE_CLIENT_ID', 'test_id'):
-            with patch.object(Config, 'FOURSQUARE_CLIENT_SECRET', 'test_secret'):
-                assert Config.validate_foursquare() is True
+        with patch.object(Config, 'FOURSQUARE_ACCESS_TOKEN', 'test_token'):
+            assert Config.validate_foursquare() is True
 
     def test_validate_github_missing_token(self):
         """Test that missing GitHub config raises ValueError."""

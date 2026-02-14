@@ -67,10 +67,11 @@ class Config:
     @classmethod
     def validate_foursquare(cls) -> bool:
         """Validate Foursquare configuration."""
-        if not cls.FOURSQUARE_CLIENT_ID or not cls.FOURSQUARE_CLIENT_SECRET:
+        if not cls.FOURSQUARE_ACCESS_TOKEN:
             raise ValueError(
-                "FOURSQUARE_CLIENT_ID and FOURSQUARE_CLIENT_SECRET must be set. "
-                "Please add them to your .env file."
+                "FOURSQUARE_ACCESS_TOKEN is not set. "
+                "Run the OAuth flow locally to obtain a token, "
+                "then add it to your .env file."
             )
         return True
     

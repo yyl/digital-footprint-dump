@@ -135,9 +135,7 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
    | `DATA_REPO_PAT` | PAT with Contents read/write on data repo |
    | `READWISE_ACCESS_TOKEN` | Readwise API token |
    | `FOURSQUARE_ACCESS_TOKEN` | Foursquare OAuth token — required for all API calls |
-   | `FOURSQUARE_CLIENT_ID` | Foursquare OAuth — only needed for re-auth |
-   | `FOURSQUARE_CLIENT_SECRET` | Foursquare OAuth — only needed for re-auth |
-   | `FOURSQUARE_API_KEY` | *(optional)* Foursquare Places API enrichment |
+   | `FOURSQUARE_API_KEY` | *(optional)* Foursquare Places API for venue details |
    | `BLOG_GITHUB_TOKEN` | PAT with Contents read/write on blog repo |
    | `BLOG_REPO_OWNER` | Blog repo owner |
    | `BLOG_REPO_NAME` | Blog repo name |
