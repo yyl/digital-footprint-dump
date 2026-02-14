@@ -49,9 +49,10 @@ Exports checkins and places to `data/foursquare.db`.
 - `foursquare-analyze`: Generates monthly stats (checkins, unique places) and writes to the `analysis` table.
 
 **Required in .env:**
-- `FOURSQUARE_CLIENT_ID` - From your [Foursquare app](https://foursquare.com/developers/apps)
-- `FOURSQUARE_CLIENT_SECRET`
-- `FOURSQUARE_API_KEY` - Service key for Places API
+- `FOURSQUARE_ACCESS_TOKEN` - OAuth token used for all v2 API calls (checkins, user info)
+- `FOURSQUARE_CLIENT_ID` - Only needed for initial OAuth flow / re-auth. From your [Foursquare app](https://foursquare.com/developers/apps)
+- `FOURSQUARE_CLIENT_SECRET` - Only needed for initial OAuth flow / re-auth
+- `FOURSQUARE_API_KEY` - *(optional)* Service key for Places API; enriches venue details but falls back to checkin data if absent
 
 ---
 
@@ -133,10 +134,10 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
    | `DATA_REPO_NAME` | Private data repo name |
    | `DATA_REPO_PAT` | PAT with Contents read/write on data repo |
    | `READWISE_ACCESS_TOKEN` | Readwise API token |
-   | `FOURSQUARE_CLIENT_ID` | Foursquare OAuth |
-   | `FOURSQUARE_CLIENT_SECRET` | Foursquare OAuth |
-   | `FOURSQUARE_API_KEY` | Foursquare Places API |
-   | `FOURSQUARE_ACCESS_TOKEN` | Foursquare OAuth token |
+   | `FOURSQUARE_ACCESS_TOKEN` | Foursquare OAuth token — required for all API calls |
+   | `FOURSQUARE_CLIENT_ID` | Foursquare OAuth — only needed for re-auth |
+   | `FOURSQUARE_CLIENT_SECRET` | Foursquare OAuth — only needed for re-auth |
+   | `FOURSQUARE_API_KEY` | *(optional)* Foursquare Places API enrichment |
    | `BLOG_GITHUB_TOKEN` | PAT with Contents read/write on blog repo |
    | `BLOG_REPO_OWNER` | Blog repo owner |
    | `BLOG_REPO_NAME` | Blog repo name |
