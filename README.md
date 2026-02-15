@@ -101,6 +101,21 @@ Imports workout data from Strong app CSV export to `data/strong.db`.
 
 ---
 
+## Hardcover
+
+Syncs finished books from [Hardcover](https://hardcover.app/) via their GraphQL API to `data/hardcover.db`.
+
+**Commands:**
+- `hardcover-sync`: Fetches all books marked as "read" from Hardcover API.
+- `hardcover-analyze`: Generates monthly stats (books finished, average rating) and writes to the `analysis` table.
+
+**Setup:**
+1. Get your API token from [hardcover.app/account/api](https://hardcover.app/account/api)
+2. Add to `.env`: `HARDCOVER_ACCESS_TOKEN=your_token_here`
+3. Run `uv run main.py hardcover-sync`
+
+---
+
 ## Publishing
 
 Publishes a monthly activity summary to a GitHub-hosted Hugo blog.

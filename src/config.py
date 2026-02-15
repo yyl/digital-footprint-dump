@@ -52,6 +52,13 @@ class Config:
     STRONG_DATABASE_PATH = DATA_DIR / "strong.db"
     
     # ==========================================================================
+    # Hardcover Configuration
+    # ==========================================================================
+    HARDCOVER_ACCESS_TOKEN: str = os.getenv("HARDCOVER_ACCESS_TOKEN", "")
+    HARDCOVER_API_URL = "https://api.hardcover.app/v1/graphql"
+    HARDCOVER_DATABASE_PATH = DATA_DIR / "hardcover.db"
+    
+    # ==========================================================================
     # GitHub Publishing Configuration
     # ==========================================================================
     BLOG_GITHUB_TOKEN: str = os.getenv("BLOG_GITHUB_TOKEN", "")
@@ -77,6 +84,17 @@ class Config:
                 "FOURSQUARE_ACCESS_TOKEN is not set. "
                 "Run the OAuth flow locally to obtain a token, "
                 "then add it to your .env file."
+            )
+        return True
+    
+    @classmethod
+    def validate_hardcover(cls) -> bool:
+        """Validate Hardcover configuration."""
+        if not cls.HARDCOVER_ACCESS_TOKEN:
+            raise ValueError(
+                "HARDCOVER_ACCESS_TOKEN is not set. "
+                "Get your token from https://hardcover.app/account/api "
+                "and add it to your .env file."
             )
         return True
     

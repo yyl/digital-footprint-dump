@@ -17,6 +17,8 @@ Usage:
     python main.py overcast-analyze  # Analyze Overcast podcasts
     python main.py strong-sync       # Import Strong workout data
     python main.py strong-analyze    # Analyze Strong workouts
+    python main.py hardcover-sync    # Sync Hardcover books
+    python main.py hardcover-analyze # Analyze Hardcover books
     python main.py publish           # Publish monthly summary to blog
     python main.py publish --dry-run # Validate config without publishing
     python main.py backfill          # Commit activity data files to blog repo
@@ -51,6 +53,11 @@ def cmd_init():
     from src.strong.database import StrongDatabase
     strong_db = StrongDatabase()
     strong_db.init_tables()
+    
+    # Hardcover
+    from src.hardcover.database import HardcoverDatabase
+    hc_db = HardcoverDatabase()
+    hc_db.init_tables()
     
     print("\nDone!")
 
@@ -149,6 +156,9 @@ def cmd_publish(dry_run: bool = False):
     print("\n--- Strong ---")
     cmd_strong_analyze()
     
+    print("\n--- Hardcover ---")
+    cmd_hardcover_analyze()
+    
     print("\n=== Publishing ===")
     print("Publishing monthly summary...")
     
@@ -183,6 +193,9 @@ def cmd_backfill():
     
     print("\n--- Strong ---")
     cmd_strong_analyze()
+    
+    print("\n--- Hardcover ---")
+    cmd_hardcover_analyze()
     
     print("\n=== Backfilling Data ===")
     print("Generating and committing data files...")
@@ -347,6 +360,25 @@ def cmd_analyze():
     except Exception as e:
         print(f"  Error: {e}")
     
+    print()
+    
+    # Hardcover
+    print("--- Hardcover ---")
+    try:
+        from src.hardcover.database import HardcoverDatabase
+        from src.hardcover.analytics import HardcoverAnalytics
+        
+        # Sync first
+        cmd_hardcover_sync()
+        
+        db = HardcoverDatabase()
+        db.init_tables()
+        analytics = HardcoverAnalytics(db=db)
+        count = analytics.analyze_books()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error: {e}")
+    
     print("\nAnalysis complete!")
 
 
@@ -400,6 +432,39 @@ def cmd_strong_analyze():
     print(f"Analysis complete! {record_count} monthly records written to the analysis table in strong.db")
 
 
+def cmd_hardcover_sync():
+    """Sync Hardcover book data."""
+    try:
+        Config.validate_hardcover()
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    
+    from src.hardcover.sync import HardcoverSyncManager
+    
+    sync_manager = HardcoverSyncManager()
+    sync_manager.sync()
+
+
+def cmd_hardcover_analyze():
+    """Analyze Hardcover book data."""
+    # Ensure latest data
+    cmd_hardcover_sync()
+
+    from src.hardcover.database import HardcoverDatabase
+    from src.hardcover.analytics import HardcoverAnalytics
+
+    print("Analyzing Hardcover books...")
+
+    db = HardcoverDatabase()
+    db.init_tables()
+
+    analytics = HardcoverAnalytics(db=db)
+    record_count = analytics.analyze_books()
+
+    print(f"Analysis complete! {record_count} monthly records written to the analysis table in hardcover.db")
+
+
 def cmd_sync():
     """Sync all services."""
     print("=== Syncing All Services ===\n")
@@ -435,6 +500,16 @@ def cmd_sync():
     # Strong
     print("--- Strong ---")
     cmd_strong_sync()
+    
+    print()
+    
+    # Hardcover
+    print("--- Hardcover ---")
+    try:
+        Config.validate_hardcover()
+        cmd_hardcover_sync()
+    except ValueError as e:
+        print(f"Skipping Hardcover: {e}\n")
 
 
 def cmd_status():
@@ -612,6 +687,39 @@ def cmd_status():
                     print(f"  analysis: no records")
     except Exception as e:
         print(f"  Error: {e}")
+    
+    print()
+    
+    # Hardcover
+    print("--- Hardcover ---")
+    try:
+        from src.hardcover.database import HardcoverDatabase
+        
+        db = HardcoverDatabase()
+        if db.exists():
+            stats = db.get_stats()
+            for entity, count in stats.items():
+                print(f"  {entity}: {count}")
+            
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute("SELECT COUNT(*) FROM analysis")
+                    analysis_count = cursor.fetchone()[0]
+                    cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
+                    latest_analysis = cursor.fetchone()
+                    
+                    if analysis_count > 0 and latest_analysis:
+                        print(f"  analysis records: {analysis_count}")
+                        print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
+                    else:
+                        print(f"  analysis: no records")
+                except Exception:
+                    print(f"  analysis: no records")
+        else:
+            print("  not initialized")
+    except Exception as e:
+        print(f"  Error: {e}")
 
 
 def main():
@@ -638,6 +746,8 @@ def main():
     subparsers.add_parser("overcast-analyze", help="Analyze Overcast podcasts")
     subparsers.add_parser("strong-sync", help="Import Strong workout data")
     subparsers.add_parser("strong-analyze", help="Analyze Strong workouts")
+    subparsers.add_parser("hardcover-sync", help="Sync Hardcover books")
+    subparsers.add_parser("hardcover-analyze", help="Analyze Hardcover books")
     subparsers.add_parser("status", help="Show sync status")
     subparsers.add_parser("backfill", help="Commit activity data files to blog repo")
     
@@ -669,6 +779,8 @@ def main():
         "overcast-analyze": cmd_overcast_analyze,
         "strong-sync": cmd_strong_sync,
         "strong-analyze": cmd_strong_analyze,
+        "hardcover-sync": cmd_hardcover_sync,
+        "hardcover-analyze": cmd_hardcover_analyze,
         "status": cmd_status,
     }
     

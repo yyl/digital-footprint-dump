@@ -8,6 +8,7 @@ from ..foursquare.database import FoursquareDatabase
 from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
 from ..strong.database import StrongDatabase
+from ..hardcover.database import HardcoverDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ class DataGenerator:
         letterboxd_db: Optional[LetterboxdDatabase] = None,
         overcast_db: Optional[OvercastDatabase] = None,
         strong_db: Optional[StrongDatabase] = None,
+        hardcover_db: Optional[HardcoverDatabase] = None,
     ):
         """Initialize data generator.
         
@@ -68,12 +70,14 @@ class DataGenerator:
             letterboxd_db: Letterboxd database manager.
             overcast_db: Overcast database manager.
             strong_db: Strong database manager.
+            hardcover_db: Hardcover database manager.
         """
         self.readwise_db = readwise_db or ReadwiseDatabase()
         self.foursquare_db = foursquare_db or FoursquareDatabase()
         self.letterboxd_db = letterboxd_db or LetterboxdDatabase()
         self.overcast_db = overcast_db or OvercastDatabase()
         self.strong_db = strong_db or StrongDatabase()
+        self.hardcover_db = hardcover_db or HardcoverDatabase()
     
     def _get_all_readwise(self) -> List[Dict[str, Any]]:
         """Get all Readwise analysis records, oldest first."""
@@ -204,6 +208,33 @@ class DataGenerator:
         except Exception:
             return []
     
+    def _get_all_hardcover(self) -> List[Dict[str, Any]]:
+        """Get all Hardcover analysis records, oldest first."""
+        if not self.hardcover_db.exists():
+            return []
+        
+        query = """
+        SELECT year_month, books_finished, avg_rating
+        FROM analysis
+        ORDER BY year_month ASC
+        """
+        try:
+            with self.hardcover_db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                rows = cursor.fetchall()
+            
+            return [
+                {
+                    'month': dict(row)['year_month'],
+                    'books_finished': dict(row)['books_finished'],
+                    'avg_rating': dict(row)['avg_rating'],
+                }
+                for row in rows
+            ]
+        except Exception:
+            return []
+    
     def generate_data_files(self) -> Dict[str, str]:
         """Generate all Hugo data files.
         
@@ -252,6 +283,14 @@ class DataGenerator:
                 workouts_records, "Monthly workout activity data"
             )
             logger.info(f"Generated workouts.yaml with {len(workouts_records)} records")
+        
+        # Books (Hardcover)
+        books_records = self._get_all_hardcover()
+        if books_records:
+            files["data/activity/books.yaml"] = _to_yaml(
+                books_records, "Monthly books activity data"
+            )
+            logger.info(f"Generated books.yaml with {len(books_records)} records")
         
         logger.info(f"Generated {len(files)} data files total")
         return files

@@ -16,6 +16,7 @@ Note: The file structure below is shown from the root directory.
 │   ├── letterboxd/         # Letterboxd CSV import
 │   ├── overcast/           # Overcast OPML import
 │   ├── strong/             # Strong workout CSV import
+│   ├── hardcover/          # Hardcover book API integration
 │   └── publish/            # Markdown + data file generation & GitHub publishing
 ├── data/                   # SQLite databases (generated)
 └── files/                  # Import files (user-provided)
@@ -64,6 +65,7 @@ All sources now display month-over-month and year-over-year percentage changes i
 | Letterboxd | movies_watched, avg_rating |
 | Overcast | episodes_played |
 | Strong | workouts, total_minutes |
+| Hardcover | books_finished, avg_rating |
 
 ### Hugo Data Files
 
@@ -76,6 +78,7 @@ The `publish/data_generator.py` module generates Hugo-compatible YAML data files
 | `movies.yaml` | Letterboxd | `movies_watched`, `avg_rating` |
 | `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played` |
 | `workouts.yaml` | Strong | `workouts`, `total_minutes`, `unique_exercises`, `total_sets` |
+| `books.yaml` | Hardcover | `books_finished`, `avg_rating` |
 
 The `comparison.py` module provides shared utilities:
 
