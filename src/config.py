@@ -52,7 +52,7 @@ class Config:
     BLOG_GITHUB_TOKEN: str = os.getenv("BLOG_GITHUB_TOKEN", "")
     BLOG_REPO_OWNER: str = os.getenv("BLOG_REPO_OWNER", "")
     BLOG_REPO_NAME: str = os.getenv("BLOG_REPO_NAME", "")
-    GITHUB_TARGET_BRANCH: str = os.getenv("GITHUB_TARGET_BRANCH", "main")
+    BLOG_GITHUB_TARGET_BRANCH: str = os.getenv("BLOG_GITHUB_TARGET_BRANCH", "main")
     
     @classmethod
     def validate_readwise(cls) -> bool:

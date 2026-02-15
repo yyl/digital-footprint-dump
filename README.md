@@ -98,7 +98,7 @@ Publishes a monthly activity summary to a GitHub-hosted Hugo blog.
 - `BLOG_GITHUB_TOKEN` - Fine-grained PAT scoped to blog repo with **Contents: Read and write** permission
 - `BLOG_REPO_OWNER` - Repository owner username
 - `BLOG_REPO_NAME` - Repository name
-- `GITHUB_TARGET_BRANCH` - (optional) Branch to commit to, defaults to `main`
+- `BLOG_GITHUB_TARGET_BRANCH` - (optional) Branch to commit to, defaults to `main`
 
 ---
 
@@ -139,6 +139,7 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
    | `BLOG_GITHUB_TOKEN` | PAT with Contents read/write on blog repo |
    | `BLOG_REPO_OWNER` | Blog repo owner |
    | `BLOG_REPO_NAME` | Blog repo name |
+   | `BLOG_GITHUB_TARGET_BRANCH` | *(optional)* Branch to commit to, defaults to `main` |
 
 ### Schedule
 

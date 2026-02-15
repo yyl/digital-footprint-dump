@@ -154,7 +154,7 @@ class Publisher:
                 token=Config.BLOG_GITHUB_TOKEN,
                 repo_owner=Config.BLOG_REPO_OWNER,
                 repo_name=Config.BLOG_REPO_NAME,
-                target_branch=Config.GITHUB_TARGET_BRANCH
+                target_branch=Config.BLOG_GITHUB_TARGET_BRANCH
             )
     
     def publish(self) -> Dict[str, Any]:
