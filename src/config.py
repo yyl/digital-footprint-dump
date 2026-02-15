@@ -47,6 +47,11 @@ class Config:
     OVERCAST_DATABASE_PATH = DATA_DIR / "overcast.db"
     
     # ==========================================================================
+    # Strong Configuration
+    # ==========================================================================
+    STRONG_DATABASE_PATH = DATA_DIR / "strong.db"
+    
+    # ==========================================================================
     # GitHub Publishing Configuration
     # ==========================================================================
     BLOG_GITHUB_TOKEN: str = os.getenv("BLOG_GITHUB_TOKEN", "")

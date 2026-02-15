@@ -20,8 +20,8 @@ cp .env.example .env
 | `publish` | Publish monthly summary blog post |
 | `backfill` | Commit activity data files to blog repo |
 | `status` | Show sync status |
-| `{source}-sync` | Sync specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`) |
-| `{source}-analyze` | Analyze specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`) |
+| `{source}-sync` | Sync specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`) |
+| `{source}-analyze` | Analyze specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`) |
 
 Run with: `uv run main.py <command>`
 
@@ -86,6 +86,21 @@ Imports podcast feeds and episodes from OPML export to `data/overcast.db`.
 
 ---
 
+## Strong
+
+Imports workout data from Strong app CSV export to `data/strong.db`.
+
+**Commands:**
+- `strong-sync`: Imports workout and exercise data from CSV export.
+- `strong-analyze`: Generates monthly stats (workouts, total minutes, unique exercises, total sets) and writes to the `analysis` table.
+
+**Setup:**
+1. Export from [Strong app](https://www.strong.app/) → Settings → Export Data
+2. Place CSV in `files/` (e.g., `files/strong_workouts.csv`)
+3. Run `uv run main.py strong-sync`
+
+---
+
 ## Publishing
 
 Publishes a monthly activity summary to a GitHub-hosted Hugo blog.
@@ -112,9 +127,10 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
    ```
    digital-footprint-data/
    ├── data/           # Empty initially, DBs auto-created
-   └── files/          # Manual exports (Letterboxd, Overcast)
+   └── files/          # Manual exports (Letterboxd, Overcast, Strong)
        ├── letterboxd-export/
-       └── overcast.opml
+       ├── overcast.opml
+       └── strong_workouts.csv
    ```
 
 2. **Create two fine-grained Personal Access Tokens** at [github.com/settings/tokens](https://github.com/settings/tokens):

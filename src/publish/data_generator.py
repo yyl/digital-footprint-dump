@@ -7,6 +7,7 @@ from ..readwise.database import ReadwiseDatabase
 from ..foursquare.database import FoursquareDatabase
 from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
+from ..strong.database import StrongDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ class DataGenerator:
         foursquare_db: Optional[FoursquareDatabase] = None,
         letterboxd_db: Optional[LetterboxdDatabase] = None,
         overcast_db: Optional[OvercastDatabase] = None,
+        strong_db: Optional[StrongDatabase] = None,
     ):
         """Initialize data generator.
         
@@ -65,11 +67,13 @@ class DataGenerator:
             foursquare_db: Foursquare database manager.
             letterboxd_db: Letterboxd database manager.
             overcast_db: Overcast database manager.
+            strong_db: Strong database manager.
         """
         self.readwise_db = readwise_db or ReadwiseDatabase()
         self.foursquare_db = foursquare_db or FoursquareDatabase()
         self.letterboxd_db = letterboxd_db or LetterboxdDatabase()
         self.overcast_db = overcast_db or OvercastDatabase()
+        self.strong_db = strong_db or StrongDatabase()
     
     def _get_all_readwise(self) -> List[Dict[str, Any]]:
         """Get all Readwise analysis records, oldest first."""
@@ -171,6 +175,35 @@ class DataGenerator:
         except Exception:
             return []
     
+    def _get_all_strong(self) -> List[Dict[str, Any]]:
+        """Get all Strong analysis records, oldest first."""
+        if not self.strong_db.exists():
+            return []
+        
+        query = """
+        SELECT year_month, workouts, total_minutes, unique_exercises, total_sets
+        FROM analysis
+        ORDER BY year_month ASC
+        """
+        try:
+            with self.strong_db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                rows = cursor.fetchall()
+            
+            return [
+                {
+                    'month': dict(row)['year_month'],
+                    'workouts': dict(row)['workouts'],
+                    'total_minutes': dict(row)['total_minutes'],
+                    'unique_exercises': dict(row)['unique_exercises'],
+                    'total_sets': dict(row)['total_sets'],
+                }
+                for row in rows
+            ]
+        except Exception:
+            return []
+    
     def generate_data_files(self) -> Dict[str, str]:
         """Generate all Hugo data files.
         
@@ -211,6 +244,14 @@ class DataGenerator:
                 podcasts_records, "Monthly podcasts activity data"
             )
             logger.info(f"Generated podcasts.yaml with {len(podcasts_records)} records")
+        
+        # Workouts (Strong)
+        workouts_records = self._get_all_strong()
+        if workouts_records:
+            files["data/activity/workouts.yaml"] = _to_yaml(
+                workouts_records, "Monthly workout activity data"
+            )
+            logger.info(f"Generated workouts.yaml with {len(workouts_records)} records")
         
         logger.info(f"Generated {len(files)} data files total")
         return files

@@ -9,6 +9,7 @@ from ..readwise.database import ReadwiseDatabase
 from ..foursquare.database import FoursquareDatabase
 from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
+from ..strong.database import StrongDatabase
 from .github_client import GitHubClient
 from .markdown_generator import MarkdownGenerator
 from .data_generator import DataGenerator
@@ -25,6 +26,7 @@ class Publisher:
         foursquare_db: Optional[FoursquareDatabase] = None,
         letterboxd_db: Optional[LetterboxdDatabase] = None,
         overcast_db: Optional[OvercastDatabase] = None,
+        strong_db: Optional[StrongDatabase] = None,
         github_client: Optional[GitHubClient] = None
     ):
         """Initialize publisher.
@@ -34,12 +36,14 @@ class Publisher:
             foursquare_db: Foursquare database manager.
             letterboxd_db: Letterboxd database manager.
             overcast_db: Overcast database manager.
+            strong_db: Strong database manager.
             github_client: GitHub client for committing files.
         """
         self.readwise_db = readwise_db or ReadwiseDatabase()
         self.foursquare_db = foursquare_db or FoursquareDatabase()
         self.letterboxd_db = letterboxd_db or LetterboxdDatabase()
         self.overcast_db = overcast_db or OvercastDatabase()
+        self.strong_db = strong_db or StrongDatabase()
         self.github_client = github_client
         self.markdown_generator = MarkdownGenerator()
         self.data_generator = DataGenerator(
@@ -47,6 +51,7 @@ class Publisher:
             foursquare_db=self.foursquare_db,
             letterboxd_db=self.letterboxd_db,
             overcast_db=self.overcast_db,
+            strong_db=self.strong_db,
         )
     
     def _get_readwise_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
@@ -116,6 +121,29 @@ class Publisher:
         
         try:
             with self.overcast_db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (year_month,))
+                row = cursor.fetchone()
+                
+                if row:
+                    return dict(row)
+        except Exception:
+            pass
+        return None
+    
+    def _get_strong_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
+        """Get Strong analysis for a specific month."""
+        if not self.strong_db.exists():
+            return None
+        
+        query = """
+        SELECT year_month, year, month, workouts, total_minutes, unique_exercises, total_sets
+        FROM analysis
+        WHERE year_month = ?
+        """
+        
+        try:
+            with self.strong_db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (year_month,))
                 row = cursor.fetchone()
@@ -303,5 +331,21 @@ class Publisher:
                 'comparisons': overcast_comparisons
             }
         
+        # Get Strong analysis
+        strong = self._get_strong_analysis(year_month)
+        if strong:
+            strong_comparisons = compute_comparisons(
+                current_stats=strong,
+                historical_getter=self._get_strong_analysis,
+                year_month=year_month,
+                metrics=['workouts', 'total_minutes']
+            )
+            data['strong'] = {
+                'workouts': strong['workouts'],
+                'total_minutes': strong['total_minutes'],
+                'unique_exercises': strong['unique_exercises'],
+                'total_sets': strong['total_sets'],
+                'comparisons': strong_comparisons
+            }
+        
         return self.markdown_generator.generate_monthly_summary(data)
-

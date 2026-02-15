@@ -15,6 +15,8 @@ Usage:
     python main.py letterboxd-analyze # Analyze Letterboxd movies
     python main.py overcast-sync     # Import Overcast data
     python main.py overcast-analyze  # Analyze Overcast podcasts
+    python main.py strong-sync       # Import Strong workout data
+    python main.py strong-analyze    # Analyze Strong workouts
     python main.py publish           # Publish monthly summary to blog
     python main.py publish --dry-run # Validate config without publishing
     python main.py backfill          # Commit activity data files to blog repo
@@ -44,6 +46,11 @@ def cmd_init():
     from src.letterboxd.database import LetterboxdDatabase
     lbxd_db = LetterboxdDatabase()
     lbxd_db.init_tables()
+    
+    # Strong
+    from src.strong.database import StrongDatabase
+    strong_db = StrongDatabase()
+    strong_db.init_tables()
     
     print("\nDone!")
 
@@ -139,6 +146,9 @@ def cmd_publish(dry_run: bool = False):
     print("\n--- Overcast ---")
     cmd_overcast_analyze()
     
+    print("\n--- Strong ---")
+    cmd_strong_analyze()
+    
     print("\n=== Publishing ===")
     print("Publishing monthly summary...")
     
@@ -170,6 +180,9 @@ def cmd_backfill():
     
     print("\n--- Overcast ---")
     cmd_overcast_analyze()
+    
+    print("\n--- Strong ---")
+    cmd_strong_analyze()
     
     print("\n=== Backfilling Data ===")
     print("Generating and committing data files...")
@@ -315,6 +328,25 @@ def cmd_analyze():
     except Exception as e:
         print(f"  Error: {e}")
     
+    print()
+    
+    # Strong
+    print("--- Strong ---")
+    try:
+        from src.strong.database import StrongDatabase
+        from src.strong.analytics import StrongAnalytics
+        
+        # Sync first
+        cmd_strong_sync()
+        
+        db = StrongDatabase()
+        db.init_tables()
+        analytics = StrongAnalytics(db=db)
+        count = analytics.analyze_workouts()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error: {e}")
+    
     print("\nAnalysis complete!")
 
 
@@ -339,6 +371,33 @@ def cmd_overcast_analyze():
     record_count = analytics.analyze_podcasts()
 
     print(f"Analysis complete! {record_count} monthly records written to the analysis table in overcast.db")
+
+
+def cmd_strong_sync():
+    """Import Strong workout data from CSV export."""
+    from src.strong.importer import StrongImporter
+    
+    importer = StrongImporter()
+    importer.sync()
+
+
+def cmd_strong_analyze():
+    """Analyze Strong workout data."""
+    # Ensure latest data
+    cmd_strong_sync()
+
+    from src.strong.database import StrongDatabase
+    from src.strong.analytics import StrongAnalytics
+
+    print("Analyzing Strong workouts...")
+
+    db = StrongDatabase()
+    db.init_tables()
+
+    analytics = StrongAnalytics(db=db)
+    record_count = analytics.analyze_workouts()
+
+    print(f"Analysis complete! {record_count} monthly records written to the analysis table in strong.db")
 
 
 def cmd_sync():
@@ -370,6 +429,12 @@ def cmd_sync():
     # Overcast
     print("--- Overcast ---")
     cmd_overcast_sync()
+    
+    print()
+    
+    # Strong
+    print("--- Strong ---")
+    cmd_strong_sync()
 
 
 def cmd_status():
@@ -506,6 +571,47 @@ def cmd_status():
             conn.close()
     except Exception as e:
         print(f"  Error: {e}")
+    
+    print()
+    
+    # Strong
+    print("--- Strong ---")
+    try:
+        from src.strong.importer import StrongImporter
+        from src.strong.database import StrongDatabase
+        
+        importer = StrongImporter()
+        status = importer.get_status()
+        
+        if "error" in status:
+            print(f"  Error: {status['error']}")
+        else:
+            for entity, count in status.get("database_stats", {}).items():
+                print(f"  {entity}: {count}")
+            latest = status.get("latest_export")
+            if latest:
+                print(f"  latest_export: {latest.name}")
+        
+        # Analysis status
+        db = StrongDatabase()
+        if db.exists():
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute("SELECT COUNT(*) FROM analysis")
+                    analysis_count = cursor.fetchone()[0]
+                    cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
+                    latest_analysis = cursor.fetchone()
+                    
+                    if analysis_count > 0 and latest_analysis:
+                        print(f"  analysis records: {analysis_count}")
+                        print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
+                    else:
+                        print(f"  analysis: no records")
+                except Exception:
+                    print(f"  analysis: no records")
+    except Exception as e:
+        print(f"  Error: {e}")
 
 
 def main():
@@ -530,6 +636,8 @@ def main():
     subparsers.add_parser("letterboxd-analyze", help="Analyze Letterboxd movies")
     subparsers.add_parser("overcast-sync", help="Import Overcast data")
     subparsers.add_parser("overcast-analyze", help="Analyze Overcast podcasts")
+    subparsers.add_parser("strong-sync", help="Import Strong workout data")
+    subparsers.add_parser("strong-analyze", help="Analyze Strong workouts")
     subparsers.add_parser("status", help="Show sync status")
     subparsers.add_parser("backfill", help="Commit activity data files to blog repo")
     
@@ -559,6 +667,8 @@ def main():
         "letterboxd-analyze": cmd_letterboxd_analyze,
         "overcast-sync": cmd_overcast_sync,
         "overcast-analyze": cmd_overcast_analyze,
+        "strong-sync": cmd_strong_sync,
+        "strong-analyze": cmd_strong_analyze,
         "status": cmd_status,
     }
     

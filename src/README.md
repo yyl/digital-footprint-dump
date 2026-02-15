@@ -15,6 +15,7 @@ Note: The file structure below is shown from the root directory.
 │   ├── foursquare/         # Foursquare/Swarm integration
 │   ├── letterboxd/         # Letterboxd CSV import
 │   ├── overcast/           # Overcast OPML import
+│   ├── strong/             # Strong workout CSV import
 │   └── publish/            # Markdown + data file generation & GitHub publishing
 ├── data/                   # SQLite databases (generated)
 └── files/                  # Import files (user-provided)
@@ -62,6 +63,7 @@ All sources now display month-over-month and year-over-year percentage changes i
 | Foursquare | checkins, unique_places |
 | Letterboxd | movies_watched, avg_rating |
 | Overcast | episodes_played |
+| Strong | workouts, total_minutes |
 
 ### Hugo Data Files
 
@@ -73,6 +75,7 @@ The `publish/data_generator.py` module generates Hugo-compatible YAML data files
 | `travel.yaml` | Foursquare | `checkins`, `unique_places` |
 | `movies.yaml` | Letterboxd | `movies_watched`, `avg_rating` |
 | `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played` |
+| `workouts.yaml` | Strong | `workouts`, `total_minutes`, `unique_exercises`, `total_sets` |
 
 The `comparison.py` module provides shared utilities:
 
