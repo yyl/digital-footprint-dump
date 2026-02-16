@@ -372,7 +372,6 @@ def cmd_analyze():
         cmd_hardcover_sync()
         
         db = HardcoverDatabase()
-        db.init_tables()
         analytics = HardcoverAnalytics(db=db)
         count = analytics.analyze_books()
         print(f"  {count} monthly records written")
@@ -457,8 +456,6 @@ def cmd_hardcover_analyze():
     print("Analyzing Hardcover books...")
 
     db = HardcoverDatabase()
-    db.init_tables()
-
     analytics = HardcoverAnalytics(db=db)
     record_count = analytics.analyze_books()
 
