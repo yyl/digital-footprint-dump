@@ -62,7 +62,8 @@ class Publisher:
     def _get_readwise_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Readwise analysis for a specific month."""
         query = """
-        SELECT year_month, year, month, articles, words, reading_time_mins
+        SELECT year_month, year, month, articles, words, reading_time_mins,
+               max_words_per_article, median_words_per_article, min_words_per_article
         FROM analysis
         WHERE year_month = ?
         """
@@ -307,6 +308,9 @@ class Publisher:
                 'articles': readwise['articles'],
                 'words': readwise['words'],
                 'reading_time_mins': readwise['reading_time_mins'],
+                'max_words_per_article': readwise['max_words_per_article'],
+                'median_words_per_article': readwise['median_words_per_article'],
+                'min_words_per_article': readwise['min_words_per_article'],
                 'comparisons': readwise_comparisons
             }
         

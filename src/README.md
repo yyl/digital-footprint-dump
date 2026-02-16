@@ -73,7 +73,7 @@ The `publish/data_generator.py` module generates Hugo-compatible YAML data files
 
 | File | Source | Fields |
 |------|--------|--------|
-| `reading.yaml` | Readwise | `articles_archived`, `total_words`, `time_spent_minutes`, `avg_reading_speed` |
+| `reading.yaml` | Readwise | `articles_archived`, `total_words`, `time_spent_minutes`, `avg_reading_speed`, `max_words_per_article`, `median_words_per_article`, `min_words_per_article` |
 | `travel.yaml` | Foursquare | `checkins`, `unique_places` |
 | `movies.yaml` | Letterboxd | `movies_watched`, `avg_rating` |
 | `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played` |

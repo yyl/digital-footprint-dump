@@ -79,7 +79,9 @@ class TestDataGeneratorOutput:
         """Verify reading.yaml has the expected field names."""
         records = [
             {'month': '2025-08', 'articles_archived': 18, 'total_words': 42500,
-             'time_spent_minutes': 170, 'avg_reading_speed': 250},
+             'time_spent_minutes': 170, 'avg_reading_speed': 250,
+             'max_words_per_article': 8500, 'median_words_per_article': 2200,
+             'min_words_per_article': 150},
         ]
         yaml = _to_yaml(records, "Monthly reading activity data")
         
@@ -87,6 +89,9 @@ class TestDataGeneratorOutput:
         assert 'total_words:' in yaml
         assert 'time_spent_minutes:' in yaml
         assert 'avg_reading_speed:' in yaml
+        assert 'max_words_per_article:' in yaml
+        assert 'median_words_per_article:' in yaml
+        assert 'min_words_per_article:' in yaml
     
     def test_movies_yaml_structure(self):
         """Verify movies.yaml has the expected field names."""

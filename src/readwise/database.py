@@ -49,6 +49,26 @@ class ReadwiseDatabase:
         
         if is_new:
             print(f"Database initialized at: {self.db_path}")
+        else:
+            self._migrate_analysis_table()
+    
+    def _migrate_analysis_table(self) -> None:
+        """Add new columns to the analysis table if they don't exist yet."""
+        new_columns = [
+            ("max_words_per_article", "INTEGER DEFAULT 0"),
+            ("median_words_per_article", "INTEGER DEFAULT 0"),
+            ("min_words_per_article", "INTEGER DEFAULT 0"),
+        ]
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            for col_name, col_type in new_columns:
+                try:
+                    cursor.execute(
+                        f"ALTER TABLE analysis ADD COLUMN {col_name} {col_type}"
+                    )
+                except Exception:
+                    # Column already exists
+                    pass
 
     def check_tables_exist(self) -> bool:
         """Check if required tables exist in the database.

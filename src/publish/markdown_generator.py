@@ -105,6 +105,11 @@ categories: ["Summary"]
         # Speed = words / time, so if both words and time change, speed change is derived
         speed_comparison = self._compute_speed_comparison(comparisons)
         
+        # Per-article word count stats
+        max_wpa = readwise_data.get('max_words_per_article', 0)
+        median_wpa = readwise_data.get('median_words_per_article', 0)
+        min_wpa = readwise_data.get('min_words_per_article', 0)
+        
         return f"""
 ## Reading
 
@@ -112,6 +117,9 @@ categories: ["Summary"]
 - **Total Words Read**: {words:,}{words_comparison}
 - **Time Spent Reading**: {time_display}{time_comparison}
 - **Average Reading Speed**: {speed_display}{speed_comparison}
+- **Max Words (single article)**: {max_wpa:,}
+- **Median Words (per article)**: {median_wpa:,}
+- **Min Words (single article)**: {min_wpa:,}
 """
     
     def _compute_speed_comparison(self, comparisons: Dict[str, Any]) -> str:

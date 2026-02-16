@@ -82,7 +82,8 @@ class DataGenerator:
     def _get_all_readwise(self) -> List[Dict[str, Any]]:
         """Get all Readwise analysis records, oldest first."""
         query = """
-        SELECT year_month, articles, words, reading_time_mins
+        SELECT year_month, articles, words, reading_time_mins,
+               max_words_per_article, median_words_per_article, min_words_per_article
         FROM analysis
         ORDER BY year_month ASC
         """
@@ -103,6 +104,9 @@ class DataGenerator:
                 'total_words': words,
                 'time_spent_minutes': time_mins,
                 'avg_reading_speed': avg_speed,
+                'max_words_per_article': row['max_words_per_article'],
+                'median_words_per_article': row['median_words_per_article'],
+                'min_words_per_article': row['min_words_per_article'],
             })
         return records
     

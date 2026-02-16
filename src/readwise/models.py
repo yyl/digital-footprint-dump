@@ -123,6 +123,9 @@ CREATE TABLE IF NOT EXISTS analysis (
     articles INTEGER DEFAULT 0,
     words INTEGER DEFAULT 0,
     reading_time_mins INTEGER DEFAULT 0,
+    max_words_per_article INTEGER DEFAULT 0,
+    median_words_per_article INTEGER DEFAULT 0,
+    min_words_per_article INTEGER DEFAULT 0,
     updated_at TEXT
 );
 """
