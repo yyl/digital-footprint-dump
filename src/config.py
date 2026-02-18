@@ -59,6 +59,13 @@ class Config:
     HARDCOVER_DATABASE_PATH = DATA_DIR / "hardcover.db"
     
     # ==========================================================================
+    # GitHub Activity Configuration
+    # ==========================================================================
+    GITHUB_USERNAME: str = os.getenv("GITHUB_USERNAME", "")
+    GITHUB_DATABASE_PATH = DATA_DIR / "github.db"
+    # Reuses BLOG_GITHUB_TOKEN for authenticated API access (5000 req/hr)
+    
+    # ==========================================================================
     # GitHub Publishing Configuration
     # ==========================================================================
     BLOG_GITHUB_TOKEN: str = os.getenv("BLOG_GITHUB_TOKEN", "")
@@ -95,6 +102,21 @@ class Config:
                 "HARDCOVER_ACCESS_TOKEN is not set. "
                 "Get your token from https://hardcover.app/account/api "
                 "and add it to your .env file."
+            )
+        return True
+    
+    @classmethod
+    def validate_github_activity(cls) -> bool:
+        """Validate GitHub activity configuration."""
+        missing = []
+        if not cls.GITHUB_USERNAME:
+            missing.append("GITHUB_USERNAME")
+        if not cls.BLOG_GITHUB_TOKEN:
+            missing.append("BLOG_GITHUB_TOKEN (needed for API auth)")
+        if missing:
+            raise ValueError(
+                f"Missing GitHub activity configuration: {', '.join(missing)}. "
+                "Please add them to your .env file."
             )
         return True
     

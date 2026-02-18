@@ -20,8 +20,10 @@ cp .env.example .env
 | `publish` | Publish monthly summary blog post |
 | `backfill` | Commit activity data files to blog repo |
 | `status` | Show sync status |
-| `{source}-sync` | Sync specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`) |
-| `{source}-analyze` | Analyze specific source (`readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`) |
+| `{source}-sync` | Sync a specific source |
+| `{source}-analyze` | Analyze a specific source |
+
+**Supported sources:** `readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`, `hardcover`, `github`
 
 Run with: `uv run main.py <command>`
 
@@ -113,6 +115,20 @@ Syncs finished books from [Hardcover](https://hardcover.app/) via their GraphQL 
 1. Get your API token from [hardcover.app/account/api](https://hardcover.app/account/api)
 2. Add to `.env`: `HARDCOVER_ACCESS_TOKEN=your_token_here`
 3. Run `uv run main.py hardcover-sync`
+
+---
+
+## GitHub
+
+Syncs commit history from your public repositories via the GitHub REST API to `data/github.db`.
+
+**Commands:**
+- `github-sync`: Fetches commits from all owned public repos (non-fork).
+- `github-analyze`: Generates monthly stats (commits, repos touched) and writes to the `analysis` table.
+
+**Required in .env:**
+- `GITHUB_USERNAME` - Your GitHub username
+- `BLOG_GITHUB_TOKEN` - Reused for authenticated API access (5000 req/hr)
 
 ---
 

@@ -17,6 +17,7 @@ Note: The file structure below is shown from the root directory.
 │   ├── overcast/           # Overcast OPML import
 │   ├── strong/             # Strong workout CSV import
 │   ├── hardcover/          # Hardcover book API integration
+│   ├── github/             # GitHub commit activity tracking
 │   └── publish/            # Markdown + data file generation & GitHub publishing
 ├── data/                   # SQLite databases (generated)
 └── files/                  # Import files (user-provided)
@@ -66,6 +67,7 @@ All sources now display month-over-month and year-over-year percentage changes i
 | Overcast | episodes_played |
 | Strong | workouts, total_minutes |
 | Hardcover | books_finished, avg_rating |
+| GitHub | commits, repos_touched |
 
 ### Hugo Data Files
 
@@ -79,6 +81,7 @@ The `publish/data_generator.py` module generates Hugo-compatible YAML data files
 | `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played` |
 | `workouts.yaml` | Strong | `workouts`, `total_minutes`, `unique_exercises`, `total_sets` |
 | `books.yaml` | Hardcover | `books_finished`, `avg_rating` |
+| `code.yaml` | GitHub | `commits`, `repos_touched` |
 
 The `comparison.py` module provides shared utilities:
 

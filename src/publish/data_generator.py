@@ -9,6 +9,7 @@ from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
 from ..strong.database import StrongDatabase
 from ..hardcover.database import HardcoverDatabase
+from ..github.database import GitHubDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ class DataGenerator:
         overcast_db: Optional[OvercastDatabase] = None,
         strong_db: Optional[StrongDatabase] = None,
         hardcover_db: Optional[HardcoverDatabase] = None,
+        github_activity_db: Optional[GitHubDatabase] = None,
     ):
         """Initialize data generator.
         
@@ -71,6 +73,7 @@ class DataGenerator:
             overcast_db: Overcast database manager.
             strong_db: Strong database manager.
             hardcover_db: Hardcover database manager.
+            github_activity_db: GitHub activity database manager.
         """
         self.readwise_db = readwise_db or ReadwiseDatabase()
         self.foursquare_db = foursquare_db or FoursquareDatabase()
@@ -78,6 +81,7 @@ class DataGenerator:
         self.overcast_db = overcast_db or OvercastDatabase()
         self.strong_db = strong_db or StrongDatabase()
         self.hardcover_db = hardcover_db or HardcoverDatabase()
+        self.github_activity_db = github_activity_db or GitHubDatabase()
     
     def _get_all_readwise(self) -> List[Dict[str, Any]]:
         """Get all Readwise analysis records, oldest first."""
@@ -239,6 +243,33 @@ class DataGenerator:
         except Exception:
             return []
     
+    def _get_all_github(self) -> List[Dict[str, Any]]:
+        """Get all GitHub analysis records, oldest first."""
+        if not self.github_activity_db.exists():
+            return []
+        
+        query = """
+        SELECT year_month, commits, repos_touched
+        FROM analysis
+        ORDER BY year_month ASC
+        """
+        try:
+            with self.github_activity_db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                rows = cursor.fetchall()
+            
+            return [
+                {
+                    'month': dict(row)['year_month'],
+                    'commits': dict(row)['commits'],
+                    'repos_touched': dict(row)['repos_touched'],
+                }
+                for row in rows
+            ]
+        except Exception:
+            return []
+    
     def generate_data_files(self) -> Dict[str, str]:
         """Generate all Hugo data files.
         
@@ -295,6 +326,14 @@ class DataGenerator:
                 books_records, "Monthly books activity data"
             )
             logger.info(f"Generated books.yaml with {len(books_records)} records")
+        
+        # Code (GitHub)
+        code_records = self._get_all_github()
+        if code_records:
+            files["data/activity/code.yaml"] = _to_yaml(
+                code_records, "Monthly code activity data"
+            )
+            logger.info(f"Generated code.yaml with {len(code_records)} records")
         
         logger.info(f"Generated {len(files)} data files total")
         return files

@@ -11,6 +11,7 @@ from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
 from ..strong.database import StrongDatabase
 from ..hardcover.database import HardcoverDatabase
+from ..github.database import GitHubDatabase
 from .github_client import GitHubClient
 from .markdown_generator import MarkdownGenerator
 from .data_generator import DataGenerator
@@ -29,6 +30,7 @@ class Publisher:
         overcast_db: Optional[OvercastDatabase] = None,
         strong_db: Optional[StrongDatabase] = None,
         hardcover_db: Optional[HardcoverDatabase] = None,
+        github_activity_db: Optional[GitHubDatabase] = None,
         github_client: Optional[GitHubClient] = None
     ):
         """Initialize publisher.
@@ -40,6 +42,7 @@ class Publisher:
             overcast_db: Overcast database manager.
             strong_db: Strong database manager.
             hardcover_db: Hardcover database manager.
+            github_activity_db: GitHub activity database manager.
             github_client: GitHub client for committing files.
         """
         self.readwise_db = readwise_db or ReadwiseDatabase()
@@ -48,6 +51,7 @@ class Publisher:
         self.overcast_db = overcast_db or OvercastDatabase()
         self.strong_db = strong_db or StrongDatabase()
         self.hardcover_db = hardcover_db or HardcoverDatabase()
+        self.github_activity_db = github_activity_db or GitHubDatabase()
         self.github_client = github_client
         self.markdown_generator = MarkdownGenerator()
         self.data_generator = DataGenerator(
@@ -57,6 +61,7 @@ class Publisher:
             overcast_db=self.overcast_db,
             strong_db=self.strong_db,
             hardcover_db=self.hardcover_db,
+            github_activity_db=self.github_activity_db,
         )
     
     def _get_readwise_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
@@ -173,6 +178,29 @@ class Publisher:
         
         try:
             with self.hardcover_db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (year_month,))
+                row = cursor.fetchone()
+                
+                if row:
+                    return dict(row)
+        except Exception:
+            pass
+        return None
+    
+    def _get_github_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
+        """Get GitHub analysis for a specific month."""
+        if not self.github_activity_db.exists():
+            return None
+        
+        query = """
+        SELECT year_month, year, month, commits, repos_touched
+        FROM analysis
+        WHERE year_month = ?
+        """
+        
+        try:
+            with self.github_activity_db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (year_month,))
                 row = cursor.fetchone()
@@ -393,6 +421,21 @@ class Publisher:
                 'books_finished': hardcover['books_finished'],
                 'avg_rating': hardcover['avg_rating'],
                 'comparisons': hardcover_comparisons
+            }
+        
+        # Get GitHub analysis
+        github = self._get_github_analysis(year_month)
+        if github:
+            github_comparisons = compute_comparisons(
+                current_stats=github,
+                historical_getter=self._get_github_analysis,
+                year_month=year_month,
+                metrics=['commits', 'repos_touched']
+            )
+            data['github'] = {
+                'commits': github['commits'],
+                'repos_touched': github['repos_touched'],
+                'comparisons': github_comparisons
             }
         
         return self.markdown_generator.generate_monthly_summary(data)

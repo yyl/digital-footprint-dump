@@ -19,6 +19,8 @@ Usage:
     python main.py strong-analyze    # Analyze Strong workouts
     python main.py hardcover-sync    # Sync Hardcover books
     python main.py hardcover-analyze # Analyze Hardcover books
+    python main.py github-sync       # Sync GitHub commits
+    python main.py github-analyze    # Analyze GitHub activity
     python main.py publish           # Publish monthly summary to blog
     python main.py publish --dry-run # Validate config without publishing
     python main.py backfill          # Commit activity data files to blog repo
@@ -58,6 +60,11 @@ def cmd_init():
     from src.hardcover.database import HardcoverDatabase
     hc_db = HardcoverDatabase()
     hc_db.init_tables()
+    
+    # GitHub
+    from src.github.database import GitHubDatabase
+    gh_db = GitHubDatabase()
+    gh_db.init_tables()
     
     print("\nDone!")
 
@@ -159,6 +166,9 @@ def cmd_publish(dry_run: bool = False):
     print("\n--- Hardcover ---")
     cmd_hardcover_analyze()
     
+    print("\n--- GitHub ---")
+    cmd_github_analyze()
+    
     print("\n=== Publishing ===")
     print("Publishing monthly summary...")
     
@@ -196,6 +206,9 @@ def cmd_backfill():
     
     print("\n--- Hardcover ---")
     cmd_hardcover_analyze()
+    
+    print("\n--- GitHub ---")
+    cmd_github_analyze()
     
     print("\n=== Backfilling Data ===")
     print("Generating and committing data files...")
@@ -378,6 +391,24 @@ def cmd_analyze():
     except Exception as e:
         print(f"  Error: {e}")
     
+    print()
+    
+    # GitHub
+    print("--- GitHub ---")
+    try:
+        from src.github.database import GitHubDatabase
+        from src.github.analytics import GitHubAnalytics
+        
+        # Sync first
+        cmd_github_sync()
+        
+        gh_db = GitHubDatabase()
+        gh_analytics = GitHubAnalytics(db=gh_db)
+        count = gh_analytics.analyze_commits()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error: {e}")
+    
     print("\nAnalysis complete!")
 
 
@@ -462,6 +493,37 @@ def cmd_hardcover_analyze():
     print(f"Analysis complete! {record_count} monthly records written to the analysis table in hardcover.db")
 
 
+def cmd_github_sync():
+    """Sync GitHub commit data."""
+    try:
+        Config.validate_github_activity()
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    
+    from src.github.sync import GitHubSyncManager
+    
+    sync_manager = GitHubSyncManager()
+    sync_manager.sync()
+
+
+def cmd_github_analyze():
+    """Analyze GitHub commit data."""
+    # Ensure latest data
+    cmd_github_sync()
+
+    from src.github.database import GitHubDatabase
+    from src.github.analytics import GitHubAnalytics
+
+    print("Analyzing GitHub commits...")
+
+    db = GitHubDatabase()
+    analytics = GitHubAnalytics(db=db)
+    record_count = analytics.analyze_commits()
+
+    print(f"Analysis complete! {record_count} monthly records written to the analysis table in github.db")
+
+
 def cmd_sync():
     """Sync all services."""
     print("=== Syncing All Services ===\n")
@@ -507,6 +569,16 @@ def cmd_sync():
         cmd_hardcover_sync()
     except ValueError as e:
         print(f"Skipping Hardcover: {e}\n")
+    
+    print()
+    
+    # GitHub
+    print("--- GitHub ---")
+    try:
+        Config.validate_github_activity()
+        cmd_github_sync()
+    except ValueError as e:
+        print(f"Skipping GitHub: {e}\n")
 
 
 def cmd_status():
@@ -717,6 +789,39 @@ def cmd_status():
             print("  not initialized")
     except Exception as e:
         print(f"  Error: {e}")
+    
+    print()
+    
+    # GitHub
+    print("--- GitHub ---")
+    try:
+        from src.github.database import GitHubDatabase
+        
+        db = GitHubDatabase()
+        if db.exists():
+            stats = db.get_stats()
+            for entity, count in stats.items():
+                print(f"  {entity}: {count}")
+            
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute("SELECT COUNT(*) FROM analysis")
+                    analysis_count = cursor.fetchone()[0]
+                    cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
+                    latest_analysis = cursor.fetchone()
+                    
+                    if analysis_count > 0 and latest_analysis:
+                        print(f"  analysis records: {analysis_count}")
+                        print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
+                    else:
+                        print(f"  analysis: no records")
+                except Exception:
+                    print(f"  analysis: no records")
+        else:
+            print("  not initialized")
+    except Exception as e:
+        print(f"  Error: {e}")
 
 
 def main():
@@ -745,6 +850,8 @@ def main():
     subparsers.add_parser("strong-analyze", help="Analyze Strong workouts")
     subparsers.add_parser("hardcover-sync", help="Sync Hardcover books")
     subparsers.add_parser("hardcover-analyze", help="Analyze Hardcover books")
+    subparsers.add_parser("github-sync", help="Sync GitHub commits")
+    subparsers.add_parser("github-analyze", help="Analyze GitHub activity")
     subparsers.add_parser("status", help="Show sync status")
     subparsers.add_parser("backfill", help="Commit activity data files to blog repo")
     
@@ -778,6 +885,8 @@ def main():
         "strong-analyze": cmd_strong_analyze,
         "hardcover-sync": cmd_hardcover_sync,
         "hardcover-analyze": cmd_hardcover_analyze,
+        "github-sync": cmd_github_sync,
+        "github-analyze": cmd_github_analyze,
         "status": cmd_status,
     }
     
