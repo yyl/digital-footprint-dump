@@ -49,55 +49,74 @@ class ReadwiseAPIClient:
         self._rate_limit()
         response = self.session.get(f"{Config.READWISE_API_V2_BASE}/auth/")
         return response.status_code == 204
-    
-    # ==========================================================================
-    # Readwise API v2 - Export (Books + Highlights)
-    # ==========================================================================
-    
-    def export_highlights(
+
+    def _paginate(
         self,
-        updated_after: Optional[str] = None,
-        include_deleted: bool = True
+        endpoint: str,
+        params: Dict[str, Any]
     ) -> Generator[Dict[str, Any], None, None]:
-        """Export all books and highlights with pagination.
+        """Paginate through API results.
         
         Args:
-            updated_after: ISO 8601 datetime to fetch updates after
-            include_deleted: Include deleted highlights
+            endpoint: API endpoint URL
+            params: Initial query parameters
             
         Yields:
-            Book objects with nested highlights
+            Items from the "results" list in the response
         """
         next_cursor = None
         
         while True:
             self._rate_limit()
             
-            params = {}
+            # Create a copy of params for this request
+            request_params = params.copy()
             if next_cursor:
-                params["pageCursor"] = next_cursor
-            if updated_after:
-                params["updatedAfter"] = updated_after
-            if include_deleted:
-                params["includeDeleted"] = "true"
+                request_params["pageCursor"] = next_cursor
             
-            response = self.session.get(
-                f"{Config.READWISE_API_V2_BASE}/export/",
-                params=params
-            )
+            response = self.session.get(endpoint, params=request_params)
             
             data = self._handle_response(response)
             if data is None:
                 # Rate limited, retry
                 continue
             
-            for book in data.get("results", []):
-                yield book
+            for item in data.get("results", []):
+                yield item
             
             next_cursor = data.get("nextPageCursor")
             if not next_cursor:
                 break
     
+    # ==========================================================================
+    # Readwise API v2 - Export (Books + Highlights)
+    # ==========================================================================
+
+    def export_highlights(
+        self,
+        updated_after: Optional[str] = None,
+        include_deleted: bool = True
+    ) -> Generator[Dict[str, Any], None, None]:
+        """Export all books and highlights with pagination.
+
+        Args:
+            updated_after: ISO 8601 datetime to fetch updates after
+            include_deleted: Include deleted highlights
+
+        Yields:
+            Book objects with nested highlights
+        """
+        params = {}
+        if updated_after:
+            params["updatedAfter"] = updated_after
+        if include_deleted:
+            params["includeDeleted"] = "true"
+
+        yield from self._paginate(
+            f"{Config.READWISE_API_V2_BASE}/export/",
+            params
+        )
+
     # ==========================================================================
     # Reader API v3 - Documents
     # ==========================================================================
@@ -118,37 +137,18 @@ class ReadwiseAPIClient:
         Yields:
             Document objects
         """
-        next_cursor = None
-        
-        while True:
-            self._rate_limit()
+        params = {}
+        if updated_after:
+            params["updatedAfter"] = updated_after
+        if location:
+            params["location"] = location
+        if category:
+            params["category"] = category
             
-            params = {}
-            if next_cursor:
-                params["pageCursor"] = next_cursor
-            if updated_after:
-                params["updatedAfter"] = updated_after
-            if location:
-                params["location"] = location
-            if category:
-                params["category"] = category
-            
-            response = self.session.get(
-                f"{Config.READER_API_V3_BASE}/list/",
-                params=params
-            )
-            
-            data = self._handle_response(response)
-            if data is None:
-                # Rate limited, retry
-                continue
-            
-            for doc in data.get("results", []):
-                yield doc
-            
-            next_cursor = data.get("nextPageCursor")
-            if not next_cursor:
-                break
+        yield from self._paginate(
+            f"{Config.READER_API_V3_BASE}/list/",
+            params
+        )
     
     # ==========================================================================
     # Readwise API v2 - Daily Review
