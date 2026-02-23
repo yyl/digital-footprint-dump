@@ -51,6 +51,7 @@ class HardcoverAPIClient:
         response = self.session.post(
             self.api_url,
             json={"query": query},
+            timeout=60,
         )
         
         if response.status_code == 429:
