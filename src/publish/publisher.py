@@ -64,6 +64,45 @@ class Publisher:
             github_activity_db=self.github_activity_db,
         )
     
+    def _fetch_analysis(
+        self,
+        db: Any,
+        query: str,
+        params: tuple,
+        check_exists: bool = False,
+        suppress_errors: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        """Helper to fetch analysis data from a database.
+
+        Args:
+            db: Database manager instance.
+            query: SQL query to execute.
+            params: Tuple of query parameters.
+            check_exists: Whether to check if DB exists first.
+            suppress_errors: Whether to suppress exceptions.
+
+        Returns:
+            Dictionary with result row or None.
+        """
+        if check_exists and not db.exists():
+            return None
+
+        try:
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                row = cursor.fetchone()
+
+                if row:
+                    return dict(row)
+        except Exception:
+            if not suppress_errors:
+                raise
+            # Fallthrough to return None
+            pass
+
+        return None
+
     def _get_readwise_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Readwise analysis for a specific month."""
         query = """
@@ -72,15 +111,7 @@ class Publisher:
         FROM analysis
         WHERE year_month = ?
         """
-        
-        with self.readwise_db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (year_month,))
-            row = cursor.fetchone()
-            
-            if row:
-                return dict(row)
-            return None
+        return self._fetch_analysis(self.readwise_db, query, (year_month,))
     
     def _get_foursquare_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Foursquare analysis for a specific month."""
@@ -89,18 +120,12 @@ class Publisher:
         FROM analysis
         WHERE year_month = ?
         """
-        
-        try:
-            with self.foursquare_db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (year_month,))
-                row = cursor.fetchone()
-                
-                if row:
-                    return dict(row)
-        except Exception:
-            pass
-        return None
+        return self._fetch_analysis(
+            self.foursquare_db,
+            query,
+            (year_month,),
+            suppress_errors=True
+        )
     
     def _get_letterboxd_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Letterboxd analysis for a specific month."""
@@ -109,107 +134,67 @@ class Publisher:
         FROM analysis
         WHERE year_month = ?
         """
-        
-        with self.letterboxd_db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (year_month,))
-            row = cursor.fetchone()
-            
-            if row:
-                return dict(row)
-            return None
+        return self._fetch_analysis(self.letterboxd_db, query, (year_month,))
     
     def _get_overcast_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Overcast analysis for a specific month."""
-        if not self.overcast_db.exists():
-            return None
-        
         query = """
         SELECT year_month, year, month, feeds_added, feeds_removed, episodes_played
         FROM analysis
         WHERE year_month = ?
         """
-        
-        try:
-            with self.overcast_db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (year_month,))
-                row = cursor.fetchone()
-                
-                if row:
-                    return dict(row)
-        except Exception:
-            pass
-        return None
+        return self._fetch_analysis(
+            self.overcast_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
     
     def _get_strong_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Strong analysis for a specific month."""
-        if not self.strong_db.exists():
-            return None
-        
         query = """
         SELECT year_month, year, month, workouts, total_minutes, unique_exercises, total_sets
         FROM analysis
         WHERE year_month = ?
         """
-        
-        try:
-            with self.strong_db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (year_month,))
-                row = cursor.fetchone()
-                
-                if row:
-                    return dict(row)
-        except Exception:
-            pass
-        return None
+        return self._fetch_analysis(
+            self.strong_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
     
     def _get_hardcover_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Hardcover analysis for a specific month."""
-        if not self.hardcover_db.exists():
-            return None
-        
         query = """
         SELECT year_month, year, month, books_finished, avg_rating
         FROM analysis
         WHERE year_month = ?
         """
-        
-        try:
-            with self.hardcover_db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (year_month,))
-                row = cursor.fetchone()
-                
-                if row:
-                    return dict(row)
-        except Exception:
-            pass
-        return None
+        return self._fetch_analysis(
+            self.hardcover_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
     
     def _get_github_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get GitHub analysis for a specific month."""
-        if not self.github_activity_db.exists():
-            return None
-        
         query = """
         SELECT year_month, year, month, commits, repos_touched
         FROM analysis
         WHERE year_month = ?
         """
-        
-        try:
-            with self.github_activity_db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (year_month,))
-                row = cursor.fetchone()
-                
-                if row:
-                    return dict(row)
-        except Exception:
-            pass
-        return None
+        return self._fetch_analysis(
+            self.github_activity_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
     
     def _get_latest_year_month(self) -> Optional[str]:
         """Get the latest year_month from any analysis source."""
