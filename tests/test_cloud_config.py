@@ -38,6 +38,21 @@ class TestConfigValidation:
         with patch.object(Config, 'FOURSQUARE_ACCESS_TOKEN', 'test_token'):
             assert Config.validate_foursquare() is True
 
+    def test_validate_hardcover_missing_token(self):
+        """Test that missing Hardcover token raises ValueError."""
+        from src.config import Config
+
+        with patch.object(Config, 'HARDCOVER_ACCESS_TOKEN', ''):
+            with pytest.raises(ValueError, match="HARDCOVER_ACCESS_TOKEN"):
+                Config.validate_hardcover()
+
+    def test_validate_hardcover_with_token(self):
+        """Test that Hardcover validation passes with token."""
+        from src.config import Config
+
+        with patch.object(Config, 'HARDCOVER_ACCESS_TOKEN', 'test_token'):
+            assert Config.validate_hardcover() is True
+
     def test_validate_github_missing_token(self):
         """Test that missing GitHub config raises ValueError."""
         from src.config import Config
