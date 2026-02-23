@@ -10,6 +10,7 @@ Note: The file structure below is shown from the root directory.
 ├── main.py                 # CLI entry point
 ├── src/
 │   ├── config.py           # Environment configuration
+│   ├── database.py         # Base SQLite connection manager
 │   ├── comparison.py       # Generic MoM/YoY comparison utilities
 │   ├── readwise/           # Readwise Reader integration
 │   ├── foursquare/         # Foursquare/Swarm integration
@@ -30,7 +31,7 @@ Each data source follows a consistent structure:
 | File | Purpose |
 |------|---------|
 | `models.py` | SQL schema definitions (CREATE TABLE statements) |
-| `database.py` | Database manager with connection handling and CRUD |
+| `database.py` | Database manager (inherits from `BaseDatabase`) with CRUD |
 | `api_client.py` | API wrapper (API sources only) |
 | `sync.py` | Sync orchestration (API sources only) |
 | `importer.py` | File parser (file-based sources only) |
@@ -111,7 +112,7 @@ suffix = format_comparison_suffix(comparisons.get('checkins'))  # " (-46% MoM, +
 
 ### Database Connections
 
-All database managers use a context manager pattern:
+All database managers inherit from `src/database.py:BaseDatabase` and use a context manager pattern:
 
 ```python
 with self.db.get_connection() as conn:
