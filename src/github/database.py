@@ -1,14 +1,13 @@
 """Database manager for GitHub activity data."""
 
-import sqlite3
-from contextlib import contextmanager
 from typing import Optional, Dict, Any
 
 from ..config import Config
+from ..database import BaseDatabase
 from . import models
 
 
-class GitHubDatabase:
+class GitHubDatabase(BaseDatabase):
     """SQLite database manager for GitHub commits."""
     
     def __init__(self, db_path: Optional[str] = None):
@@ -17,30 +16,10 @@ class GitHubDatabase:
         Args:
             db_path: Path to SQLite database. Defaults to config value.
         """
-        self.db_path = str(db_path or Config.GITHUB_DATABASE_PATH)
-    
-    @contextmanager
-    def get_connection(self):
-        """Get a database connection as a context manager."""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
-    
-    def exists(self) -> bool:
-        """Check if the database file exists."""
-        from pathlib import Path
-        return Path(self.db_path).exists()
+        super().__init__(str(db_path or Config.GITHUB_DATABASE_PATH))
     
     def init_tables(self) -> None:
         """Create tables if they don't exist."""
-        Config.ensure_data_dir()
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(models.CREATE_COMMITS_TABLE)

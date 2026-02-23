@@ -1,45 +1,24 @@
 """SQLite database manager for Strong workout data."""
 
 import sqlite3
-import time
 from typing import Optional, Dict, Any
-from contextlib import contextmanager
-from pathlib import Path
 
 from ..config import Config
+from ..database import BaseDatabase
 from .models import ALL_TABLES, CREATE_INDEXES
 
 
-class StrongDatabase:
+class StrongDatabase(BaseDatabase):
     """Manages SQLite database for Strong workout data."""
     
     def __init__(self, db_path: Optional[str] = None):
         """Initialize database manager."""
-        self.db_path = db_path or str(Config.STRONG_DATABASE_PATH)
-        Config.ensure_data_dir()
-    
-    @contextmanager
-    def get_connection(self):
-        """Context manager for database connections."""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
-    
-    def exists(self) -> bool:
-        """Check if the database file exists."""
-        return Path(self.db_path).exists()
+        super().__init__(db_path or str(Config.STRONG_DATABASE_PATH))
+        self.use_foreign_keys = True
     
     def init_tables(self) -> None:
         """Create all tables if they don't exist."""
-        is_new = not Path(self.db_path).exists()
+        is_new = not self.exists()
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
