@@ -1,11 +1,11 @@
 """Overcast OPML importer with auto-discovery."""
 
-import sqlite3
 import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any
 
 from ..config import Config
+from .database import OvercastDatabase
 
 
 class OvercastImporter:
@@ -13,8 +13,7 @@ class OvercastImporter:
     
     def __init__(self):
         """Initialize importer."""
-        self.db_path = Config.OVERCAST_DATABASE_PATH
-        Config.ensure_data_dir()
+        self.db = OvercastDatabase()
     
     @staticmethod
     def find_latest_export() -> Optional[Path]:
@@ -56,7 +55,7 @@ class OvercastImporter:
             result = subprocess.run(
                 [
                     "overcast-to-sqlite", "save",
-                    str(self.db_path),
+                    str(self.db.db_path),
                     "--load", str(opml_file),
                     "--no-archive"
                 ],
@@ -87,27 +86,7 @@ class OvercastImporter:
     
     def get_db_stats(self) -> Dict[str, int]:
         """Get counts from the database."""
-        stats = {"feeds": 0, "episodes": 0, "playlists": 0}
-        
-        if not self.db_path.exists():
-            return stats
-        
-        try:
-            conn = sqlite3.connect(str(self.db_path))
-            cursor = conn.cursor()
-            
-            for table in ["feeds", "episodes", "playlists"]:
-                try:
-                    cursor.execute(f"SELECT COUNT(*) FROM {table}")
-                    stats[table] = cursor.fetchone()[0]
-                except sqlite3.OperationalError:
-                    pass  # Table doesn't exist yet
-            
-            conn.close()
-        except Exception:
-            pass
-        
-        return stats
+        return self.db.get_stats()
     
     def get_status(self) -> Dict[str, Any]:
         """Get current status."""
