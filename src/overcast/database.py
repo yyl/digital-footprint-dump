@@ -2,36 +2,17 @@
 
 import sqlite3
 from typing import Optional, Dict, Any
-from contextlib import contextmanager
-from pathlib import Path
 
 from ..config import Config
+from ..database import BaseDatabase
 
 
-class OvercastDatabase:
+class OvercastDatabase(BaseDatabase):
     """Manages SQLite database for Overcast data."""
     
     def __init__(self, db_path: Optional[str] = None):
         """Initialize database manager."""
-        self.db_path = db_path or str(Config.OVERCAST_DATABASE_PATH)
-    
-    @contextmanager
-    def get_connection(self):
-        """Context manager for database connections."""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
-    
-    def exists(self) -> bool:
-        """Check if the database file exists."""
-        return Path(self.db_path).exists()
+        super().__init__(db_path or str(Config.OVERCAST_DATABASE_PATH))
     
     def get_stats(self) -> Dict[str, int]:
         """Get counts from the database."""

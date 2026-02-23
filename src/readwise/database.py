@@ -3,13 +3,13 @@
 import sqlite3
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from contextlib import contextmanager
 
 from ..config import Config
+from ..database import BaseDatabase
 from .models import ALL_TABLES, CREATE_INDEXES
 
 
-class ReadwiseDatabase:
+class ReadwiseDatabase(BaseDatabase):
     """Manages SQLite database connections and operations."""
     
     def __init__(self, db_path: Optional[str] = None):
@@ -18,27 +18,11 @@ class ReadwiseDatabase:
         Args:
             db_path: Path to SQLite database. Defaults to config path.
         """
-        self.db_path = db_path or str(Config.DATABASE_PATH)
-        Config.ensure_data_dir()
-    
-    @contextmanager
-    def get_connection(self):
-        """Context manager for database connections."""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
+        super().__init__(db_path or str(Config.DATABASE_PATH))
     
     def init_tables(self) -> None:
         """Create all tables if they don't exist."""
-        from pathlib import Path
-        is_new = not Path(self.db_path).exists()
+        is_new = not self.exists()
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
