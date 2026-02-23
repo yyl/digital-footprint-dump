@@ -7,6 +7,9 @@ import requests
 from ..config import Config
 
 
+DEFAULT_TIMEOUT = 60
+
+
 class ReadwiseAPIClient:
     """Client for Readwise and Reader APIs."""
     
@@ -47,7 +50,10 @@ class ReadwiseAPIClient:
     def validate_token(self) -> bool:
         """Validate the access token."""
         self._rate_limit()
-        response = self.session.get(f"{Config.READWISE_API_V2_BASE}/auth/")
+        response = self.session.get(
+            f"{Config.READWISE_API_V2_BASE}/auth/",
+            timeout=DEFAULT_TIMEOUT
+        )
         return response.status_code == 204
     
     # ==========================================================================
@@ -83,7 +89,8 @@ class ReadwiseAPIClient:
             
             response = self.session.get(
                 f"{Config.READWISE_API_V2_BASE}/export/",
-                params=params
+                params=params,
+                timeout=DEFAULT_TIMEOUT
             )
             
             data = self._handle_response(response)
@@ -135,7 +142,8 @@ class ReadwiseAPIClient:
             
             response = self.session.get(
                 f"{Config.READER_API_V3_BASE}/list/",
-                params=params
+                params=params,
+                timeout=DEFAULT_TIMEOUT
             )
             
             data = self._handle_response(response)
@@ -157,5 +165,8 @@ class ReadwiseAPIClient:
     def get_daily_review(self) -> Dict[str, Any]:
         """Get today's daily review highlights."""
         self._rate_limit()
-        response = self.session.get(f"{Config.READWISE_API_V2_BASE}/review/")
+        response = self.session.get(
+            f"{Config.READWISE_API_V2_BASE}/review/",
+            timeout=DEFAULT_TIMEOUT
+        )
         return self._handle_response(response)
