@@ -84,26 +84,25 @@ class StrongDatabase:
             # Remove existing exercises for this workout (full re-import)
             cursor.execute("DELETE FROM exercises WHERE workout_id = ?", (workout_id,))
             
-            count = 0
-            for ex in exercises:
-                cursor.execute("""
-                    INSERT INTO exercises (
-                        workout_id, exercise_name, set_order,
-                        weight, reps, distance, seconds, notes, rpe
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    workout_id,
-                    ex.get("exercise_name"),
-                    ex.get("set_order"),
-                    ex.get("weight", 0),
-                    ex.get("reps", 0),
-                    ex.get("distance", 0),
-                    ex.get("seconds", 0),
-                    ex.get("notes"),
-                    ex.get("rpe"),
-                ))
-                count += 1
-            return count
+            exercise_data = [(
+                workout_id,
+                ex.get("exercise_name"),
+                ex.get("set_order"),
+                ex.get("weight", 0),
+                ex.get("reps", 0),
+                ex.get("distance", 0),
+                ex.get("seconds", 0),
+                ex.get("notes"),
+                ex.get("rpe"),
+            ) for ex in exercises]
+
+            cursor.executemany("""
+                INSERT INTO exercises (
+                    workout_id, exercise_name, set_order,
+                    weight, reps, distance, seconds, notes, rpe
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, exercise_data)
+            return len(exercise_data)
     
     def get_stats(self) -> Dict[str, int]:
         """Get counts of all entities."""
