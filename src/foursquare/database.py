@@ -19,6 +19,7 @@ class FoursquareDatabase(BaseDatabase):
     
     def init_tables(self) -> None:
         """Create all tables if they don't exist."""
+        # Use BaseDatabase.exists() which handles Path check
         is_new = not self.exists()
         
         with self.get_connection() as conn:
