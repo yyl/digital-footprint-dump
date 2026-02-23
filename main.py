@@ -693,26 +693,24 @@ def cmd_status():
             print(f"  latest_export: {latest.name}")
         
         # Analysis status
-        import sqlite3
-        db_path = Config.OVERCAST_DATABASE_PATH
-        if db_path.exists():
-            conn = sqlite3.connect(str(db_path))
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+        from src.overcast.database import OvercastDatabase
+        db = OvercastDatabase()
+        if db.exists():
             try:
-                cursor.execute("SELECT COUNT(*) FROM analysis")
-                analysis_count = cursor.fetchone()[0]
-                cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
-                latest_analysis = cursor.fetchone()
-                
-                if analysis_count > 0 and latest_analysis:
-                    print(f"  analysis records: {analysis_count}")
-                    print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
-                else:
-                    print(f"  analysis: no records")
-            except sqlite3.OperationalError:
+                with db.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM analysis")
+                    analysis_count = cursor.fetchone()[0]
+                    cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
+                    latest_analysis = cursor.fetchone()
+
+                    if analysis_count > 0 and latest_analysis:
+                        print(f"  analysis records: {analysis_count}")
+                        print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
+                    else:
+                        print(f"  analysis: no records")
+            except Exception:
                 print(f"  analysis: no records")
-            conn.close()
     except Exception as e:
         print(f"  Error: {e}")
     

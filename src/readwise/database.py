@@ -10,7 +10,10 @@ from .models import ALL_TABLES, CREATE_INDEXES
 
 
 class ReadwiseDatabase(BaseDatabase):
-    """Manages SQLite database connections and operations."""
+    """Manages SQLite database connections and operations.
+
+    Inherits connection management from BaseDatabase.
+    """
     
     def __init__(self, db_path: Optional[str] = None):
         """Initialize database manager.
