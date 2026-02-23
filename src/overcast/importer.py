@@ -62,7 +62,8 @@ class OvercastImporter:
                 ],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
+                timeout=60
             )
             print("Import complete!")
             
@@ -72,6 +73,8 @@ class OvercastImporter:
             print(f"  episodes: {stats['episodes']}")
             print(f"  playlists: {stats['playlists']}")
             
+        except subprocess.TimeoutExpired:
+            print("Error: overcast-to-sqlite timed out after 60 seconds")
         except subprocess.CalledProcessError as e:
             print(f"Error running overcast-to-sqlite: {e}")
             if e.stderr:
