@@ -66,7 +66,7 @@ class GitHubActivityClient:
         if not url.startswith("http"):
             url = f"{self.API_BASE}{url}"
         
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=60)
         
         if response.status_code == 403:
             remaining = response.headers.get("X-RateLimit-Remaining", "?")
