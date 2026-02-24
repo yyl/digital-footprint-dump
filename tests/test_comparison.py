@@ -6,7 +6,8 @@ from src.comparison import (
     get_comparison_periods,
     format_change,
     compute_comparisons,
-    format_value_with_changes
+    format_value_with_changes,
+    format_comparison_suffix
 )
 
 
@@ -138,3 +139,39 @@ class TestFormatValueWithChanges:
         changes = {'mom': 10.0, 'yoy': None}
         result = format_value_with_changes(1000, changes, value_format="{value:,}")
         assert result == "1,000 (+10% MoM, N/A YoY)"
+
+
+class TestFormatComparisonSuffix:
+    """Tests for format_comparison_suffix function."""
+
+    def test_valid_changes(self):
+        """Test valid percentage changes."""
+        changes = {'mom': 15.0, 'yoy': -5.0}
+        result = format_comparison_suffix(changes)
+        assert result == " (+15% MoM, -5% YoY)"
+
+    def test_none_changes(self):
+        """Test with None changes."""
+        assert format_comparison_suffix(None) == ""
+
+    def test_empty_changes(self):
+        """Test with empty changes dictionary."""
+        assert format_comparison_suffix({}) == ""
+
+    def test_none_values(self):
+        """Test when change values are None."""
+        changes = {'mom': None, 'yoy': None}
+        result = format_comparison_suffix(changes)
+        assert result == " (N/A MoM, N/A YoY)"
+
+    def test_partial_values(self):
+        """Test when some values are None."""
+        changes = {'mom': 10.0, 'yoy': None}
+        result = format_comparison_suffix(changes)
+        assert result == " (+10% MoM, N/A YoY)"
+
+    def test_zero_values(self):
+        """Test when values are zero."""
+        changes = {'mom': 0.0, 'yoy': 0.0}
+        result = format_comparison_suffix(changes)
+        assert result == " (+0% MoM, +0% YoY)"
