@@ -1,6 +1,6 @@
 """Database manager for GitHub activity data."""
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from ..config import Config
 from ..database import BaseDatabase
@@ -32,9 +32,20 @@ class GitHubDatabase(BaseDatabase):
         Args:
             commit: Dictionary with sha, repo, message, author_date, date_month.
         """
+        self.upsert_commits([commit])
+
+    def upsert_commits(self, commits: List[Dict[str, Any]]) -> None:
+        """Insert or update multiple commits.
+
+        Args:
+            commits: List of dictionaries with sha, repo, message, author_date, date_month.
+        """
+        if not commits:
+            return
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.executemany("""
                 INSERT INTO commits (sha, repo, message, author_date, date_month)
                 VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(sha) DO UPDATE SET
@@ -42,13 +53,15 @@ class GitHubDatabase(BaseDatabase):
                     message = excluded.message,
                     author_date = excluded.author_date,
                     date_month = excluded.date_month
-            """, (
-                commit["sha"],
-                commit["repo"],
-                commit.get("message"),
-                commit["author_date"],
-                commit["date_month"],
-            ))
+            """, [
+                (
+                    c["sha"],
+                    c["repo"],
+                    c.get("message"),
+                    c["author_date"],
+                    c["date_month"],
+                ) for c in commits
+            ])
     
     def get_latest_commit_date(self, repo: str) -> Optional[str]:
         """Get the latest commit date for a repo (for incremental sync).

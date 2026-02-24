@@ -118,16 +118,26 @@ class TestGitHubSyncManager:
 
         # Verify
         assert stats == {"commits": 2, "repos": 1}
-        assert mock_db.upsert_commit.call_count == 2
+        assert mock_db.upsert_commits.call_count == 1
 
-        # Check first commit
-        mock_db.upsert_commit.assert_any_call({
-            "sha": "sha1",
-            "repo": "user/repo",
-            "message": "feat: new feature", # First line
-            "author_date": "2023-01-02T12:00:00Z",
-            "date_month": "2023-01"
-        })
+        # Check call args
+        expected_commits = [
+            {
+                "sha": "sha1",
+                "repo": "user/repo",
+                "message": "feat: new feature", # First line
+                "author_date": "2023-01-02T12:00:00Z",
+                "date_month": "2023-01"
+            },
+            {
+                "sha": "sha2",
+                "repo": "user/repo",
+                "message": "fix: bug fix", # First line
+                "author_date": "2023-01-03T12:00:00Z",
+                "date_month": "2023-01"
+            }
+        ]
+        mock_db.upsert_commits.assert_called_with(expected_commits)
 
     def test_get_status_not_initialized(self, manager, mock_db):
         """Test get_status when database does not exist."""

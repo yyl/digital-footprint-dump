@@ -63,6 +63,7 @@ class GitHubSyncManager:
                 continue
             
             count = 0
+            commits_to_upsert = []
             for commit_data in commits:
                 commit_info = commit_data.get("commit", {})
                 author_info = commit_info.get("author", {})
@@ -89,8 +90,11 @@ class GitHubSyncManager:
                 }
                 
                 if commit["sha"]:
-                    self.db.upsert_commit(commit)
-                    count += 1
+                    commits_to_upsert.append(commit)
+
+            if commits_to_upsert:
+                self.db.upsert_commits(commits_to_upsert)
+                count = len(commits_to_upsert)
             
             if count > 0:
                 repos_with_commits += 1
