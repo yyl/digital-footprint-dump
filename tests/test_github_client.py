@@ -5,27 +5,37 @@ from src.github.api_client import GitHubActivityClient
 
 class TestGitHubActivityClient(unittest.TestCase):
     def setUp(self):
-        # Mock Config to avoid environment variable issues
-        with patch("src.github.api_client.Config") as mock_config:
-            mock_config.BLOG_GITHUB_TOKEN = "test_token"
-            mock_config.GITHUB_USERNAME = "test_user"
-            self.client = GitHubActivityClient()
+        # We need to patch requests.Session BEFORE client init so self.client.session is a mock
+        self.session_patcher = patch("src.github.api_client.requests.Session")
+        self.mock_session_cls = self.session_patcher.start()
+        self.mock_session = self.mock_session_cls.return_value
 
-    @patch("src.github.api_client.requests.Session.get")
-    def test_get_timeout_enforced(self, mock_get):
+        # Mock Config
+        self.config_patcher = patch("src.github.api_client.Config")
+        self.mock_config = self.config_patcher.start()
+        self.mock_config.BLOG_GITHUB_TOKEN = "test_token"
+        self.mock_config.GITHUB_USERNAME = "test_user"
+
+        self.client = GitHubActivityClient()
+
+    def tearDown(self):
+        self.session_patcher.stop()
+        self.config_patcher.stop()
+
+    def test_get_timeout_enforced(self):
         """Test that requests.get is called with a timeout."""
         # Setup mock response
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.headers = {}
-        mock_get.return_value = mock_response
+        self.mock_session.get.return_value = mock_response
 
         # Call the method
         self.client._get("/test")
 
         # Verify timeout argument
-        mock_get.assert_called()
-        args, kwargs = mock_get.call_args
+        self.mock_session.get.assert_called()
+        args, kwargs = self.mock_session.get.call_args
 
         if 'timeout' not in kwargs:
              self.fail("timeout parameter missing in requests.get call")
