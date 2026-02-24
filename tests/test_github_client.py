@@ -38,7 +38,7 @@ class TestGitHubActivityClient(unittest.TestCase):
         args, kwargs = self.mock_session.get.call_args
 
         if 'timeout' not in kwargs:
-             self.fail("timeout parameter missing in requests.get call")
+            self.fail("timeout parameter missing in requests.get call")
 
         self.assertEqual(kwargs['timeout'], 60, "Timeout should be set to 60 seconds")
 
