@@ -29,9 +29,17 @@ def get_comparison_periods(year_month: str) -> Dict[str, str]:
     Returns:
         Dictionary with 'mom' (previous month) and 'yoy' (same month last year).
     """
-    year, month = year_month.split('-')
-    year = int(year)
-    month = int(month)
+    try:
+        parts = year_month.split('-')
+        if len(parts) != 2:
+            raise ValueError
+        year = int(parts[0])
+        month = int(parts[1])
+    except (ValueError, IndexError):
+        raise ValueError(f"Invalid format: '{year_month}'. Expected 'YYYY-MM'")
+
+    if not (1 <= month <= 12):
+        raise ValueError(f"Invalid month: {month}. Must be between 1 and 12")
     
     # Previous month
     if month == 1:

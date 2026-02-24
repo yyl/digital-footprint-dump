@@ -64,6 +64,30 @@ class TestGetComparisonPeriods:
         assert result['mom'] == "2025-11"
         assert result['yoy'] == "2024-12"
 
+    def test_invalid_format(self):
+        """Test invalid format raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid format"):
+            get_comparison_periods("2023/01")
+
+        with pytest.raises(ValueError, match="Invalid format"):
+            get_comparison_periods("invalid")
+
+    def test_invalid_month_range(self):
+        """Test invalid month range raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid month"):
+            get_comparison_periods("2023-13")
+
+        with pytest.raises(ValueError, match="Invalid month"):
+            get_comparison_periods("2023-00")
+
+    def test_invalid_types(self):
+        """Test non-numeric parts raise ValueError."""
+        with pytest.raises(ValueError, match="Invalid format"):
+            get_comparison_periods("abcd-ef")
+
+        with pytest.raises(ValueError, match="Invalid format"):
+            get_comparison_periods("2023-xx")
+
 
 class TestFormatChange:
     """Tests for format_change function."""
