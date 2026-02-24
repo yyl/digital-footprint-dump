@@ -53,7 +53,7 @@ class GitHubDatabase(BaseDatabase):
                     message = excluded.message,
                     author_date = excluded.author_date,
                     date_month = excluded.date_month
-            """, [
+            """, (
                 (
                     c["sha"],
                     c["repo"],
@@ -61,7 +61,7 @@ class GitHubDatabase(BaseDatabase):
                     c["author_date"],
                     c["date_month"],
                 ) for c in commits
-            ])
+            ))
     
     def get_latest_commit_date(self, repo: str) -> Optional[str]:
         """Get the latest commit date for a repo (for incremental sync).
