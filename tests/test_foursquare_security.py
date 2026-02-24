@@ -1,9 +1,16 @@
 import sys
 from unittest.mock import MagicMock
 
-# Mock requests and dotenv before importing src modules
-sys.modules["requests"] = MagicMock()
-sys.modules["dotenv"] = MagicMock()
+# Mock requests and dotenv before importing src modules if not available
+try:
+    import requests
+except ImportError:
+    sys.modules["requests"] = MagicMock()
+
+try:
+    import dotenv
+except ImportError:
+    sys.modules["dotenv"] = MagicMock()
 
 import os
 import shutil

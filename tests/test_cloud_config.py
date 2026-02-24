@@ -72,6 +72,30 @@ class TestConfigValidation:
                 with patch.object(Config, 'BLOG_REPO_NAME', 'repo'):
                     assert Config.validate_github() is True
 
+    def test_validate_github_activity_missing_config(self):
+        """Test that missing GitHub activity config raises ValueError."""
+        from src.config import Config
+
+        # Test missing username
+        with patch.object(Config, 'GITHUB_USERNAME', ''):
+            with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'token'):
+                with pytest.raises(ValueError, match="GITHUB_USERNAME"):
+                    Config.validate_github_activity()
+
+        # Test missing token
+        with patch.object(Config, 'GITHUB_USERNAME', 'user'):
+            with patch.object(Config, 'BLOG_GITHUB_TOKEN', ''):
+                with pytest.raises(ValueError, match="BLOG_GITHUB_TOKEN"):
+                    Config.validate_github_activity()
+
+    def test_validate_github_activity_with_config(self):
+        """Test that GitHub activity validation passes with full config."""
+        from src.config import Config
+
+        with patch.object(Config, 'GITHUB_USERNAME', 'test_user'):
+            with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'test_token'):
+                assert Config.validate_github_activity() is True
+
 
 class TestDatabasePaths:
     """Test database path resolution."""
