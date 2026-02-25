@@ -32,6 +32,44 @@ import argparse
 from src.config import Config
 
 
+def run_analysis(
+    sync_func,
+    db_cls,
+    analytics_cls,
+    service_name: str,
+    analysis_method: str,
+    db_filename: str,
+    check_tables_exist: bool = False
+):
+    """Generic helper to run analysis for a service."""
+    # Ensure latest data
+    if sync_func:
+        sync_func()
+
+    print(f"Analyzing {service_name}...")
+
+    db = db_cls() if db_cls else None
+
+    if db and hasattr(db, 'init_tables'):
+        db.init_tables()
+
+    if check_tables_exist and db and hasattr(db, 'check_tables_exist'):
+        if not db.check_tables_exist():
+            print(f"Error: {service_name.split()[0]} database tables not found.")
+            print(f"Please run 'python main.py {service_name.split()[0].lower()}-sync' first to populate the database.")
+            sys.exit(1)
+
+    if db:
+        analytics = analytics_cls(db=db)
+    else:
+        analytics = analytics_cls()
+
+    method = getattr(analytics, analysis_method)
+    record_count = method()
+
+    print(f"Analysis complete! {record_count} monthly records written to the analysis table in {db_filename}")
+
+
 def cmd_init():
     """Initialize all databases."""
     print("Initializing databases...\n")
@@ -98,25 +136,18 @@ def cmd_readwise_sync():
 
 def cmd_readwise_analyze():
     """Analyze Readwise archived articles."""
-    # Ensure latest data
-    cmd_readwise_sync()
-
     from src.readwise.database import ReadwiseDatabase
     from src.readwise.analytics import ReadwiseAnalytics
 
-    print("Analyzing Readwise archive...")
-
-    db = ReadwiseDatabase()
-
-    if not db.check_tables_exist():
-        print("Error: Readwise database tables not found.")
-        print("Please run 'python main.py readwise-sync' first to populate the database.")
-        sys.exit(1)
-
-    analytics = ReadwiseAnalytics(db=db)
-    record_count = analytics.analyze_archived()
-
-    print(f"Analysis complete! {record_count} monthly records written to the analysis table in readwise.db")
+    run_analysis(
+        sync_func=cmd_readwise_sync,
+        db_cls=ReadwiseDatabase,
+        analytics_cls=ReadwiseAnalytics,
+        service_name="Readwise archive",
+        analysis_method="analyze_archived",
+        db_filename="readwise.db",
+        check_tables_exist=True
+    )
 
 
 def cmd_publish(dry_run: bool = False):
@@ -236,21 +267,17 @@ def cmd_foursquare_sync():
 
 def cmd_foursquare_analyze():
     """Analyze Foursquare checkins."""
-    # Ensure latest data
-    cmd_foursquare_sync()
-
     from src.foursquare.database import FoursquareDatabase
     from src.foursquare.analytics import FoursquareAnalytics
 
-    print("Analyzing Foursquare checkins...")
-
-    db = FoursquareDatabase()
-    db.init_tables()
-
-    analytics = FoursquareAnalytics(db=db)
-    record_count = analytics.analyze_checkins()
-
-    print(f"Analysis complete! {record_count} monthly records written to the analysis table in foursquare.db")
+    run_analysis(
+        sync_func=cmd_foursquare_sync,
+        db_cls=FoursquareDatabase,
+        analytics_cls=FoursquareAnalytics,
+        service_name="Foursquare checkins",
+        analysis_method="analyze_checkins",
+        db_filename="foursquare.db"
+    )
 
 
 def cmd_letterboxd_sync():
@@ -263,21 +290,17 @@ def cmd_letterboxd_sync():
 
 def cmd_letterboxd_analyze():
     """Analyze Letterboxd watched movies."""
-    # Ensure latest data
-    cmd_letterboxd_sync()
-
     from src.letterboxd.database import LetterboxdDatabase
     from src.letterboxd.analytics import LetterboxdAnalytics
 
-    print("Analyzing Letterboxd movies...")
-
-    db = LetterboxdDatabase()
-    db.init_tables()
-
-    analytics = LetterboxdAnalytics(db=db)
-    record_count = analytics.analyze_watched()
-
-    print(f"Analysis complete! {record_count} monthly records written to the analysis table in letterboxd.db")
+    run_analysis(
+        sync_func=cmd_letterboxd_sync,
+        db_cls=LetterboxdDatabase,
+        analytics_cls=LetterboxdAnalytics,
+        service_name="Letterboxd movies",
+        analysis_method="analyze_watched",
+        db_filename="letterboxd.db"
+    )
 
 
 def cmd_analyze():
@@ -422,17 +445,16 @@ def cmd_overcast_sync():
 
 def cmd_overcast_analyze():
     """Analyze Overcast podcast data."""
-    # Ensure latest data
-    cmd_overcast_sync()
-
     from src.overcast.analytics import OvercastAnalytics
 
-    print("Analyzing Overcast podcasts...")
-
-    analytics = OvercastAnalytics()
-    record_count = analytics.analyze_podcasts()
-
-    print(f"Analysis complete! {record_count} monthly records written to the analysis table in overcast.db")
+    run_analysis(
+        sync_func=cmd_overcast_sync,
+        db_cls=None,
+        analytics_cls=OvercastAnalytics,
+        service_name="Overcast podcasts",
+        analysis_method="analyze_podcasts",
+        db_filename="overcast.db"
+    )
 
 
 def cmd_strong_sync():
@@ -445,21 +467,17 @@ def cmd_strong_sync():
 
 def cmd_strong_analyze():
     """Analyze Strong workout data."""
-    # Ensure latest data
-    cmd_strong_sync()
-
     from src.strong.database import StrongDatabase
     from src.strong.analytics import StrongAnalytics
 
-    print("Analyzing Strong workouts...")
-
-    db = StrongDatabase()
-    db.init_tables()
-
-    analytics = StrongAnalytics(db=db)
-    record_count = analytics.analyze_workouts()
-
-    print(f"Analysis complete! {record_count} monthly records written to the analysis table in strong.db")
+    run_analysis(
+        sync_func=cmd_strong_sync,
+        db_cls=StrongDatabase,
+        analytics_cls=StrongAnalytics,
+        service_name="Strong workouts",
+        analysis_method="analyze_workouts",
+        db_filename="strong.db"
+    )
 
 
 def cmd_hardcover_sync():
@@ -478,19 +496,17 @@ def cmd_hardcover_sync():
 
 def cmd_hardcover_analyze():
     """Analyze Hardcover book data."""
-    # Ensure latest data
-    cmd_hardcover_sync()
-
     from src.hardcover.database import HardcoverDatabase
     from src.hardcover.analytics import HardcoverAnalytics
 
-    print("Analyzing Hardcover books...")
-
-    db = HardcoverDatabase()
-    analytics = HardcoverAnalytics(db=db)
-    record_count = analytics.analyze_books()
-
-    print(f"Analysis complete! {record_count} monthly records written to the analysis table in hardcover.db")
+    run_analysis(
+        sync_func=cmd_hardcover_sync,
+        db_cls=HardcoverDatabase,
+        analytics_cls=HardcoverAnalytics,
+        service_name="Hardcover books",
+        analysis_method="analyze_books",
+        db_filename="hardcover.db"
+    )
 
 
 def cmd_github_sync():
@@ -509,19 +525,17 @@ def cmd_github_sync():
 
 def cmd_github_analyze():
     """Analyze GitHub commit data."""
-    # Ensure latest data
-    cmd_github_sync()
-
     from src.github.database import GitHubDatabase
     from src.github.analytics import GitHubAnalytics
 
-    print("Analyzing GitHub commits...")
-
-    db = GitHubDatabase()
-    analytics = GitHubAnalytics(db=db)
-    record_count = analytics.analyze_commits()
-
-    print(f"Analysis complete! {record_count} monthly records written to the analysis table in github.db")
+    run_analysis(
+        sync_func=cmd_github_sync,
+        db_cls=GitHubDatabase,
+        analytics_cls=GitHubAnalytics,
+        service_name="GitHub commits",
+        analysis_method="analyze_commits",
+        db_filename="github.db"
+    )
 
 
 def cmd_sync():
