@@ -113,55 +113,63 @@ class ReadwiseDatabase(BaseDatabase):
     # Book Operations
     # ==========================================================================
     
-    def upsert_book(self, book: Dict[str, Any]) -> None:
+    def upsert_book(self, book: Dict[str, Any], cursor: Optional[sqlite3.Cursor] = None) -> None:
         """Insert or update a book record."""
+        if cursor:
+            self._perform_upsert_book(cursor, book)
+            return
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO books (
-                    user_book_id, title, author, readable_title, source,
-                    cover_image_url, unique_url, category, document_note,
-                    summary, readwise_url, source_url, external_id, asin,
-                    is_deleted, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(user_book_id) DO UPDATE SET
-                    title = excluded.title,
-                    author = excluded.author,
-                    readable_title = excluded.readable_title,
-                    source = excluded.source,
-                    cover_image_url = excluded.cover_image_url,
-                    unique_url = excluded.unique_url,
-                    category = excluded.category,
-                    document_note = excluded.document_note,
-                    summary = excluded.summary,
-                    readwise_url = excluded.readwise_url,
-                    source_url = excluded.source_url,
-                    external_id = excluded.external_id,
-                    asin = excluded.asin,
-                    is_deleted = excluded.is_deleted,
-                    updated_at = excluded.updated_at
-            """, (
-                book.get("user_book_id"),
-                book.get("title"),
-                book.get("author"),
-                book.get("readable_title"),
-                book.get("source"),
-                book.get("cover_image_url"),
-                book.get("unique_url"),
-                book.get("category"),
-                book.get("document_note"),
-                book.get("summary"),
-                book.get("readwise_url"),
-                book.get("source_url"),
-                book.get("external_id"),
-                book.get("asin"),
-                1 if book.get("is_deleted") else 0,
-                datetime.utcnow().isoformat() + "Z"
-            ))
-            
-            # Handle book tags
-            if book.get("book_tags"):
-                self._sync_book_tags(cursor, book["user_book_id"], book["book_tags"])
+            self._perform_upsert_book(cursor, book)
+
+    def _perform_upsert_book(self, cursor: sqlite3.Cursor, book: Dict[str, Any]) -> None:
+        """Internal implementation of upsert_book."""
+        cursor.execute("""
+            INSERT INTO books (
+                user_book_id, title, author, readable_title, source,
+                cover_image_url, unique_url, category, document_note,
+                summary, readwise_url, source_url, external_id, asin,
+                is_deleted, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_book_id) DO UPDATE SET
+                title = excluded.title,
+                author = excluded.author,
+                readable_title = excluded.readable_title,
+                source = excluded.source,
+                cover_image_url = excluded.cover_image_url,
+                unique_url = excluded.unique_url,
+                category = excluded.category,
+                document_note = excluded.document_note,
+                summary = excluded.summary,
+                readwise_url = excluded.readwise_url,
+                source_url = excluded.source_url,
+                external_id = excluded.external_id,
+                asin = excluded.asin,
+                is_deleted = excluded.is_deleted,
+                updated_at = excluded.updated_at
+        """, (
+            book.get("user_book_id"),
+            book.get("title"),
+            book.get("author"),
+            book.get("readable_title"),
+            book.get("source"),
+            book.get("cover_image_url"),
+            book.get("unique_url"),
+            book.get("category"),
+            book.get("document_note"),
+            book.get("summary"),
+            book.get("readwise_url"),
+            book.get("source_url"),
+            book.get("external_id"),
+            book.get("asin"),
+            1 if book.get("is_deleted") else 0,
+            datetime.utcnow().isoformat() + "Z"
+        ))
+
+        # Handle book tags
+        if book.get("book_tags"):
+            self._sync_book_tags(cursor, book["user_book_id"], book["book_tags"])
     
     def _sync_book_tags(
         self,
@@ -184,55 +192,63 @@ class ReadwiseDatabase(BaseDatabase):
     # Highlight Operations
     # ==========================================================================
     
-    def upsert_highlight(self, highlight: Dict[str, Any], book_id: int) -> None:
+    def upsert_highlight(self, highlight: Dict[str, Any], book_id: int, cursor: Optional[sqlite3.Cursor] = None) -> None:
         """Insert or update a highlight record."""
+        if cursor:
+            self._perform_upsert_highlight(cursor, highlight, book_id)
+            return
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO highlights (
-                    id, book_id, text, note, location, location_type, color,
-                    url, external_id, end_location, highlighted_at, created_at,
-                    updated_at, is_favorite, is_discard, is_deleted, readwise_url
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    book_id = excluded.book_id,
-                    text = excluded.text,
-                    note = excluded.note,
-                    location = excluded.location,
-                    location_type = excluded.location_type,
-                    color = excluded.color,
-                    url = excluded.url,
-                    external_id = excluded.external_id,
-                    end_location = excluded.end_location,
-                    highlighted_at = excluded.highlighted_at,
-                    updated_at = excluded.updated_at,
-                    is_favorite = excluded.is_favorite,
-                    is_discard = excluded.is_discard,
-                    is_deleted = excluded.is_deleted,
-                    readwise_url = excluded.readwise_url
-            """, (
-                highlight.get("id"),
-                book_id,
-                highlight.get("text"),
-                highlight.get("note"),
-                highlight.get("location"),
-                highlight.get("location_type"),
-                highlight.get("color"),
-                highlight.get("url"),
-                highlight.get("external_id"),
-                highlight.get("end_location"),
-                highlight.get("highlighted_at"),
-                highlight.get("created_at"),
-                highlight.get("updated_at"),
-                1 if highlight.get("is_favorite") else 0,
-                1 if highlight.get("is_discard") else 0,
-                1 if highlight.get("is_deleted") else 0,
-                highlight.get("readwise_url")
-            ))
-            
-            # Handle highlight tags
-            if highlight.get("tags"):
-                self._sync_highlight_tags(cursor, highlight["id"], highlight["tags"])
+            self._perform_upsert_highlight(cursor, highlight, book_id)
+
+    def _perform_upsert_highlight(self, cursor: sqlite3.Cursor, highlight: Dict[str, Any], book_id: int) -> None:
+        """Internal implementation of upsert_highlight."""
+        cursor.execute("""
+            INSERT INTO highlights (
+                id, book_id, text, note, location, location_type, color,
+                url, external_id, end_location, highlighted_at, created_at,
+                updated_at, is_favorite, is_discard, is_deleted, readwise_url
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                book_id = excluded.book_id,
+                text = excluded.text,
+                note = excluded.note,
+                location = excluded.location,
+                location_type = excluded.location_type,
+                color = excluded.color,
+                url = excluded.url,
+                external_id = excluded.external_id,
+                end_location = excluded.end_location,
+                highlighted_at = excluded.highlighted_at,
+                updated_at = excluded.updated_at,
+                is_favorite = excluded.is_favorite,
+                is_discard = excluded.is_discard,
+                is_deleted = excluded.is_deleted,
+                readwise_url = excluded.readwise_url
+        """, (
+            highlight.get("id"),
+            book_id,
+            highlight.get("text"),
+            highlight.get("note"),
+            highlight.get("location"),
+            highlight.get("location_type"),
+            highlight.get("color"),
+            highlight.get("url"),
+            highlight.get("external_id"),
+            highlight.get("end_location"),
+            highlight.get("highlighted_at"),
+            highlight.get("created_at"),
+            highlight.get("updated_at"),
+            1 if highlight.get("is_favorite") else 0,
+            1 if highlight.get("is_discard") else 0,
+            1 if highlight.get("is_deleted") else 0,
+            highlight.get("readwise_url")
+        ))
+
+        # Handle highlight tags
+        if highlight.get("tags"):
+            self._sync_highlight_tags(cursor, highlight["id"], highlight["tags"])
     
     def _sync_highlight_tags(
         self,

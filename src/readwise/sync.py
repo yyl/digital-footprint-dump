@@ -78,19 +78,25 @@ class SyncManager:
         sync_start = datetime.utcnow().isoformat() + "Z"
         
         # Fetch and save books with highlights
-        for book in self.api.export_highlights(updated_after=updated_after):
-            # Save book
-            self.db.upsert_book(book)
-            stats["books"] += 1
-            
-            # Save highlights
-            for highlight in book.get("highlights", []):
-                self.db.upsert_highlight(highlight, book["user_book_id"])
-                stats["highlights"] += 1
-            
-            # Progress indicator
-            if stats["books"] % 10 == 0:
-                print(f"  Processed {stats['books']} books, {stats['highlights']} highlights...")
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            try:
+                for book in self.api.export_highlights(updated_after=updated_after):
+                    # Save book
+                    self.db.upsert_book(book, cursor=cursor)
+                    stats["books"] += 1
+
+                    # Save highlights
+                    for highlight in book.get("highlights", []):
+                        self.db.upsert_highlight(highlight, book["user_book_id"], cursor=cursor)
+                        stats["highlights"] += 1
+
+                    # Progress indicator
+                    if stats["books"] % 10 == 0:
+                        print(f"  Processed {stats['books']} books, {stats['highlights']} highlights...")
+                        conn.commit()
+            finally:
+                cursor.close()
         
         # Update sync state
         self.db.update_sync_state(self.ENTITY_BOOKS, last_sync_at=sync_start)
