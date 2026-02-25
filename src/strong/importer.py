@@ -117,12 +117,9 @@ class StrongImporter:
                 exercises[workout_id].append(exercise)
         
         # Upsert workouts and their exercises
-        for workout_id, workout_data in workouts.items():
-            if self.db.upsert_workout(workout_data):
-                stats["workouts"] += 1
-            
-            ex_count = self.db.insert_exercises(workout_id, exercises[workout_id])
-            stats["exercises"] += ex_count
+        saved_stats = self.db.save_workouts(workouts, exercises)
+        stats["workouts"] = saved_stats["workouts"]
+        stats["exercises"] = saved_stats["exercises"]
         
         return stats
     
