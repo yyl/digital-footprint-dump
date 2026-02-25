@@ -76,79 +76,80 @@ class FoursquareSyncManager:
         highest_timestamp = last_timestamp
         
         # Process checkins
-        for i, checkin in enumerate(checkins):
-            created_at = checkin.get("createdAt", 0)
-            venue = checkin.get("venue", {})
-            place_id = venue.get("id")
-            
-            if not place_id:
-                continue
-            
-            # MUST ensure place exists before inserting checkin (FK constraint)
-            if not self.db.place_exists(place_id):
-                # Try Places API first for richer data
-                place_data = self.api.fetch_place_details(place_id)
+        with self.db.get_connection() as conn:
+            for i, checkin in enumerate(checkins):
+                created_at = checkin.get("createdAt", 0)
+                venue = checkin.get("venue", {})
+                place_id = venue.get("id")
                 
-                if not place_data:
-                    # Fallback: use venue data from checkin (v2 API format)
-                    venue_location = venue.get("location", {})
-                    categories = venue.get("categories", [])
-                    primary_category = categories[0] if categories else {}
-                    
-                    place_data = {
-                        "fsq_place_id": place_id,
-                        "name": venue.get("name"),
-                        "latitude": venue_location.get("lat"),
-                        "longitude": venue_location.get("lng"),
-                        "location": {
-                            "address": venue_location.get("address"),
-                            "locality": venue_location.get("city"),
-                            "region": venue_location.get("state"),
-                            "postcode": venue_location.get("postalCode"),
-                            "country": venue_location.get("country"),
-                            "formatted_address": ", ".join(venue_location.get("formattedAddress", []))
-                        },
-                        "categories": [{
-                            "id": primary_category.get("id"),
-                            "name": primary_category.get("name")
-                        }] if primary_category else []
-                    }
-                
-                if not self.db.upsert_place(place_data):
-                    # Place insert failed, skip this checkin
-                    print(f"  Warning: Failed to insert place {place_id}, skipping checkin")
+                if not place_id:
                     continue
-                stats["places"] += 1
-            
-            # Now safe to insert checkin (place exists)
-            try:
-                if self.db.insert_checkin(checkin, user_id):
-                    stats["checkins"] += 1
-            except Exception as e:
-                print(f"\n=== FK ERROR DEBUG ===")
-                print(f"Error: {e}")
-                print(f"Place ID: {place_id}")
-                print(f"Place exists in DB: {self.db.place_exists(place_id)}")
-                print(f"Venue from checkin: {venue}")
-                print(f"Place data used: {place_data if 'place_data' in dir() else 'N/A (place already existed)'}")
-                print(f"Checkin ID: {checkin.get('id')}")
-                print(f"Checkin createdAt: {checkin.get('createdAt')}")
-                print(f"======================\n")
-                raise
-            
-            # Track highest timestamp
-            if created_at > highest_timestamp:
-                highest_timestamp = created_at
-            
-            # Progress indicator
-            if (i + 1) % 100 == 0:
-                print(f"  Processed {i + 1}/{len(checkins)} checkins...")
+
+                # MUST ensure place exists before inserting checkin (FK constraint)
+                if not self.db.place_exists(place_id, conn=conn):
+                    # Try Places API first for richer data
+                    place_data = self.api.fetch_place_details(place_id)
+
+                    if not place_data:
+                        # Fallback: use venue data from checkin (v2 API format)
+                        venue_location = venue.get("location", {})
+                        categories = venue.get("categories", [])
+                        primary_category = categories[0] if categories else {}
+
+                        place_data = {
+                            "fsq_place_id": place_id,
+                            "name": venue.get("name"),
+                            "latitude": venue_location.get("lat"),
+                            "longitude": venue_location.get("lng"),
+                            "location": {
+                                "address": venue_location.get("address"),
+                                "locality": venue_location.get("city"),
+                                "region": venue_location.get("state"),
+                                "postcode": venue_location.get("postalCode"),
+                                "country": venue_location.get("country"),
+                                "formatted_address": ", ".join(venue_location.get("formattedAddress", []))
+                            },
+                            "categories": [{
+                                "id": primary_category.get("id"),
+                                "name": primary_category.get("name")
+                            }] if primary_category else []
+                        }
+                    
+                    if not self.db.upsert_place(place_data, conn=conn):
+                        # Place insert failed, skip this checkin
+                        print(f"  Warning: Failed to insert place {place_id}, skipping checkin")
+                        continue
+                    stats["places"] += 1
+                
+                # Now safe to insert checkin (place exists)
+                try:
+                    if self.db.insert_checkin(checkin, user_id, conn=conn):
+                        stats["checkins"] += 1
+                except Exception as e:
+                    print("\n=== FK ERROR DEBUG ===")
+                    print(f"Error: {e}")
+                    print(f"Place ID: {place_id}")
+                    print(f"Place exists in DB: {self.db.place_exists(place_id, conn=conn)}")
+                    print(f"Venue from checkin: {venue}")
+                    print(f"Place data used: {place_data if 'place_data' in dir() else 'N/A (place already existed)'}")
+                    print(f"Checkin ID: {checkin.get('id')}")
+                    print(f"Checkin createdAt: {checkin.get('createdAt')}")
+                    print("======================\n")
+                    raise
+
+                # Track highest timestamp
+                if created_at > highest_timestamp:
+                    highest_timestamp = created_at
+
+                # Progress indicator
+                if (i + 1) % 100 == 0:
+                    print(f"  Processed {i + 1}/{len(checkins)} checkins...")
         
         # Update last pulled timestamp
         if highest_timestamp > last_timestamp:
             self.db.upsert_user(user_id, highest_timestamp)
         
-        print(f"\nFoursquare sync complete!")
+        print("\nFoursquare sync complete!")
         print(f"  Checkins: {stats['checkins']}")
         print(f"  Places: {stats['places']}")
         

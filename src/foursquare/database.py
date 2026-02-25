@@ -70,23 +70,26 @@ class FoursquareDatabase(BaseDatabase):
     # Place Operations
     # ==========================================================================
     
-    def place_exists(self, fsq_place_id: str) -> bool:
+    def place_exists(self, fsq_place_id: str, conn: Optional[sqlite3.Connection] = None) -> bool:
         """Check if a place exists."""
-        with self.get_connection() as conn:
+        if conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT 1 FROM places WHERE fsq_place_id = ? LIMIT 1",
                 (fsq_place_id,)
             )
             return cursor.fetchone() is not None
+
+        with self.get_connection() as conn:
+            return self.place_exists(fsq_place_id, conn)
     
-    def upsert_place(self, place_data: Dict[str, Any]) -> bool:
+    def upsert_place(self, place_data: Dict[str, Any], conn: Optional[sqlite3.Connection] = None) -> bool:
         """Insert or update a place."""
         fsq_place_id = place_data.get("fsq_id") or place_data.get("fsq_place_id")
         if not fsq_place_id:
             return False
         
-        with self.get_connection() as conn:
+        if conn:
             cursor = conn.cursor()
             
             # Extract location data
@@ -143,25 +146,31 @@ class FoursquareDatabase(BaseDatabase):
                 int(time.time())
             ))
             return True
+
+        with self.get_connection() as conn:
+            return self.upsert_place(place_data, conn)
     
     # ==========================================================================
     # Checkin Operations
     # ==========================================================================
     
-    def checkin_exists(self, checkin_id: str) -> bool:
+    def checkin_exists(self, checkin_id: str, conn: Optional[sqlite3.Connection] = None) -> bool:
         """Check if a checkin exists."""
-        with self.get_connection() as conn:
+        if conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT 1 FROM checkins WHERE checkin_id = ? LIMIT 1",
                 (checkin_id,)
             )
             return cursor.fetchone() is not None
+
+        with self.get_connection() as conn:
+            return self.checkin_exists(checkin_id, conn)
     
-    def insert_checkin(self, checkin_data: Dict[str, Any], foursquare_user_id: str) -> bool:
+    def insert_checkin(self, checkin_data: Dict[str, Any], foursquare_user_id: str, conn: Optional[sqlite3.Connection] = None) -> bool:
         """Insert a checkin (skip if exists)."""
         checkin_id = checkin_data.get("id")
-        if not checkin_id or self.checkin_exists(checkin_id):
+        if not checkin_id or self.checkin_exists(checkin_id, conn):
             return False
         
         venue = checkin_data.get("venue", {})
@@ -169,7 +178,7 @@ class FoursquareDatabase(BaseDatabase):
         if not place_fsq_id:
             return False
         
-        with self.get_connection() as conn:
+        if conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO checkins (
@@ -197,6 +206,9 @@ class FoursquareDatabase(BaseDatabase):
                 checkin_data.get("timeZoneOffset")
             ))
             return True
+
+        with self.get_connection() as conn:
+            return self.insert_checkin(checkin_data, foursquare_user_id, conn)
     
     # ==========================================================================
     # Statistics
