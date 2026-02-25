@@ -57,7 +57,7 @@ class HardcoverSyncManager:
         print("Fetching finished books from Hardcover...")
         user_books = self.api.get_finished_books()
         
-        count = 0
+        books_to_upsert = []
         for ub in user_books:
             book_data = ub.get("book", {})
             
@@ -78,8 +78,11 @@ class HardcoverSyncManager:
             }
             
             if book["slug"]:
-                self.db.upsert_book(book)
-                count += 1
+                books_to_upsert.append(book)
+
+        count = len(books_to_upsert)
+        if count > 0:
+            self.db.upsert_books(books_to_upsert)
         
         print(f"Synced {count} finished books")
         return {"books": count}

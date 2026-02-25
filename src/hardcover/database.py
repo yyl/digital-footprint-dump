@@ -1,6 +1,6 @@
 """Database manager for Hardcover book data."""
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from ..config import Config
 from ..database import BaseDatabase
@@ -33,9 +33,36 @@ class HardcoverDatabase(BaseDatabase):
             book: Dictionary with slug, title, author, rating, date_added,
                   reviewed_at, and date_read fields.
         """
+        self.upsert_books([book])
+
+    def upsert_books(self, books: List[Dict[str, Any]]) -> None:
+        """Insert or update multiple finished books in a single transaction.
+
+        Args:
+            books: List of dictionaries with book data.
+        """
+        if not books:
+            return
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+
+            # Prepare data for executemany
+            data = [
+                (
+                    book["slug"],
+                    book["title"],
+                    book.get("author"),
+                    book.get("rating"),
+                    book.get("date_added"),
+                    book.get("reviewed_at"),
+                    book.get("date_read"),
+                    book["slug"],
+                )
+                for book in books
+            ]
+
+            cursor.executemany("""
                 INSERT INTO books (id, title, author, rating, date_added, reviewed_at, date_read, slug)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
@@ -46,16 +73,7 @@ class HardcoverDatabase(BaseDatabase):
                     reviewed_at = excluded.reviewed_at,
                     date_read = excluded.date_read,
                     slug = excluded.slug
-            """, (
-                book["slug"],
-                book["title"],
-                book.get("author"),
-                book.get("rating"),
-                book.get("date_added"),
-                book.get("reviewed_at"),
-                book.get("date_read"),
-                book["slug"],
-            ))
+            """, data)
     
     def get_stats(self) -> Dict[str, Any]:
         """Get database statistics.
