@@ -78,6 +78,7 @@ jobs:
           BLOG_REPO_OWNER: ${{ secrets.BLOG_REPO_OWNER }}
           BLOG_REPO_NAME: ${{ secrets.BLOG_REPO_NAME }}
           BLOG_GITHUB_TARGET_BRANCH: ${{ secrets.BLOG_GITHUB_TARGET_BRANCH }}
+          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
         run: |
           COMMAND="${{ inputs.command }}"
           # For scheduled runs, run both publish and backfill
