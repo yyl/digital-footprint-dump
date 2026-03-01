@@ -61,8 +61,8 @@ class Config:
     # ==========================================================================
     # GitHub Activity Configuration
     # ==========================================================================
-    GITHUB_USERNAME: str = os.getenv("GITHUB_USERNAME", "")
-    GITHUB_DATABASE_PATH = DATA_DIR / "github.db"
+    CODEBASE_USERNAME: str = os.getenv("CODEBASE_USERNAME", "")
+    CODEBASE_DATABASE_PATH = DATA_DIR / "github.db"
     # Reuses BLOG_GITHUB_TOKEN for authenticated API access (5000 req/hr)
     
     # ==========================================================================
@@ -109,8 +109,8 @@ class Config:
     def validate_github_activity(cls) -> bool:
         """Validate GitHub activity configuration."""
         missing = []
-        if not cls.GITHUB_USERNAME:
-            missing.append("GITHUB_USERNAME")
+        if not cls.CODEBASE_USERNAME:
+            missing.append("CODEBASE_USERNAME")
         if not cls.BLOG_GITHUB_TOKEN:
             missing.append("BLOG_GITHUB_TOKEN (needed for API auth)")
         if missing:

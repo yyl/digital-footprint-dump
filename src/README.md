@@ -221,7 +221,7 @@ with self.db.get_connection() as conn:
 | Readwise | `READWISE_ACCESS_TOKEN` | `validate_readwise()` |
 | Foursquare | `FOURSQUARE_ACCESS_TOKEN` | `validate_foursquare()` |
 | Hardcover | `HARDCOVER_ACCESS_TOKEN` | `validate_hardcover()` |
-| GitHub Activity | `GITHUB_USERNAME`, `BLOG_GITHUB_TOKEN` | `validate_github_activity()` |
+| GitHub Activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` | `validate_github_activity()` |
 | GitHub Publishing | `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME` | `validate_github()` |
 
 File-based sources (Letterboxd, Overcast, Strong) require no API tokens — they read from `files/`.

@@ -14,7 +14,7 @@ class TestGitHubActivityClient(unittest.TestCase):
         self.config_patcher = patch("src.github.api_client.Config")
         self.mock_config = self.config_patcher.start()
         self.mock_config.BLOG_GITHUB_TOKEN = "test_token"
-        self.mock_config.GITHUB_USERNAME = "test_user"
+        self.mock_config.CODEBASE_USERNAME = "test_user"
 
         self.client = GitHubActivityClient()
 

@@ -17,10 +17,10 @@ class GitHubActivityClient:
         
         Args:
             token: GitHub personal access token. Defaults to BLOG_GITHUB_TOKEN.
-            username: GitHub username. Defaults to GITHUB_USERNAME config.
+            username: GitHub username. Defaults to CODEBASE_USERNAME config.
         """
         self.token = token or Config.BLOG_GITHUB_TOKEN
-        self.username = username or Config.GITHUB_USERNAME
+        self.username = username or Config.CODEBASE_USERNAME
         self.session = requests.Session()
         self.session.headers.update({
             "Accept": "application/vnd.github+json",

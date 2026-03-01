@@ -16,7 +16,7 @@ class GitHubDatabase(BaseDatabase):
         Args:
             db_path: Path to SQLite database. Defaults to config value.
         """
-        super().__init__(str(db_path or Config.GITHUB_DATABASE_PATH))
+        super().__init__(str(db_path or Config.CODEBASE_DATABASE_PATH))
     
     def init_tables(self) -> None:
         """Create tables if they don't exist."""

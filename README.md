@@ -127,7 +127,7 @@ Syncs commit history from your public repositories via the GitHub REST API to `d
 - `github-analyze`: Generates monthly stats (commits, repos touched) and writes to the `analysis` table.
 
 **Required in .env:**
-- `GITHUB_USERNAME` - Your GitHub username
+- `CODEBASE_USERNAME` - Your GitHub username
 - `BLOG_GITHUB_TOKEN` - Reused for authenticated API access (5000 req/hr)
 
 ---
