@@ -183,6 +183,8 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
    | `READWISE_ACCESS_TOKEN` | Readwise API token |
    | `FOURSQUARE_ACCESS_TOKEN` | Foursquare OAuth token — required for all API calls |
    | `FOURSQUARE_API_KEY` | *(optional)* Foursquare Places API for venue details |
+   | `HARDCOVER_ACCESS_TOKEN` | Hardcover API token |
+   | `CODEBASE_USERNAME` | Your GitHub username (for activity tracking) |
    | `BLOG_GITHUB_TOKEN` | PAT with Contents read/write on blog repo |
    | `BLOG_REPO_OWNER` | Blog repo owner |
    | `BLOG_REPO_NAME` | Blog repo name |
