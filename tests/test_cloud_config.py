@@ -77,13 +77,13 @@ class TestConfigValidation:
         from src.config import Config
 
         # Test missing username
-        with patch.object(Config, 'GITHUB_USERNAME', ''):
+        with patch.object(Config, 'CODEBASE_USERNAME', ''):
             with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'token'):
-                with pytest.raises(ValueError, match="GITHUB_USERNAME"):
+                with pytest.raises(ValueError, match="CODEBASE_USERNAME"):
                     Config.validate_github_activity()
 
         # Test missing token
-        with patch.object(Config, 'GITHUB_USERNAME', 'user'):
+        with patch.object(Config, 'CODEBASE_USERNAME', 'user'):
             with patch.object(Config, 'BLOG_GITHUB_TOKEN', ''):
                 with pytest.raises(ValueError, match="BLOG_GITHUB_TOKEN"):
                     Config.validate_github_activity()
@@ -92,7 +92,7 @@ class TestConfigValidation:
         """Test that GitHub activity validation passes with full config."""
         from src.config import Config
 
-        with patch.object(Config, 'GITHUB_USERNAME', 'test_user'):
+        with patch.object(Config, 'CODEBASE_USERNAME', 'test_user'):
             with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'test_token'):
                 assert Config.validate_github_activity() is True
 
