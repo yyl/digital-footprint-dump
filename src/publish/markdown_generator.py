@@ -40,6 +40,18 @@ class MarkdownGenerator:
         if data.get('overcast'):
             parts.append(self._generate_overcast_section(data['overcast']))
         
+        # Strong section
+        if data.get('strong'):
+            parts.append(self._generate_strong_section(data['strong']))
+        
+        # Hardcover section
+        if data.get('hardcover'):
+            parts.append(self._generate_hardcover_section(data['hardcover']))
+        
+        # GitHub section
+        if data.get('github'):
+            parts.append(self._generate_github_section(data['github']))
+        
         return "\n".join(parts)
     
     def _generate_front_matter(self, data: Dict[str, Any]) -> str:
@@ -63,6 +75,12 @@ class MarkdownGenerator:
             tags.append("letterboxd")
         if data.get('overcast'):
             tags.append("overcast")
+        if data.get('strong'):
+            tags.append("strong")
+        if data.get('hardcover'):
+            tags.append("hardcover")
+        if data.get('github'):
+            tags.append("github")
         
         tags_str = ", ".join(f'"{t}"' for t in tags)
         
@@ -203,4 +221,64 @@ categories: ["Summary"]
 - **New Feeds Subscribed**: {feeds_added}
 - **Feeds Removed**: {feeds_removed}
 - **Episodes Played**: {episodes_played}{played_cmp}
+"""
+    
+    def _generate_strong_section(self, strong_data: Dict[str, Any]) -> str:
+        """Generate the Strong/Workout statistics section."""
+        workouts = int(strong_data.get('workouts', 0))
+        total_minutes = int(strong_data.get('total_minutes', 0))
+        unique_exercises = int(strong_data.get('unique_exercises', 0))
+        total_sets = int(strong_data.get('total_sets', 0))
+        comparisons = strong_data.get('comparisons', {})
+        
+        # Format time
+        if total_minutes < 60:
+            time_display = f"{total_minutes} minutes"
+        else:
+            hours = total_minutes // 60
+            minutes = total_minutes % 60
+            time_display = f"{hours}h {minutes}m"
+        
+        workouts_cmp = format_comparison_suffix(comparisons.get('workouts'))
+        time_cmp = format_comparison_suffix(comparisons.get('total_minutes'))
+        
+        return f"""
+## Workout
+
+- **Workouts**: {workouts}{workouts_cmp}
+- **Total Time**: {time_display}{time_cmp}
+- **Unique Exercises**: {unique_exercises}
+- **Total Sets**: {total_sets}
+"""
+    
+    def _generate_hardcover_section(self, hardcover_data: Dict[str, Any]) -> str:
+        """Generate the Hardcover/Books statistics section."""
+        books = int(hardcover_data.get('books_finished', 0))
+        avg_rating = hardcover_data.get('avg_rating', 0)
+        comparisons = hardcover_data.get('comparisons', {})
+        
+        books_cmp = format_comparison_suffix(comparisons.get('books_finished'))
+        rating_cmp = format_comparison_suffix(comparisons.get('avg_rating'))
+        
+        return f"""
+## Books
+
+- **Books Finished**: {books}{books_cmp}
+- **Average Rating**: {avg_rating:.2f} ⭐{rating_cmp}
+"""
+    
+    def _generate_github_section(self, github_data: Dict[str, Any]) -> str:
+        """Generate the GitHub/Code statistics section."""
+        commits = int(github_data.get('commits', 0))
+        repos_touched = int(github_data.get('repos_touched', 0))
+        comparisons = github_data.get('comparisons', {})
+        
+        commits_cmp = format_comparison_suffix(comparisons.get('commits'))
+        repos_cmp = format_comparison_suffix(comparisons.get('repos_touched'))
+        
+        return f"""
+## Code
+
+- **Commits**: {commits}{commits_cmp}
+- **Repos Touched**: {repos_touched}{repos_cmp}
 """
