@@ -60,7 +60,6 @@ class TestFoursquareSecurity(unittest.TestCase):
         mode = st.st_mode & 0o777
 
         print(f"File permissions: {oct(mode)}")
-        # This assert is expected to FAIL until fixed
         self.assertEqual(mode, 0o600, f"File permissions are {oct(mode)}, expected 0o600 (secure)")
 
     def test_save_token_fixes_existing_permissions(self):
@@ -85,7 +84,6 @@ class TestFoursquareSecurity(unittest.TestCase):
         st = os.stat(env_file)
         mode = st.st_mode & 0o777
         print(f"Fixed permissions: {oct(mode)}")
-        # This assert is expected to FAIL until fixed
         self.assertEqual(mode, 0o600, f"File permissions are {oct(mode)}, expected 0o600 (secure)")
 
 if __name__ == "__main__":
