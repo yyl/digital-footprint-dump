@@ -367,9 +367,14 @@ class ReadwiseDatabase(BaseDatabase):
     def get_stats(self) -> Dict[str, int]:
         """Get counts of all entities in the database."""
         stats = {}
+        queries = {
+            "books": "SELECT COUNT(*) FROM books",
+            "highlights": "SELECT COUNT(*) FROM highlights",
+            "documents": "SELECT COUNT(*) FROM documents",
+        }
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            for table in ["books", "highlights", "documents"]:
-                cursor.execute(f"SELECT COUNT(*) FROM {table}")
+            for table, query in queries.items():
+                cursor.execute(query)
                 stats[table] = cursor.fetchone()[0]
         return stats
