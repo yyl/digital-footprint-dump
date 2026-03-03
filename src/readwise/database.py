@@ -181,12 +181,14 @@ class ReadwiseDatabase(BaseDatabase):
         # Delete existing tags
         cursor.execute("DELETE FROM book_tags WHERE book_id = ?", (book_id,))
         # Insert new tags
-        for tag in tags:
-            tag_name = tag.get("name") if isinstance(tag, dict) else str(tag)
-            cursor.execute(
-                "INSERT OR IGNORE INTO book_tags (book_id, tag_name) VALUES (?, ?)",
-                (book_id, tag_name)
-            )
+        tag_data = [
+            (book_id, tag.get("name") if isinstance(tag, dict) else str(tag))
+            for tag in tags
+        ]
+        cursor.executemany(
+            "INSERT OR IGNORE INTO book_tags (book_id, tag_name) VALUES (?, ?)",
+            tag_data
+        )
     
     # ==========================================================================
     # Highlight Operations
@@ -260,12 +262,14 @@ class ReadwiseDatabase(BaseDatabase):
         # Delete existing tags
         cursor.execute("DELETE FROM highlight_tags WHERE highlight_id = ?", (highlight_id,))
         # Insert new tags
-        for tag in tags:
-            tag_name = tag.get("name") if isinstance(tag, dict) else str(tag)
-            cursor.execute(
-                "INSERT OR IGNORE INTO highlight_tags (highlight_id, tag_name) VALUES (?, ?)",
-                (highlight_id, tag_name)
-            )
+        tag_data = [
+            (highlight_id, tag.get("name") if isinstance(tag, dict) else str(tag))
+            for tag in tags
+        ]
+        cursor.executemany(
+            "INSERT OR IGNORE INTO highlight_tags (highlight_id, tag_name) VALUES (?, ?)",
+            tag_data
+        )
     
     # ==========================================================================
     # Document Operations (Reader)
@@ -346,12 +350,15 @@ class ReadwiseDatabase(BaseDatabase):
         cursor.execute("DELETE FROM document_tags WHERE document_id = ?", (document_id,))
         # Insert new tags (Reader returns tags as a dict)
         if isinstance(tags, dict):
+            tag_data = []
             for key, value in tags.items():
                 tag_name = value if isinstance(value, str) else key
-                cursor.execute(
-                    "INSERT OR IGNORE INTO document_tags (document_id, tag_key, tag_name) VALUES (?, ?, ?)",
-                    (document_id, key, tag_name)
-                )
+                tag_data.append((document_id, key, tag_name))
+
+            cursor.executemany(
+                "INSERT OR IGNORE INTO document_tags (document_id, tag_key, tag_name) VALUES (?, ?, ?)",
+                tag_data
+            )
     
     # ==========================================================================
     # Statistics
