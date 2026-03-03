@@ -33,6 +33,9 @@ class Config:
     FOURSQUARE_CLIENT_SECRET: str = os.getenv("FOURSQUARE_CLIENT_SECRET", "")
     FOURSQUARE_API_KEY: str = os.getenv("FOURSQUARE_API_KEY", "")
     FOURSQUARE_ACCESS_TOKEN: str = os.getenv("FOURSQUARE_ACCESS_TOKEN", "")
+    FOURSQUARE_REDIRECT_URI: str = os.getenv(
+        "FOURSQUARE_REDIRECT_URI", "https://localhost:8888/callback"
+    )
     FOURSQUARE_DATABASE_PATH = DATA_DIR / "foursquare.db"
     
     # ==========================================================================
