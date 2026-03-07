@@ -1,7 +1,7 @@
 """GitHub client for committing files to a repository."""
 
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 from github import Github, GithubException
 
 logger = logging.getLogger(__name__)
