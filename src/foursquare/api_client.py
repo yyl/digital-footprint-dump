@@ -137,7 +137,9 @@ class FoursquareAPIClient:
                 self._save_token_to_env(access_token)
                 return access_token
             else:
-                print(f"Error: No access token in response: {token_data}")
+                error = token_data.get("error", "Unknown error")
+                error_description = token_data.get("error_description", "No description")
+                print(f"Error: No access token in response. Error: {error}, Description: {error_description}")
                 return None
                 
         except requests.exceptions.RequestException as e:

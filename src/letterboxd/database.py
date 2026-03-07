@@ -1,6 +1,5 @@
 """SQLite database manager for Letterboxd data."""
 
-import sqlite3
 import time
 from typing import Optional, Dict, Any
 

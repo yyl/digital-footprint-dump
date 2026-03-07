@@ -208,7 +208,7 @@ def cmd_publish(dry_run: bool = False):
     try:
         publisher = Publisher()
         result = publisher.publish()
-        print(f"\nPublished successfully!")
+        print("\nPublished successfully!")
         print(f"Commit: {result['url']}")
     except ValueError as e:
         print(f"Error: {e}")
@@ -249,7 +249,7 @@ def cmd_backfill():
     try:
         publisher = Publisher()
         result = publisher.backfill()
-        print(f"\nBackfill complete!")
+        print("\nBackfill complete!")
         print(f"Commit: {result['url']}")
         print(f"Files: {', '.join(result['file_paths'])}")
     except ValueError as e:
@@ -630,7 +630,7 @@ def cmd_status():
             print(f"  analysis records: {analysis_count}")
             print(f"  latest analysis: {latest['year_month']} (updated: {latest['updated_at']})")
         else:
-            print(f"  analysis: no records")
+            print("  analysis: no records")
     except Exception as e:
         print(f"  Error: {e}")
     
@@ -686,7 +686,7 @@ def cmd_status():
             print(f"  analysis records: {analysis_count}")
             print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
         else:
-            print(f"  analysis: no records")
+            print("  analysis: no records")
     except Exception as e:
         print(f"  Error: {e}")
     
@@ -723,9 +723,9 @@ def cmd_status():
                     print(f"  analysis records: {analysis_count}")
                     print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
                 else:
-                    print(f"  analysis: no records")
+                    print("  analysis: no records")
             except sqlite3.OperationalError:
-                print(f"  analysis: no records")
+                print("  analysis: no records")
             conn.close()
     except Exception as e:
         print(f"  Error: {e}")
@@ -765,9 +765,9 @@ def cmd_status():
                         print(f"  analysis records: {analysis_count}")
                         print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
                     else:
-                        print(f"  analysis: no records")
+                        print("  analysis: no records")
                 except Exception:
-                    print(f"  analysis: no records")
+                    print("  analysis: no records")
     except Exception as e:
         print(f"  Error: {e}")
     
@@ -796,9 +796,9 @@ def cmd_status():
                         print(f"  analysis records: {analysis_count}")
                         print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
                     else:
-                        print(f"  analysis: no records")
+                        print("  analysis: no records")
                 except Exception:
-                    print(f"  analysis: no records")
+                    print("  analysis: no records")
         else:
             print("  not initialized")
     except Exception as e:
@@ -829,9 +829,9 @@ def cmd_status():
                         print(f"  analysis records: {analysis_count}")
                         print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
                     else:
-                        print(f"  analysis: no records")
+                        print("  analysis: no records")
                 except Exception:
-                    print(f"  analysis: no records")
+                    print("  analysis: no records")
         else:
             print("  not initialized")
     except Exception as e:

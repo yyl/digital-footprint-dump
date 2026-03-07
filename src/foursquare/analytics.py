@@ -1,8 +1,7 @@
 """Analytics module for Foursquare data."""
 
-from collections import defaultdict
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional
 
 from .database import FoursquareDatabase
 

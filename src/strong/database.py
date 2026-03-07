@@ -1,6 +1,5 @@
 """SQLite database manager for Strong workout data."""
 
-import sqlite3
 from typing import Optional, Dict, Any, List
 
 from ..config import Config

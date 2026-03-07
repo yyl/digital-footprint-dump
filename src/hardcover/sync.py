@@ -1,6 +1,6 @@
 """Sync manager for Hardcover book data."""
 
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 from .database import HardcoverDatabase
 from .api_client import HardcoverAPIClient

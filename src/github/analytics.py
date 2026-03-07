@@ -1,6 +1,5 @@
 """Analytics for GitHub activity data."""
 
-from collections import defaultdict
 from datetime import datetime
 from typing import Optional
 

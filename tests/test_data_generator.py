@@ -1,7 +1,6 @@
 """Tests for the DataGenerator module."""
 
-import pytest
-from src.publish.data_generator import DataGenerator, _to_yaml
+from src.publish.data_generator import _to_yaml
 
 
 class TestToYaml:

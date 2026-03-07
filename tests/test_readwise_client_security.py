@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from src.readwise.api_client import ReadwiseAPIClient
-from src.config import Config
 
 class TestReadwiseClientSecurity(unittest.TestCase):
 

@@ -1,6 +1,5 @@
 """Tests for cloud configuration validation."""
 
-import os
 import pytest
 from unittest.mock import patch
 

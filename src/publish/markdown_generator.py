@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from zoneinfo import ZoneInfo
 
-from ..comparison import format_change, format_comparison_suffix
+from ..comparison import format_comparison_suffix
 
 
 class MarkdownGenerator:

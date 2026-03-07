@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 
 from .database import OvercastDatabase
 from .models import CREATE_ANALYSIS_TABLE, CREATE_INDEXES

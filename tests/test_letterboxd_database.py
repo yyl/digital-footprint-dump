@@ -2,7 +2,6 @@
 
 import pytest
 import sqlite3
-import os
 from src.letterboxd.database import LetterboxdDatabase
 
 

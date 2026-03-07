@@ -1,6 +1,5 @@
 
 import unittest
-import sqlite3
 import os
 from src.readwise.database import ReadwiseDatabase
 
