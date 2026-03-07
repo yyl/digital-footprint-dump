@@ -34,14 +34,15 @@ class FoursquareAPIClient:
         client_id: Optional[str] = None,
         client_secret: Optional[str] = None,
         api_key: Optional[str] = None,
-        access_token: Optional[str] = None
+        access_token: Optional[str] = None,
+        redirect_uri: Optional[str] = None
     ):
         """Initialize API client."""
         self.client_id = client_id or Config.FOURSQUARE_CLIENT_ID
         self.client_secret = client_secret or Config.FOURSQUARE_CLIENT_SECRET
         self.api_key = api_key or Config.FOURSQUARE_API_KEY
         self.access_token = access_token or Config.FOURSQUARE_ACCESS_TOKEN
-        self.redirect_uri = "http://localhost:8888/callback"
+        self.redirect_uri = redirect_uri or Config.FOURSQUARE_REDIRECT_URI
         self.session = requests.Session()
         self._last_request_time = 0
     
@@ -104,7 +105,7 @@ class FoursquareAPIClient:
         webbrowser.open(auth_url)
         
         # Get redirect URL from user
-        print("After authorizing, you'll be redirected to a localhost URL.")
+        print(f"After authorizing, you'll be redirected to: {self.redirect_uri}")
         print("Copy the FULL URL from your browser's address bar and paste it here.\n")
         redirected_url = input("Paste redirect URL: ").strip()
         

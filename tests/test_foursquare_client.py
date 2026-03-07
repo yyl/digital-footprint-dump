@@ -1,7 +1,25 @@
 """Tests for Foursquare API client."""
 
+import sys
+from unittest.mock import MagicMock
+
+# Mock requests and dotenv before importing src modules if not available
+try:
+    import requests
+except ImportError:
+    mock_requests = MagicMock()
+    class RequestException(Exception): pass
+    mock_requests.exceptions.RequestException = RequestException
+    sys.modules["requests"] = mock_requests
+    sys.modules["requests.exceptions"] = mock_requests.exceptions
+
+try:
+    import dotenv
+except ImportError:
+    sys.modules["dotenv"] = MagicMock()
+
 import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import patch, call
 from src.foursquare.api_client import FoursquareAPIClient
 
 
