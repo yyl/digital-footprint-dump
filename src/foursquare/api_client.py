@@ -167,11 +167,10 @@ class FoursquareAPIClient:
         
         # Write back securely
         fd = os.open(env_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        # Ensure permissions are restricted (important if file already existed)
+        os.fchmod(fd, 0o600)
         with os.fdopen(fd, "w") as f:
             f.writelines(lines)
-        
-        # Ensure permissions are restricted (important if file already existed)
-        os.chmod(env_path, 0o600)
 
         print(f"✓ Token saved to {env_path}")
     
