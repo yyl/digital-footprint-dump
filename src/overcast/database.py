@@ -24,12 +24,25 @@ class OvercastDatabase(BaseDatabase):
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                for table in ["feeds", "episodes", "playlists"]:
-                    try:
-                        cursor.execute(f"SELECT COUNT(*) FROM {table}")
-                        stats[table] = cursor.fetchone()[0]
-                    except sqlite3.OperationalError:
-                        pass
+                # We use explicit queries for each table to avoid f-string SQL injection,
+                # even though the table names are hardcoded here.
+                try:
+                    cursor.execute("SELECT COUNT(*) FROM feeds")
+                    stats["feeds"] = cursor.fetchone()[0]
+                except sqlite3.OperationalError:
+                    pass
+
+                try:
+                    cursor.execute("SELECT COUNT(*) FROM episodes")
+                    stats["episodes"] = cursor.fetchone()[0]
+                except sqlite3.OperationalError:
+                    pass
+
+                try:
+                    cursor.execute("SELECT COUNT(*) FROM playlists")
+                    stats["playlists"] = cursor.fetchone()[0]
+                except sqlite3.OperationalError:
+                    pass
         except Exception:
             pass
         
