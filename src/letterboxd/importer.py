@@ -83,24 +83,34 @@ class LetterboxdImporter:
                     return row.get("Username")
         return None
     
-    def _import_watched(self, csv_path: Path, username: str) -> int:
+    def _import_watched(self, csv_path: Path, username: str, batch_size: int = 100) -> int:
         """Import watched.csv."""
         count = 0
         with open(csv_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
+            batch = []
             for row in reader:
-                if self.db.upsert_watched(row, username):
-                    count += 1
+                batch.append(row)
+                if len(batch) >= batch_size:
+                    count += self.db.upsert_watched_batch(batch, username)
+                    batch = []
+            if batch:
+                count += self.db.upsert_watched_batch(batch, username)
         return count
-    
-    def _import_ratings(self, csv_path: Path, username: str) -> int:
+
+    def _import_ratings(self, csv_path: Path, username: str, batch_size: int = 100) -> int:
         """Import ratings.csv."""
         count = 0
         with open(csv_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
+            batch = []
             for row in reader:
-                if self.db.upsert_rating(row, username):
-                    count += 1
+                batch.append(row)
+                if len(batch) >= batch_size:
+                    count += self.db.upsert_ratings_batch(batch, username)
+                    batch = []
+            if batch:
+                count += self.db.upsert_ratings_batch(batch, username)
         return count
     
     def sync(self) -> Dict[str, int]:
