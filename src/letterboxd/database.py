@@ -2,7 +2,7 @@
 
 import sqlite3
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from ..config import Config
 from ..database import BaseDatabase
@@ -72,13 +72,32 @@ class LetterboxdDatabase(BaseDatabase):
     
     def upsert_watched(self, watched_data: Dict[str, Any], username: str) -> bool:
         """Insert or update a watched movie."""
-        uri = watched_data.get("Letterboxd URI")
-        if not uri:
-            return False
-        
+        return self.upsert_watched_batch([watched_data], username) > 0
+
+    def upsert_watched_batch(self, watched_list: List[Dict[str, Any]], username: str) -> int:
+        """Insert or update multiple watched movies in a single transaction."""
+        if not watched_list:
+            return 0
+
+        data = []
+        for row in watched_list:
+            uri = row.get("Letterboxd URI")
+            if not uri:
+                continue
+            data.append((
+                uri,
+                row.get("Name"),
+                int(row.get("Year")) if row.get("Year") else None,
+                row.get("Date"),
+                username
+            ))
+
+        if not data:
+            return 0
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.executemany("""
                 INSERT INTO watched (
                     letterboxd_uri, movie_name, year, watched_at, username
                 ) VALUES (?, ?, ?, ?, ?)
@@ -86,24 +105,41 @@ class LetterboxdDatabase(BaseDatabase):
                     movie_name = excluded.movie_name,
                     year = excluded.year,
                     watched_at = excluded.watched_at
-            """, (
-                uri,
-                watched_data.get("Name"),
-                int(watched_data.get("Year")) if watched_data.get("Year") else None,
-                watched_data.get("Date"),
-                username
-            ))
-            return True
+            """, data)
+            return len(data)
     
     def upsert_rating(self, rating_data: Dict[str, Any], username: str) -> bool:
         """Insert or update a movie rating."""
-        uri = rating_data.get("Letterboxd URI")
-        if not uri:
-            return False
-        
+        return self.upsert_ratings_batch([rating_data], username) > 0
+
+    def upsert_ratings_batch(self, ratings_list: List[Dict[str, Any]], username: str) -> int:
+        """Insert or update multiple movie ratings in a single transaction."""
+        if not ratings_list:
+            return 0
+
+        data = []
+        for row in ratings_list:
+            uri = row.get("Letterboxd URI")
+            if not uri:
+                continue
+            try:
+                data.append((
+                    uri,
+                    row.get("Name"),
+                    int(row.get("Year")) if row.get("Year") else None,
+                    float(row.get("Rating")),
+                    row.get("Date"),
+                    username
+                ))
+            except (ValueError, TypeError):
+                continue
+
+        if not data:
+            return 0
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.executemany("""
                 INSERT INTO ratings (
                     letterboxd_uri, movie_name, year, rating, rated_at, username
                 ) VALUES (?, ?, ?, ?, ?, ?)
@@ -112,15 +148,8 @@ class LetterboxdDatabase(BaseDatabase):
                     year = excluded.year,
                     rating = excluded.rating,
                     rated_at = excluded.rated_at
-            """, (
-                uri,
-                rating_data.get("Name"),
-                int(rating_data.get("Year")) if rating_data.get("Year") else None,
-                float(rating_data.get("Rating")),
-                rating_data.get("Date"),
-                username
-            ))
-            return True
+            """, data)
+            return len(data)
     
     def get_stats(self) -> Dict[str, int]:
         """Get counts of all entities."""
