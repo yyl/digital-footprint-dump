@@ -1,7 +1,7 @@
 """Readwise API client with pagination and rate limiting support."""
 
 import time
-from typing import Optional, Generator, Dict, Any, List
+from typing import Optional, Generator, Dict, Any
 import requests
 
 from ..config import Config
