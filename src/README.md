@@ -63,10 +63,32 @@ Each data source follows a consistent structure:
 
 | File | Description |
 |------|-------------|
-| `publisher.py` | Orchestrates analysis fetching, comparison computation, and publishing |
-| `markdown_generator.py` | Hugo-compatible markdown generation (sections: Reading, Travel, Movies, Podcasts, Workout, Books, Code) |
+| `publisher.py` | Orchestrates analysis fetching, comparison computation, report assembly, and publishing |
+| `markdown_generator.py` | Hugo-compatible markdown generation for the monthly draft report (sections: Reading, Travel, Movies, Podcasts, Workout, Books, Code) |
 | `data_generator.py` | Generates Hugo data files (`data/activity/*.yaml`) from analysis tables |
 | `github_client.py` | GitHub API wrapper for multi-file atomic commits via Git tree API |
+
+### Publish Flow
+
+The `publish` action has two distinct paths:
+
+- `publish`: syncs all sources, reruns analysis, generates the latest monthly report, and commits a draft blog post.
+- `publish --dry-run`: skips sync and publish, and only renders markdown from the current analysis data already present in the local databases.
+
+The generated post currently uses:
+
+- title: `Things I learned in {month}/{year}`
+- slug: `things-i-learned-in-{month}-{year}`
+- path: `content/posts/{year}-{month}-monthly-report.md`
+- front matter: `draft: true`
+
+The report keeps the existing summary metrics and MoM/YoY comparisons, and adds richer detail sections:
+
+- Readwise articles rendered as tables grouped by source, with small one-off sources grouped under `Other`
+- Readwise highlights rendered as tables grouped by article or book
+- Letterboxd movies rendered as a dated table
+- Overcast episodes rendered as dated tables grouped by podcast title
+- GitHub commits rendered as dated tables grouped by repo, excluding merge commit messages that start with `Merge pull request #`
 
 ## Database Schemas
 

@@ -1,6 +1,6 @@
 # digital-footprint-dump
 
-A pipeline to fetch data from digital sources, analyze them, and publish monthly summary to a markdown blog site.
+A pipeline to fetch data from digital sources, analyze them, and publish a monthly draft report to a markdown blog site.
 
 ## Setup
 
@@ -31,7 +31,7 @@ That means:
 | `init` | Initialize all databases |
 | `sync` | Sync all services |
 | `analyze` | Analyze all sources |
-| `publish` | Publish monthly summary blog post |
+| `publish` | Generate and commit a monthly draft report blog post |
 | `backfill` | Commit activity data files to blog repo |
 | `status` | Show sync status |
 | `{source}-sync` | Sync a specific source |
@@ -148,11 +148,26 @@ Syncs commit history from your public repositories via the GitHub REST API to `<
 
 ## Publishing
 
-Publishes a monthly activity summary to a GitHub-hosted Hugo blog.
+Generates a monthly activity report as a draft Hugo post and commits it to a GitHub-hosted blog.
 
 **Commands:**
-- `publish`: Syncs latest data, runs analysis, generates markdown, and commits the blog post to GitHub.
+- `publish`: Syncs latest data, runs analysis, generates markdown, and commits the draft report post to GitHub.
+- `publish --dry-run`: Generates the markdown locally from the current analysis data without syncing or publishing anything.
 - `backfill`: Syncs latest data, runs analysis, generates Hugo data files (`data/activity/*.yaml`), and commits them to GitHub. These power the Activity page charts.
+
+**Report output:**
+- Post title format: `Things I learned in {month}/{year}`
+- Post slug format: `things-i-learned-in-{month}-{year}`
+- Post file format: `content/posts/{year}-{month}-monthly-report.md`
+- Posts are committed as drafts (`draft: true`)
+
+**Report contents:**
+- Keeps the existing top-level metrics, including MoM and YoY comparisons
+- Adds Readwise article tables grouped by source, with smaller sources rolled into `Other`
+- Adds Readwise highlight tables grouped by article or book
+- Adds movie tables with watch date and rating
+- Adds podcast episode tables grouped by podcast title
+- Adds GitHub commit tables grouped by repo with merge-PR commits excluded
 
 **Required in .env:**
 - `BLOG_GITHUB_TOKEN` - Fine-grained PAT scoped to blog repo with **Contents: Read and write** permission

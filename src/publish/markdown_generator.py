@@ -296,14 +296,39 @@ categories: ["Summary"]
         if not articles:
             return ""
 
-        lines = ["", "### Articles Read"]
+        source_counts: dict[str, int] = {}
         for article in articles:
-            title = article.get('title') or "Untitled"
-            link = article.get('link')
-            label = self._markdown_link(title, link)
-            site_name = article.get('site_name')
-            suffix = f" ({site_name})" if site_name else ""
-            lines.append(f"- {label}{suffix}")
+            source_name = (article.get('site_name') or "").strip() or "Other"
+            source_counts[source_name] = source_counts.get(source_name, 0) + 1
+
+        grouped: dict[str, list[Dict[str, Any]]] = {}
+        for article in articles:
+            source_name = (article.get('site_name') or "").strip() or "Other"
+            group_name = source_name if source_counts.get(source_name, 0) > 2 else "Other"
+            grouped.setdefault(group_name, []).append(article)
+
+        ordered_group_names = [
+            name for name, _ in sorted(
+                grouped.items(),
+                key=lambda item: (item[0] == "Other", item[0].lower())
+            )
+        ]
+
+        lines = ["", "### Articles Read"]
+        for group_name in ordered_group_names:
+            lines.extend([
+                f"#### {self._escape_table_text(group_name)}",
+                "",
+                "| Date | Article | Source |",
+                "| --- | --- | --- |",
+            ])
+            for article in grouped[group_name]:
+                title = article.get('title') or "Untitled"
+                link = article.get('link')
+                label = self._markdown_link(title, link)
+                date = self._format_date(article.get('last_moved_at'))
+                source = self._escape_table_text((article.get('site_name') or "").strip())
+                lines.append(f"| {date} | {label} | {source} |")
         return "\n".join(lines)
 
     def _generate_readwise_highlights_block(self, highlight_groups: list[Dict[str, Any]]) -> str:
@@ -318,14 +343,17 @@ categories: ["Summary"]
             heading = self._markdown_link(title, group.get('link'))
             if category:
                 heading = f"{heading} ({category})"
-            lines.append(f"#### {heading}")
+            lines.extend([
+                f"#### {heading}",
+                "",
+                "| Date | Highlight | Note |",
+                "| --- | --- | --- |",
+            ])
             for highlight in group.get('highlights', []):
-                text = self._clean_text(highlight.get('text'))
-                note = self._clean_text(highlight.get('note'))
-                if text:
-                    lines.append(f"- {text}")
-                if note:
-                    lines.append(f"- Note: {note}")
+                date = self._format_date(highlight.get('date'))
+                text = self._escape_table_text(self._clean_text(highlight.get('text')))
+                note = self._escape_table_text(self._clean_text(highlight.get('note')))
+                lines.append(f"| {date} | {text} | {note} |")
         return "\n".join(lines)
 
     def _generate_movies_block(self, movies: list[Dict[str, Any]]) -> str:
@@ -333,7 +361,13 @@ categories: ["Summary"]
         if not movies:
             return ""
 
-        lines = ["", "### Movies Watched"]
+        lines = [
+            "",
+            "### Movies Watched",
+            "",
+            "| Date | Movie | Rating |",
+            "| --- | --- | --- |",
+        ]
         for movie in movies:
             title = movie.get('movie_name') or "Untitled"
             year = movie.get('year')
@@ -342,13 +376,10 @@ categories: ["Summary"]
             label = self._markdown_link(title, movie.get('letterboxd_uri'))
             if year:
                 label = f"{label} ({year})"
-            extras = []
-            if rating is not None:
-                extras.append(f"{float(rating):.2f} ⭐")
-            if watched_at:
-                extras.append(str(watched_at))
-            suffix = f" - {', '.join(extras)}" if extras else ""
-            lines.append(f"- {label}{suffix}")
+            rating_display = f"{float(rating):.2f} ⭐" if rating is not None else ""
+            lines.append(
+                f"| {self._format_date(watched_at)} | {label} | {self._escape_table_text(rating_display)} |"
+            )
         return "\n".join(lines)
 
     def _generate_podcasts_block(self, episodes: list[Dict[str, Any]]) -> str:
@@ -356,17 +387,29 @@ categories: ["Summary"]
         if not episodes:
             return ""
 
-        lines = ["", "### Episodes Listened"]
+        grouped: dict[tuple[str, Optional[str]], list[Dict[str, Any]]] = {}
         for episode in episodes:
-            podcast_title = episode.get('podcast_title') or "Unknown podcast"
-            podcast = self._markdown_link(podcast_title, episode.get('podcast_link'))
-            episode_title = episode.get('episode_title') or "Untitled episode"
-            episode_link = episode.get('episode_link')
-            if episode_link:
+            key = (
+                episode.get('podcast_title') or "Unknown podcast",
+                episode.get('podcast_link'),
+            )
+            grouped.setdefault(key, []).append(episode)
+
+        lines = ["", "### Episodes Listened"]
+        for (podcast_title, podcast_link), grouped_episodes in grouped.items():
+            lines.extend([
+                f"#### {self._markdown_link(podcast_title, podcast_link)}",
+                "",
+                "| Date | Episode |",
+                "| --- | --- |",
+            ])
+            for episode in grouped_episodes:
+                episode_title = episode.get('episode_title') or "Untitled episode"
+                episode_link = episode.get('episode_link')
                 episode_part = self._markdown_link(episode_title, episode_link)
-            else:
-                episode_part = episode_title
-            lines.append(f"- {podcast}: {episode_part}")
+                lines.append(
+                    f"| {self._format_date(episode.get('userUpdatedDate'))} | {episode_part} |"
+                )
         return "\n".join(lines)
 
     def _generate_commit_groups_block(self, commit_groups: list[Dict[str, Any]]) -> str:
@@ -378,15 +421,22 @@ categories: ["Summary"]
         for group in commit_groups:
             repo = group.get('repo') or "unknown"
             repo_url = f"https://github.com/{quote(repo, safe='/')}"
-            lines.append(f"#### {self._markdown_link(repo, repo_url)}")
+            lines.extend([
+                f"#### {self._markdown_link(repo, repo_url)}",
+                "",
+                "| Date | Commit Message |",
+                "| --- | --- |",
+            ])
             for commit in group.get('commits', []):
-                message = self._clean_text(commit.get('message')) or "(no message)"
-                lines.append(f"- {message}")
+                message = self._escape_table_text(
+                    self._clean_text(commit.get('message')) or "(no message)"
+                )
+                lines.append(f"| {self._format_date(commit.get('author_date'))} | {message} |")
         return "\n".join(lines)
 
     def _markdown_link(self, label: str, url: Optional[str]) -> str:
         """Format a markdown link when a URL is available."""
-        safe_label = label.replace("[", "\\[").replace("]", "\\]")
+        safe_label = self._clean_text(label).replace("[", "\\[").replace("]", "\\]")
         if url:
             return f"[{safe_label}]({url})"
         return safe_label
@@ -396,3 +446,15 @@ categories: ["Summary"]
         if not value:
             return ""
         return " ".join(str(value).split())
+
+    def _escape_table_text(self, value: Optional[str]) -> str:
+        """Escape content so it renders safely inside markdown tables."""
+        if not value:
+            return ""
+        return str(value).replace("|", "\\|")
+
+    def _format_date(self, value: Optional[str]) -> str:
+        """Format timestamps consistently for report tables."""
+        if not value:
+            return ""
+        return str(value)[:10]

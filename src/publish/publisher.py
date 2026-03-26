@@ -571,6 +571,7 @@ class Publisher:
             note = (highlight.get('note') or '').strip()
             if text or note:
                 groups[title]['highlights'].append({
+                    'date': highlight.get('highlighted_at'),
                     'text': text,
                     'note': note,
                 })
