@@ -1,7 +1,7 @@
 """Publisher module for generating and committing monthly summaries."""
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from ..config import Config
 from ..comparison import compute_comparisons
@@ -103,6 +103,28 @@ class Publisher:
 
         return None
 
+    def _fetch_rows(
+        self,
+        db: Any,
+        query: str,
+        params: tuple,
+        check_exists: bool = False,
+        suppress_errors: bool = False
+    ) -> List[Dict[str, Any]]:
+        """Helper to fetch multiple rows from a database."""
+        if check_exists and not db.exists():
+            return []
+
+        try:
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception:
+            if not suppress_errors:
+                raise
+            return []
+
     def _get_readwise_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Readwise analysis for a specific month."""
         query = """
@@ -195,6 +217,103 @@ class Publisher:
             check_exists=True,
             suppress_errors=True
         )
+
+    def _get_readwise_articles(self, year_month: str) -> List[Dict[str, Any]]:
+        """Get archived Readwise articles for a specific month."""
+        query = """
+        SELECT
+            title,
+            COALESCE(source_url, url) AS link,
+            site_name,
+            author,
+            word_count,
+            last_moved_at
+        FROM documents
+        WHERE location = 'archive'
+          AND last_moved_at IS NOT NULL
+          AND strftime('%Y-%m', last_moved_at) = ?
+        ORDER BY datetime(last_moved_at) DESC, title ASC
+        """
+        return self._fetch_rows(self.readwise_db, query, (year_month,))
+
+    def _get_readwise_highlights(self, year_month: str) -> List[Dict[str, Any]]:
+        """Get Readwise highlights grouped-able by source item for a specific month."""
+        query = """
+        SELECT
+            b.title AS source_title,
+            b.category AS source_category,
+            COALESCE(b.source_url, b.readwise_url, b.unique_url) AS source_link,
+            h.text,
+            h.note,
+            h.highlighted_at
+        FROM highlights h
+        JOIN books b ON b.user_book_id = h.book_id
+        WHERE h.highlighted_at IS NOT NULL
+          AND h.is_deleted = 0
+          AND strftime('%Y-%m', h.highlighted_at) = ?
+        ORDER BY datetime(h.highlighted_at) DESC, b.title ASC, h.id ASC
+        """
+        return self._fetch_rows(self.readwise_db, query, (year_month,))
+
+    def _get_movies_watched(self, year_month: str) -> List[Dict[str, Any]]:
+        """Get movies watched in a specific month."""
+        query = """
+        SELECT
+            w.movie_name,
+            w.year,
+            w.watched_at,
+            w.letterboxd_uri,
+            r.rating
+        FROM watched w
+        LEFT JOIN ratings r ON r.letterboxd_uri = w.letterboxd_uri
+        WHERE strftime('%Y-%m', w.watched_at) = ?
+        ORDER BY date(w.watched_at) DESC, w.movie_name ASC
+        """
+        return self._fetch_rows(self.letterboxd_db, query, (year_month,))
+
+    def _get_podcast_episodes(self, year_month: str) -> List[Dict[str, Any]]:
+        """Get played podcast episodes in a specific month."""
+        query = """
+        SELECT
+            f.title AS podcast_title,
+            f.htmlUrl AS podcast_link,
+            e.title AS episode_title,
+            e.overcastUrl AS episode_link,
+            e.userUpdatedDate
+        FROM episodes e
+        LEFT JOIN feeds f ON f.overcastId = e.feedId
+        WHERE e.played = 1
+          AND e.userUpdatedDate IS NOT NULL
+          AND strftime('%Y-%m', e.userUpdatedDate) = ?
+        ORDER BY datetime(e.userUpdatedDate) DESC, f.title ASC, e.title ASC
+        """
+        return self._fetch_rows(
+            self.overcast_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
+
+    def _get_github_commits(self, year_month: str) -> List[Dict[str, Any]]:
+        """Get GitHub commits for a specific month."""
+        query = """
+        SELECT repo, message, author_date, sha
+        FROM commits
+        WHERE date_month = ?
+          AND (
+            message IS NULL
+            OR message NOT LIKE 'Merge pull request #%'
+          )
+        ORDER BY datetime(author_date) DESC, repo ASC, sha ASC
+        """
+        return self._fetch_rows(
+            self.github_activity_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
     
     def _get_latest_year_month(self) -> Optional[str]:
         """Get the latest year_month from any analysis source."""
@@ -239,7 +358,7 @@ class Publisher:
             raise ValueError("No analysis data found. Run 'analyze' first.")
         
         year, month = year_month.split('-')
-        logger.info(f"Publishing summary for {year_month}")
+        logger.info(f"Generating report for {year_month}")
         
         # Generate markdown using shared method
         markdown_content = self.generate_markdown(year_month)
@@ -247,8 +366,8 @@ class Publisher:
         self._ensure_github_client()
         
         # Commit blog post
-        file_path = f"content/posts/{year}-{month}-monthly-summary.md"
-        commit_message = f"feat: Add monthly summary draft for {month}/{year}"
+        file_path = f"content/posts/{year}-{month}-monthly-report.md"
+        commit_message = f"feat: Add monthly report draft for {month}/{year}"
         
         result = self.github_client.create_or_update_files(
             files={file_path: markdown_content},
@@ -324,6 +443,10 @@ class Publisher:
                 'max_words_per_article': readwise['max_words_per_article'],
                 'median_words_per_article': readwise['median_words_per_article'],
                 'min_words_per_article': readwise['min_words_per_article'],
+                'article_list': self._get_readwise_articles(year_month),
+                'highlight_groups': self._group_readwise_highlights(
+                    self._get_readwise_highlights(year_month)
+                ),
                 'comparisons': readwise_comparisons
             }
         
@@ -357,6 +480,7 @@ class Publisher:
                 'min_rating': letterboxd['min_rating'],
                 'max_rating': letterboxd['max_rating'],
                 'avg_years_since_release': letterboxd['avg_years_since_release'],
+                'movies': self._get_movies_watched(year_month),
                 'comparisons': letterboxd_comparisons
             }
         
@@ -373,6 +497,7 @@ class Publisher:
                 'feeds_added': overcast['feeds_added'],
                 'feeds_removed': overcast['feeds_removed'],
                 'episodes_played': overcast['episodes_played'],
+                'episodes': self._get_podcast_episodes(year_month),
                 'comparisons': overcast_comparisons
             }
         
@@ -420,7 +545,47 @@ class Publisher:
             data['github'] = {
                 'commits': github['commits'],
                 'repos_touched': github['repos_touched'],
+                'commit_groups': self._group_commits_by_repo(
+                    self._get_github_commits(year_month)
+                ),
                 'comparisons': github_comparisons
             }
-        
+
         return self.markdown_generator.generate_monthly_summary(data)
+
+    def _group_readwise_highlights(self, highlights: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Group Readwise highlights by article or book title."""
+        groups: Dict[str, Dict[str, Any]] = {}
+
+        for highlight in highlights:
+            title = highlight.get('source_title') or "Untitled"
+            if title not in groups:
+                groups[title] = {
+                    'title': title,
+                    'category': highlight.get('source_category'),
+                    'link': highlight.get('source_link'),
+                    'highlights': [],
+                }
+
+            text = (highlight.get('text') or '').strip()
+            note = (highlight.get('note') or '').strip()
+            if text or note:
+                groups[title]['highlights'].append({
+                    'text': text,
+                    'note': note,
+                })
+
+        return list(groups.values())
+
+    def _group_commits_by_repo(self, commits: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Group commits by repository."""
+        groups: Dict[str, List[Dict[str, Any]]] = {}
+
+        for commit in commits:
+            repo = commit.get('repo') or "unknown"
+            groups.setdefault(repo, []).append(commit)
+
+        return [
+            {'repo': repo, 'commits': repo_commits}
+            for repo, repo_commits in groups.items()
+        ]

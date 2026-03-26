@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Dict, Any, Optional
 from zoneinfo import ZoneInfo
+from urllib.parse import quote
 
 from ..comparison import format_change, format_comparison_suffix
 
@@ -58,7 +59,8 @@ class MarkdownGenerator:
         """Generate YAML front matter for the markdown file."""
         month = data['month']
         year = data['year']
-        title = f"What did I do this month - {month}/{year} edition"
+        title = f"Things I learned in {month}/{year}"
+        slug = f"things-i-learned-in-{month}-{year}"
         
         # Use current time in PDT for the date
         pdt = ZoneInfo("America/Los_Angeles")
@@ -86,6 +88,7 @@ class MarkdownGenerator:
         
         return f"""---
 title: "{title}"
+slug: "{slug}"
 date: {date_iso}
 draft: true
 tags: [{tags_str}]
@@ -138,6 +141,8 @@ categories: ["Summary"]
 - **Max Words (single article)**: {max_wpa:,}
 - **Median Words (per article)**: {median_wpa:,}
 - **Min Words (single article)**: {min_wpa:,}
+{self._generate_readwise_articles_block(readwise_data.get('article_list', []))}
+{self._generate_readwise_highlights_block(readwise_data.get('highlight_groups', []))}
 """
     
     def _compute_speed_comparison(self, comparisons: Dict[str, Any]) -> str:
@@ -204,6 +209,7 @@ categories: ["Summary"]
 - **Lowest Rating**: {min_rating:.2f} ⭐
 - **Highest Rating**: {max_rating:.2f} ⭐
 - **Average Years Since Release**: {avg_years:.2f}
+{self._generate_movies_block(letterboxd_data.get('movies', []))}
 """
     
     def _generate_overcast_section(self, overcast_data: Dict[str, Any]) -> str:
@@ -221,6 +227,7 @@ categories: ["Summary"]
 - **New Feeds Subscribed**: {feeds_added}
 - **Feeds Removed**: {feeds_removed}
 - **Episodes Played**: {episodes_played}{played_cmp}
+{self._generate_podcasts_block(overcast_data.get('episodes', []))}
 """
     
     def _generate_strong_section(self, strong_data: Dict[str, Any]) -> str:
@@ -281,4 +288,111 @@ categories: ["Summary"]
 
 - **Commits**: {commits}{commits_cmp}
 - **Repos Touched**: {repos_touched}{repos_cmp}
+{self._generate_commit_groups_block(github_data.get('commit_groups', []))}
 """
+
+    def _generate_readwise_articles_block(self, articles: list[Dict[str, Any]]) -> str:
+        """Generate the archived article list block."""
+        if not articles:
+            return ""
+
+        lines = ["", "### Articles Read"]
+        for article in articles:
+            title = article.get('title') or "Untitled"
+            link = article.get('link')
+            label = self._markdown_link(title, link)
+            site_name = article.get('site_name')
+            suffix = f" ({site_name})" if site_name else ""
+            lines.append(f"- {label}{suffix}")
+        return "\n".join(lines)
+
+    def _generate_readwise_highlights_block(self, highlight_groups: list[Dict[str, Any]]) -> str:
+        """Generate grouped Readwise highlights."""
+        if not highlight_groups:
+            return ""
+
+        lines = ["", "### Highlights"]
+        for group in highlight_groups:
+            title = group.get('title') or "Untitled"
+            category = group.get('category')
+            heading = self._markdown_link(title, group.get('link'))
+            if category:
+                heading = f"{heading} ({category})"
+            lines.append(f"#### {heading}")
+            for highlight in group.get('highlights', []):
+                text = self._clean_text(highlight.get('text'))
+                note = self._clean_text(highlight.get('note'))
+                if text:
+                    lines.append(f"- {text}")
+                if note:
+                    lines.append(f"- Note: {note}")
+        return "\n".join(lines)
+
+    def _generate_movies_block(self, movies: list[Dict[str, Any]]) -> str:
+        """Generate the watched movies list block."""
+        if not movies:
+            return ""
+
+        lines = ["", "### Movies Watched"]
+        for movie in movies:
+            title = movie.get('movie_name') or "Untitled"
+            year = movie.get('year')
+            rating = movie.get('rating')
+            watched_at = movie.get('watched_at')
+            label = self._markdown_link(title, movie.get('letterboxd_uri'))
+            if year:
+                label = f"{label} ({year})"
+            extras = []
+            if rating is not None:
+                extras.append(f"{float(rating):.2f} ⭐")
+            if watched_at:
+                extras.append(str(watched_at))
+            suffix = f" - {', '.join(extras)}" if extras else ""
+            lines.append(f"- {label}{suffix}")
+        return "\n".join(lines)
+
+    def _generate_podcasts_block(self, episodes: list[Dict[str, Any]]) -> str:
+        """Generate podcasts and episode list block."""
+        if not episodes:
+            return ""
+
+        lines = ["", "### Episodes Listened"]
+        for episode in episodes:
+            podcast_title = episode.get('podcast_title') or "Unknown podcast"
+            podcast = self._markdown_link(podcast_title, episode.get('podcast_link'))
+            episode_title = episode.get('episode_title') or "Untitled episode"
+            episode_link = episode.get('episode_link')
+            if episode_link:
+                episode_part = self._markdown_link(episode_title, episode_link)
+            else:
+                episode_part = episode_title
+            lines.append(f"- {podcast}: {episode_part}")
+        return "\n".join(lines)
+
+    def _generate_commit_groups_block(self, commit_groups: list[Dict[str, Any]]) -> str:
+        """Generate commit list grouped by repository."""
+        if not commit_groups:
+            return ""
+
+        lines = ["", "### Commits by Repo"]
+        for group in commit_groups:
+            repo = group.get('repo') or "unknown"
+            repo_url = f"https://github.com/{quote(repo, safe='/')}"
+            lines.append(f"#### {self._markdown_link(repo, repo_url)}")
+            for commit in group.get('commits', []):
+                message = self._clean_text(commit.get('message')) or "(no message)"
+                lines.append(f"- {message}")
+        return "\n".join(lines)
+
+    def _markdown_link(self, label: str, url: Optional[str]) -> str:
+        """Format a markdown link when a URL is available."""
+        safe_label = label.replace("[", "\\[").replace("]", "\\]")
+        if url:
+            return f"[{safe_label}]({url})"
+        return safe_label
+
+    def _clean_text(self, value: Optional[str]) -> str:
+        """Normalize multiline content for markdown bullet lists."""
+        if not value:
+            return ""
+        return " ".join(str(value).split())
