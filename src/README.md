@@ -26,6 +26,19 @@ Note: The file structure below is shown from the root directory.
 └── .github/workflows/      # CI/CD (tests.yml, monthly-pipeline.yml)
 ```
 
+## Data Source Resolution
+
+The app resolves `data/` and `files/` from a storage root rather than always using this repo directly.
+
+- Local runs default to the sibling repo `../digital-footprint-data` when it exists.
+- GitHub Actions checks out the private data repo separately and links its `data/` and `files/` into the workspace.
+- You can explicitly override the local storage root with `DATA_REPO_LOCAL_PATH`.
+
+In practice this means:
+
+- API-backed sources write their SQLite databases under `<storage-root>/data/`.
+- File-backed sources read imports from `<storage-root>/files/` and write their databases under `<storage-root>/data/`.
+
 ## Module Pattern
 
 Each data source follows a consistent structure:
@@ -57,7 +70,7 @@ Each data source follows a consistent structure:
 
 ## Database Schemas
 
-Each source stores data in a separate SQLite database under `data/`.
+Each source stores data in a separate SQLite database under `<storage-root>/data/`.
 
 ### Analysis Tables
 
@@ -224,7 +237,7 @@ with self.db.get_connection() as conn:
 | GitHub Activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` | `validate_github_activity()` |
 | GitHub Publishing | `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME` | `validate_github()` |
 
-File-based sources (Letterboxd, Overcast, Strong) require no API tokens — they read from `files/`.
+File-based sources (Letterboxd, Overcast, Strong) require no API tokens — they read from `<storage-root>/files/`.
 
 ## Testing
 

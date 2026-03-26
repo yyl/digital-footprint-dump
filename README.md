@@ -10,6 +10,20 @@ cp .env.example .env
 # Edit .env with your credentials
 ```
 
+## Data Storage
+
+This project reads and writes source databases and import files from a storage root.
+
+- Local runs default to the sibling repo `../digital-footprint-data` when it exists.
+- Otherwise, local runs fall back to this repo's own `data/` and `files/` directories.
+- You can explicitly override the local storage root with `DATA_REPO_LOCAL_PATH`.
+- GitHub Actions checks out the private data repo and wires its `data/` and `files/` into the workspace.
+
+That means:
+
+- SQLite databases live under `<storage-root>/data/`
+- File imports live under `<storage-root>/files/`
+
 ## Commands
 
 | Command | Description |
@@ -31,7 +45,7 @@ Run with: `uv run main.py <command>`
 
 ## Readwise
 
-Exports books, highlights, and Reader documents to `data/readwise.db`.
+Exports books, highlights, and Reader documents to `<storage-root>/data/readwise.db`.
 
 **Commands:**
 - `readwise-sync`: Syncs data from Readwise API to the local database.
@@ -44,7 +58,7 @@ Exports books, highlights, and Reader documents to `data/readwise.db`.
 
 ## Foursquare
 
-Exports checkins and places to `data/foursquare.db`.
+Exports checkins and places to `<storage-root>/data/foursquare.db`.
 
 **Commands:**
 - `foursquare-sync`: Syncs checkin history from Foursquare API.
@@ -60,7 +74,7 @@ Exports checkins and places to `data/foursquare.db`.
 
 ## Letterboxd
 
-Imports watched movies and ratings from CSV export to `data/letterboxd.db`.
+Imports watched movies and ratings from CSV export to `<storage-root>/data/letterboxd.db`.
 
 **Commands:**
 - `letterboxd-sync`: Imports data from Letterboxd CSV export.
@@ -68,14 +82,14 @@ Imports watched movies and ratings from CSV export to `data/letterboxd.db`.
 
 **Setup:**
 1. Export your data from [letterboxd.com/settings/data](https://letterboxd.com/settings/data/)
-2. Unzip and place folder in `files/` (e.g., `files/letterboxd-username-2025-...`)
+2. Unzip and place folder in `<storage-root>/files/` (e.g., `files/letterboxd-username-2025-...`)
 3. Run `uv run main.py letterboxd-sync`
 
 ---
 
 ## Overcast
 
-Imports podcast feeds and episodes from OPML export to `data/overcast.db`.
+Imports podcast feeds and episodes from OPML export to `<storage-root>/data/overcast.db`.
 
 **Commands:**
 - `overcast-sync`: Imports data from Overcast OPML export.
@@ -83,14 +97,14 @@ Imports podcast feeds and episodes from OPML export to `data/overcast.db`.
 
 **Setup:**
 1. Export from [overcast.fm/account](https://overcast.fm/account) → "All data" OPML
-2. Place file in `files/` (e.g., `files/overcast.opml`)
+2. Place file in `<storage-root>/files/` (e.g., `files/overcast.opml`)
 3. Run `uv run main.py overcast-sync`
 
 ---
 
 ## Strong
 
-Imports workout data from Strong app CSV export to `data/strong.db`.
+Imports workout data from Strong app CSV export to `<storage-root>/data/strong.db`.
 
 **Commands:**
 - `strong-sync`: Imports workout and exercise data from CSV export.
@@ -98,14 +112,14 @@ Imports workout data from Strong app CSV export to `data/strong.db`.
 
 **Setup:**
 1. Export from [Strong app](https://www.strong.app/) → Settings → Export Data
-2. Place CSV in `files/` (e.g., `files/strong_workouts.csv`)
+2. Place CSV in `<storage-root>/files/` (e.g., `files/strong_workouts.csv`)
 3. Run `uv run main.py strong-sync`
 
 ---
 
 ## Hardcover
 
-Syncs finished books from [Hardcover](https://hardcover.app/) via their GraphQL API to `data/hardcover.db`.
+Syncs finished books from [Hardcover](https://hardcover.app/) via their GraphQL API to `<storage-root>/data/hardcover.db`.
 
 **Commands:**
 - `hardcover-sync`: Fetches all books marked as "read" from Hardcover API.
@@ -120,7 +134,7 @@ Syncs finished books from [Hardcover](https://hardcover.app/) via their GraphQL 
 
 ## GitHub
 
-Syncs commit history from your public repositories via the GitHub REST API to `data/github.db`.
+Syncs commit history from your public repositories via the GitHub REST API to `<storage-root>/data/github.db`.
 
 **Commands:**
 - `github-sync`: Fetches commits from all owned public repos (non-fork).
@@ -212,4 +226,3 @@ Test the dry-run mode:
 ```bash
 uv run main.py publish --dry-run
 ```
-

@@ -9,12 +9,27 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 
+def _resolve_storage_root(project_root: Path) -> Path:
+    """Resolve the base directory that contains data/ and files/."""
+    configured_root = os.getenv("DATA_REPO_LOCAL_PATH", "").strip()
+    if configured_root:
+        return Path(configured_root).expanduser().resolve()
+
+    sibling_repo = (project_root.parent / "digital-footprint-data").resolve()
+    if sibling_repo.exists():
+        return sibling_repo
+
+    return project_root
+
+
 class Config:
     """Application configuration."""
     
     # Project paths
     PROJECT_ROOT = Path(__file__).parent.parent
-    DATA_DIR = PROJECT_ROOT / "data"
+    STORAGE_ROOT = _resolve_storage_root(PROJECT_ROOT)
+    DATA_DIR = STORAGE_ROOT / "data"
+    FILES_DIR = STORAGE_ROOT / "files"
     
     # ==========================================================================
     # Readwise Configuration
@@ -41,7 +56,6 @@ class Config:
     # ==========================================================================
     # Letterboxd Configuration
     # ==========================================================================
-    FILES_DIR = PROJECT_ROOT / "files"
     LETTERBOXD_DATABASE_PATH = DATA_DIR / "letterboxd.db"
     
     # ==========================================================================
