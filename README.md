@@ -167,6 +167,7 @@ Generates a monthly activity report as a draft Hugo post and commits it to a Git
 
 **Commands:**
 - `publish`: Syncs latest data, runs analysis, generates markdown, and commits the draft report post to GitHub.
+- `publish --skip-sync-analysis`: Generates and commits the draft report post using the current analysis data without rerunning sync or analysis.
 - `publish --dry-run`: Generates the markdown locally from the current analysis data without syncing or publishing anything.
 - `backfill`: Syncs latest data, runs analysis, generates Hugo data files (`data/activity/*.yaml`), and commits them to GitHub. These power the Activity page charts.
 

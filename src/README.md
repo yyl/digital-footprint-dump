@@ -73,6 +73,7 @@ Each data source follows a consistent structure:
 The `publish` action has two distinct paths:
 
 - `publish`: syncs all sources, reruns analysis, generates the latest monthly report, and commits a draft blog post.
+- `publish --skip-sync-analysis`: skips both sync and analysis, and publishes directly from the current analysis data in the local databases.
 - `publish --dry-run`: skips sync and publish, and only renders markdown from the current analysis data already present in the local databases.
 
 The generated post currently uses:

@@ -21,8 +21,9 @@ Usage:
     python main.py hardcover-analyze # Analyze Hardcover books
     python main.py github-sync       # Sync GitHub commits
     python main.py github-analyze    # Analyze GitHub activity
-    python main.py publish           # Publish monthly summary to blog
+    python main.py publish           # Publish monthly report to blog
     python main.py publish --dry-run # Validate config without publishing
+    python main.py publish --skip-sync-analysis # Publish from current analysis data
     python main.py backfill          # Commit activity data files to blog repo
     python main.py status            # Show sync status
 """
@@ -150,11 +151,12 @@ def cmd_readwise_analyze():
     )
 
 
-def cmd_publish(dry_run: bool = False):
+def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False):
     """Publish monthly summary to blog repository.
     
     Args:
         dry_run: If True, validate config and sync data but skip actual publish.
+        skip_sync_analysis: If True, reuse current analysis data without rerunning sync/analyze.
     """
     if dry_run:
         print("=== DRY RUN MODE ===")
@@ -175,30 +177,34 @@ def cmd_publish(dry_run: bool = False):
             print(f"Error: {e}")
             sys.exit(1)
         return
-    
-    # First ensure we have the latest analysis from all sources
-    print("=== Updating Analysis ===\n")
-    
-    print("--- Readwise ---")
-    cmd_readwise_analyze()
-    
-    print("\n--- Letterboxd ---")
-    cmd_letterboxd_analyze()
-    
-    print("\n--- Foursquare ---")
-    cmd_foursquare_analyze()
-    
-    print("\n--- Overcast ---")
-    cmd_overcast_analyze()
-    
-    print("\n--- Strong ---")
-    cmd_strong_analyze()
-    
-    print("\n--- Hardcover ---")
-    cmd_hardcover_analyze()
-    
-    print("\n--- GitHub ---")
-    cmd_github_analyze()
+
+    if not skip_sync_analysis:
+        # First ensure we have the latest analysis from all sources
+        print("=== Updating Analysis ===\n")
+
+        print("--- Readwise ---")
+        cmd_readwise_analyze()
+
+        print("\n--- Letterboxd ---")
+        cmd_letterboxd_analyze()
+
+        print("\n--- Foursquare ---")
+        cmd_foursquare_analyze()
+
+        print("\n--- Overcast ---")
+        cmd_overcast_analyze()
+
+        print("\n--- Strong ---")
+        cmd_strong_analyze()
+
+        print("\n--- Hardcover ---")
+        cmd_hardcover_analyze()
+
+        print("\n--- GitHub ---")
+        cmd_github_analyze()
+    else:
+        print("=== Skipping Sync And Analysis ===")
+        print("Publishing from current analysis data...\n")
     
     print("\n=== Publishing ===")
     print("Publishing monthly summary...")
@@ -874,7 +880,12 @@ def main():
     publish_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Validate configuration and connectivity without publishing"
+        help="Generate markdown from current analysis data without syncing or publishing"
+    )
+    publish_parser.add_argument(
+        "--skip-sync-analysis",
+        action="store_true",
+        help="Publish using the current analysis data without rerunning sync or analysis"
     )
     
     args = parser.parse_args()
@@ -905,7 +916,10 @@ def main():
     }
     
     if args.command == "publish":
-        cmd_publish(dry_run=args.dry_run)
+        cmd_publish(
+            dry_run=args.dry_run,
+            skip_sync_analysis=args.skip_sync_analysis
+        )
     elif args.command == "backfill":
         cmd_backfill()
     elif args.command in commands:
