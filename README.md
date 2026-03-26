@@ -2,6 +2,21 @@
 
 A pipeline to fetch data from digital sources, analyze them, and publish a monthly draft report to a markdown blog site.
 
+## Table of Contents
+
+- [Setup](#setup)
+- [Data Storage](#data-storage)
+- [Commands](#commands)
+- [Readwise](#readwise)
+- [Foursquare](#foursquare)
+- [Letterboxd](#letterboxd)
+- [Overcast](#overcast)
+- [Strong](#strong)
+- [Hardcover](#hardcover)
+- [GitHub](#github)
+- [Publishing](#publishing)
+- [Cloud Deployment (GitHub Actions)](#cloud-deployment-github-actions)
+
 ## Setup
 
 ```bash
