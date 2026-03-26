@@ -316,11 +316,12 @@ categories: ["Summary"]
 
         lines = ["", "### Articles Read"]
         for group_name in ordered_group_names:
+            show_source_column = group_name == "Other"
             lines.extend([
                 f"#### {self._escape_table_text(group_name)}",
                 "",
-                "| Date | Article | Source |",
-                "| --- | --- | --- |",
+                "| Date | Article | Source |" if show_source_column else "| Date | Article |",
+                "| --- | --- | --- |" if show_source_column else "| --- | --- |",
             ])
             for article in grouped[group_name]:
                 title = article.get('title') or "Untitled"
@@ -328,7 +329,10 @@ categories: ["Summary"]
                 label = self._markdown_link(title, link)
                 date = self._format_date(article.get('last_moved_at'))
                 source = self._escape_table_text((article.get('site_name') or "").strip())
-                lines.append(f"| {date} | {label} | {source} |")
+                if show_source_column:
+                    lines.append(f"| {date} | {label} | {source} |")
+                else:
+                    lines.append(f"| {date} | {label} |")
         return "\n".join(lines)
 
     def _generate_readwise_highlights_block(self, highlight_groups: list[Dict[str, Any]]) -> str:
@@ -436,7 +440,9 @@ categories: ["Summary"]
 
     def _markdown_link(self, label: str, url: Optional[str]) -> str:
         """Format a markdown link when a URL is available."""
-        safe_label = self._clean_text(label).replace("[", "\\[").replace("]", "\\]")
+        safe_label = self._escape_table_text(
+            self._clean_text(label).replace("[", "\\[").replace("]", "\\]")
+        )
         if url:
             return f"[{safe_label}]({url})"
         return safe_label
