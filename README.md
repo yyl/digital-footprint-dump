@@ -20,10 +20,13 @@ A pipeline to fetch data from digital sources, analyze them, and publish a month
 ## Setup
 
 ```bash
+uv python install $(cat .python-version)
 uv sync
 cp .env.example .env
 # Edit .env with your credentials
 ```
+
+The repo pins its expected Python version in `.python-version`. CI and the recommended local test flow both use that exact version for consistency.
 
 ## Data Storage
 
@@ -255,6 +258,11 @@ The workflow runs automatically on the **last day of each month at 11:00 AM UTC*
 Validate the workflow with [act](https://github.com/nektos/act):
 ```bash
 act -n  # Dry-run to check syntax
+```
+
+Run the CI-like local test flow:
+```bash
+make test-ci
 ```
 
 Test the dry-run mode:

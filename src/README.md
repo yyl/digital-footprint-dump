@@ -39,6 +39,22 @@ In practice this means:
 - API-backed sources write their SQLite databases under `<storage-root>/data/`.
 - File-backed sources read imports from `<storage-root>/files/` and write their databases under `<storage-root>/data/`.
 
+## Local/CI Consistency
+
+The repo pins Python in `.python-version`, and both GitHub Actions workflows use that exact version.
+
+For a CI-like local test run, use:
+
+```bash
+make test-ci
+```
+
+That command:
+
+- installs the pinned Python version with `uv`
+- syncs dependencies against that version
+- runs `pytest` with the same pinned interpreter
+
 ## Module Pattern
 
 Each data source follows a consistent structure:
@@ -267,6 +283,9 @@ File-based sources (Letterboxd, Overcast, Strong) require no API tokens — they
 ```bash
 # Run all tests
 uv run pytest
+
+# Run the CI-like local test flow
+make test-ci
 
 # Run specific test file
 uv run pytest tests/test_comparison.py -v

@@ -63,10 +63,10 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Set up Python
-        run: uv python install
+        run: uv python install $(cat .python-version)
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --python $(cat .python-version)
 
       - name: Run pipeline
         env:
@@ -84,13 +84,13 @@ jobs:
           # For scheduled runs, run both publish and backfill
           if [ -z "$COMMAND" ]; then
             echo "Running: uv run main.py publish"
-            uv run main.py publish
+            uv run --python $(cat .python-version) main.py publish
             echo ""
             echo "Running: uv run main.py backfill"
-            uv run main.py backfill
+            uv run --python $(cat .python-version) main.py backfill
           else
             echo "Running: uv run main.py $COMMAND"
-            uv run main.py $COMMAND
+            uv run --python $(cat .python-version) main.py $COMMAND
           fi
 
       - name: Commit updated databases

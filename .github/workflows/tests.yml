@@ -21,10 +21,10 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Set up Python
-        run: uv python install
+        run: uv python install $(cat .python-version)
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --python $(cat .python-version)
 
       - name: Run tests
-        run: uv run pytest
+        run: uv run --python $(cat .python-version) pytest
