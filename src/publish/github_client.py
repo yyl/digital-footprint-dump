@@ -2,7 +2,7 @@
 
 import logging
 from typing import Dict, Any
-from github import Github, GithubException
+from github import Auth, Github, GithubException
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class GitHubClient:
         self.repo_name = repo_name
         self.target_branch = target_branch
         
-        self.github = Github(token)
+        self.github = Github(auth=Auth.Token(token))
         
         try:
             self.repo = self.github.get_repo(f"{repo_owner}/{repo_name}")
@@ -101,4 +101,3 @@ class GitHubClient:
             error_msg = f"GitHub API error during multi-file commit: {str(e)}"
             logger.error(error_msg)
             raise GitHubClientError(error_msg)
-

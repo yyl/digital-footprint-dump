@@ -66,7 +66,7 @@ Each data source follows a consistent structure:
 | `publisher.py` | Orchestrates analysis fetching, comparison computation, report assembly, and publishing |
 | `markdown_generator.py` | Hugo-compatible markdown generation for the monthly draft report (sections: Reading, Travel, Movies, Podcasts, Workout, Books, Code) |
 | `data_generator.py` | Generates Hugo data files (`data/activity/*.yaml`) from analysis tables |
-| `github_client.py` | GitHub API wrapper for multi-file atomic commits via Git tree API |
+| `github_client.py` | PyGithub-based wrapper for multi-file atomic commits via the Git tree API |
 
 ### Publish Flow
 

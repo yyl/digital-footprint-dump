@@ -191,6 +191,9 @@ Generates a monthly activity report as a draft Hugo post and commits it to a Git
 - `BLOG_REPO_NAME` - Repository name
 - `BLOG_GITHUB_TARGET_BRANCH` - (optional) Branch to commit to, defaults to `main`
 
+**Implementation note:**
+- GitHub publishing uses PyGithub for authenticated write operations.
+
 ---
 
 ## Cloud Deployment (GitHub Actions)
