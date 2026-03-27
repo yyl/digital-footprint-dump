@@ -42,10 +42,18 @@ class TestPublishGitHubClient(unittest.TestCase):
             headers={},
         )
 
+        attempts = {"count": 0}
+
+        def side_effect(*args, **kwargs):
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise non_fast_forward
+            return expected
+
         with patch.object(
             client,
             "_create_or_update_files_once",
-            side_effect=[non_fast_forward, expected],
+            side_effect=side_effect,
         ) as mock_once:
             result = client.create_or_update_files({"file.md": "content"}, "msg")
 
@@ -68,10 +76,13 @@ class TestPublishGitHubClient(unittest.TestCase):
             headers={},
         )
 
+        def side_effect(*args, **kwargs):
+            raise non_fast_forward
+
         with patch.object(
             client,
             "_create_or_update_files_once",
-            side_effect=[non_fast_forward] * (client.MAX_NON_FAST_FORWARD_RETRIES + 1),
+            side_effect=side_effect,
         ):
             with self.assertRaises(GitHubClientError):
                 client.create_or_update_files({"file.md": "content"}, "msg")
@@ -97,4 +108,3 @@ class TestPublishGitHubClient(unittest.TestCase):
                 client.create_or_update_files({"file.md": "content"}, "msg")
 
         self.assertEqual(mock_once.call_count, 1)
-
