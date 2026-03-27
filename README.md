@@ -193,6 +193,7 @@ Generates a monthly activity report as a draft Hugo post and commits it to a Git
 
 **Implementation note:**
 - GitHub publishing uses PyGithub for authenticated write operations.
+- If the target branch moves during publish, the GitHub client automatically retries non-fast-forward ref update failures.
 
 ---
 

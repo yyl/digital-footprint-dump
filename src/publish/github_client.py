@@ -1,6 +1,7 @@
 """GitHub client for committing files to a repository."""
 
 import logging
+import time
 from typing import Dict, Any
 from github import Auth, Github, GithubException
 
@@ -14,6 +15,8 @@ class GitHubClientError(Exception):
 
 class GitHubClient:
     """Client for interacting with GitHub API."""
+
+    MAX_NON_FAST_FORWARD_RETRIES = 3
     
     def __init__(self, token: str, repo_owner: str, repo_name: str, target_branch: str = 'main'):
         """Initialize GitHub client.
@@ -55,49 +58,81 @@ class GitHubClient:
         Returns:
             Dictionary with commit information.
         """
-        try:
-            # Get current HEAD commit and its tree
-            ref = self.repo.get_git_ref(f"heads/{self.target_branch}")
-            head_sha = ref.object.sha
-            base_tree = self.repo.get_git_tree(head_sha)
-            
-            # Build tree elements for each file
-            from github import InputGitTreeElement
-            tree_elements = []
-            for file_path, content in files.items():
-                element = InputGitTreeElement(
-                    path=file_path,
-                    mode="100644",
-                    type="blob",
-                    content=content,
-                )
-                tree_elements.append(element)
-                logger.info(f"Adding file to commit: {file_path}")
-            
-            # Create new tree on top of existing base tree
-            new_tree = self.repo.create_git_tree(tree_elements, base_tree)
-            
-            # Create commit
-            head_commit = self.repo.get_git_commit(head_sha)
-            new_commit = self.repo.create_git_commit(
-                message=commit_message,
-                tree=new_tree,
-                parents=[head_commit],
+        for attempt in range(self.MAX_NON_FAST_FORWARD_RETRIES + 1):
+            try:
+                return self._create_or_update_files_once(files, commit_message)
+            except GithubException as e:
+                is_retryable = self._is_non_fast_forward_error(e)
+                if is_retryable and attempt < self.MAX_NON_FAST_FORWARD_RETRIES:
+                    retry_num = attempt + 1
+                    logger.warning(
+                        "Branch moved during commit on %s/%s; retrying (%s/%s)",
+                        self.repo_owner,
+                        self.repo_name,
+                        retry_num,
+                        self.MAX_NON_FAST_FORWARD_RETRIES,
+                    )
+                    time.sleep(0.5 * retry_num)
+                    continue
+
+                error_msg = f"GitHub API error during multi-file commit: {str(e)}"
+                logger.error(error_msg)
+                raise GitHubClientError(error_msg)
+
+        raise GitHubClientError("GitHub API error during multi-file commit: retries exhausted")
+
+    def _create_or_update_files_once(
+        self,
+        files: Dict[str, str],
+        commit_message: str
+    ) -> Dict[str, Any]:
+        """Create or update multiple files in a single attempt."""
+        # Get current HEAD commit and its tree
+        ref = self.repo.get_git_ref(f"heads/{self.target_branch}")
+        head_sha = ref.object.sha
+        base_tree = self.repo.get_git_tree(head_sha)
+
+        # Build tree elements for each file
+        from github import InputGitTreeElement
+        tree_elements = []
+        for file_path, content in files.items():
+            element = InputGitTreeElement(
+                path=file_path,
+                mode="100644",
+                type="blob",
+                content=content,
             )
-            
-            # Update branch ref to point to new commit
-            ref.edit(sha=new_commit.sha)
-            
-            logger.info(f"Committed {len(files)} files: {new_commit.sha}")
-            
-            return {
-                'sha': new_commit.sha,
-                'url': new_commit.html_url,
-                'message': commit_message,
-                'file_paths': list(files.keys()),
-            }
-            
-        except GithubException as e:
-            error_msg = f"GitHub API error during multi-file commit: {str(e)}"
-            logger.error(error_msg)
-            raise GitHubClientError(error_msg)
+            tree_elements.append(element)
+            logger.info(f"Adding file to commit: {file_path}")
+
+        # Create new tree on top of existing base tree
+        new_tree = self.repo.create_git_tree(tree_elements, base_tree)
+
+        # Create commit
+        head_commit = self.repo.get_git_commit(head_sha)
+        new_commit = self.repo.create_git_commit(
+            message=commit_message,
+            tree=new_tree,
+            parents=[head_commit],
+        )
+
+        # Update branch ref to point to new commit
+        ref.edit(sha=new_commit.sha)
+
+        logger.info(f"Committed {len(files)} files: {new_commit.sha}")
+
+        return {
+            'sha': new_commit.sha,
+            'url': new_commit.html_url,
+            'message': commit_message,
+            'file_paths': list(files.keys()),
+        }
+
+    def _is_non_fast_forward_error(self, error: GithubException) -> bool:
+        """Return True when GitHub rejected the ref update as non-fast-forward."""
+        status = getattr(error, "status", None)
+        if status not in (409, 422):
+            return False
+
+        message = str(error).lower()
+        return "not a fast forward" in message or "non-fast-forward" in message
