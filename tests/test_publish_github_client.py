@@ -1,9 +1,13 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from github import GithubException
-
 from src.publish.github_client import GitHubClient, GitHubClientError
+
+
+class FakeGithubException(Exception):
+    def __init__(self, status, message):
+        super().__init__(message)
+        self.status = status
 
 
 class TestPublishGitHubClient(unittest.TestCase):
@@ -36,11 +40,7 @@ class TestPublishGitHubClient(unittest.TestCase):
             "file_paths": ["file.md"],
         }
 
-        non_fast_forward = GithubException(
-            status=422,
-            data={"message": "Update is not a fast forward"},
-            headers={},
-        )
+        non_fast_forward = FakeGithubException(422, "Update is not a fast forward")
 
         attempts = {"count": 0}
 
@@ -50,12 +50,13 @@ class TestPublishGitHubClient(unittest.TestCase):
                 raise non_fast_forward
             return expected
 
-        with patch.object(
-            client,
-            "_create_or_update_files_once",
-            side_effect=side_effect,
-        ) as mock_once:
-            result = client.create_or_update_files({"file.md": "content"}, "msg")
+        with patch("src.publish.github_client.GithubException", FakeGithubException):
+            with patch.object(
+                client,
+                "_create_or_update_files_once",
+                side_effect=side_effect,
+            ) as mock_once:
+                result = client.create_or_update_files({"file.md": "content"}, "msg")
 
         self.assertEqual(result, expected)
         self.assertEqual(mock_once.call_count, 2)
@@ -70,22 +71,19 @@ class TestPublishGitHubClient(unittest.TestCase):
         mock_github.return_value.get_repo.return_value = mock_repo
 
         client = GitHubClient("token", "owner", "repo")
-        non_fast_forward = GithubException(
-            status=422,
-            data={"message": "Update is not a fast forward"},
-            headers={},
-        )
+        non_fast_forward = FakeGithubException(422, "Update is not a fast forward")
 
         def side_effect(*args, **kwargs):
             raise non_fast_forward
 
-        with patch.object(
-            client,
-            "_create_or_update_files_once",
-            side_effect=side_effect,
-        ):
-            with self.assertRaises(GitHubClientError):
-                client.create_or_update_files({"file.md": "content"}, "msg")
+        with patch("src.publish.github_client.GithubException", FakeGithubException):
+            with patch.object(
+                client,
+                "_create_or_update_files_once",
+                side_effect=side_effect,
+            ):
+                with self.assertRaises(GitHubClientError):
+                    client.create_or_update_files({"file.md": "content"}, "msg")
 
         self.assertEqual(mock_sleep.call_count, client.MAX_NON_FAST_FORWARD_RETRIES)
 
@@ -97,14 +95,11 @@ class TestPublishGitHubClient(unittest.TestCase):
         mock_github.return_value.get_repo.return_value = mock_repo
 
         client = GitHubClient("token", "owner", "repo")
-        error = GithubException(
-            status=500,
-            data={"message": "Internal Server Error"},
-            headers={},
-        )
+        error = FakeGithubException(500, "Internal Server Error")
 
-        with patch.object(client, "_create_or_update_files_once", side_effect=error) as mock_once:
-            with self.assertRaises(GitHubClientError):
-                client.create_or_update_files({"file.md": "content"}, "msg")
+        with patch("src.publish.github_client.GithubException", FakeGithubException):
+            with patch.object(client, "_create_or_update_files_once", side_effect=error) as mock_once:
+                with self.assertRaises(GitHubClientError):
+                    client.create_or_update_files({"file.md": "content"}, "msg")
 
         self.assertEqual(mock_once.call_count, 1)
