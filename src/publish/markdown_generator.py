@@ -320,19 +320,20 @@ categories: ["Summary"]
             lines.extend([
                 f"#### {self._escape_table_text(group_name)}",
                 "",
-                "| Date | Article | Source |" if show_source_column else "| Date | Article |",
-                "| --- | --- | --- |" if show_source_column else "| --- | --- |",
+                "| Date | Article | Speed | Source |" if show_source_column else "| Date | Article | Speed |",
+                "| --- | --- | --- | --- |" if show_source_column else "| --- | --- | --- |",
             ])
             for article in grouped[group_name]:
                 title = article.get('title') or "Untitled"
                 link = article.get('link')
                 label = self._markdown_link(title, link)
                 date = self._format_date(article.get('last_moved_at'))
+                speed = self._format_speed(article.get('reading_speed_wpm'))
                 source = self._escape_table_text((article.get('site_name') or "").strip())
                 if show_source_column:
-                    lines.append(f"| {date} | {label} | {source} |")
+                    lines.append(f"| {date} | {label} | {speed} | {source} |")
                 else:
-                    lines.append(f"| {date} | {label} |")
+                    lines.append(f"| {date} | {label} | {speed} |")
         return "\n".join(lines)
 
     def _generate_readwise_highlights_block(self, highlight_groups: list[Dict[str, Any]]) -> str:
@@ -464,3 +465,9 @@ categories: ["Summary"]
         if not value:
             return ""
         return str(value)[:10]
+
+    def _format_speed(self, value: Optional[int]) -> str:
+        """Format reading speed for article tables."""
+        if value is None:
+            return ""
+        return f"{int(value)} wpm"

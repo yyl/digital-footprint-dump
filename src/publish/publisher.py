@@ -1,6 +1,7 @@
 """Publisher module for generating and committing monthly summaries."""
 
 import logging
+import re
 from typing import Dict, Any, Optional, List
 
 from ..config import Config
@@ -227,6 +228,7 @@ class Publisher:
             site_name,
             author,
             word_count,
+            reading_time,
             last_moved_at
         FROM documents
         WHERE location = 'archive'
@@ -234,7 +236,13 @@ class Publisher:
           AND strftime('%Y-%m', last_moved_at) = ?
         ORDER BY datetime(last_moved_at) DESC, title ASC
         """
-        return self._fetch_rows(self.readwise_db, query, (year_month,))
+        articles = self._fetch_rows(self.readwise_db, query, (year_month,))
+        for article in articles:
+            article['reading_speed_wpm'] = self._compute_reading_speed(
+                article.get('word_count'),
+                article.get('reading_time')
+            )
+        return articles
 
     def _get_readwise_highlights(self, year_month: str) -> List[Dict[str, Any]]:
         """Get Readwise highlights grouped-able by source item for a specific month."""
@@ -590,3 +598,18 @@ class Publisher:
             {'repo': repo, 'commits': repo_commits}
             for repo, repo_commits in groups.items()
         ]
+
+    def _compute_reading_speed(self, word_count: Any, reading_time: Any) -> Optional[int]:
+        """Compute words-per-minute from Readwise document fields."""
+        if not word_count or not reading_time:
+            return None
+
+        match = re.search(r'(\d+)', str(reading_time))
+        if not match:
+            return None
+
+        minutes = int(match.group(1))
+        if minutes <= 0:
+            return None
+
+        return round(int(word_count) / minutes)

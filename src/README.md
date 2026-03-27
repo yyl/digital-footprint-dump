@@ -85,7 +85,7 @@ The generated post currently uses:
 
 The report keeps the existing summary metrics and MoM/YoY comparisons, and adds richer detail sections:
 
-- Readwise articles rendered as tables grouped by source, with small one-off sources grouped under `Other`
+- Readwise articles rendered as tables grouped by source, with small one-off sources grouped under `Other`, plus per-article reading speed
 - Readwise highlights rendered as tables grouped by article or book
 - Letterboxd movies rendered as a dated table
 - Overcast episodes rendered as dated tables grouped by podcast title
