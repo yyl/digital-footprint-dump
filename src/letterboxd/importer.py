@@ -2,7 +2,7 @@
 
 import csv
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 from ..config import Config
 from .database import LetterboxdDatabase
