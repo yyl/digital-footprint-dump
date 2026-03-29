@@ -3,7 +3,6 @@
 from datetime import datetime
 from typing import Optional
 
-from ..config import Config
 from .database import ReadwiseDatabase
 from .api_client import ReadwiseAPIClient
 
@@ -50,7 +49,7 @@ class SyncManager:
         # Sync documents from Reader API
         stats["documents"] = self.sync_documents()
         
-        print(f"\nSync complete!")
+        print("\nSync complete!")
         print(f"  Books: {stats['books']}")
         print(f"  Highlights: {stats['highlights']}")
         print(f"  Documents: {stats['documents']}")
