@@ -3,10 +3,10 @@
 import re
 import statistics
 from collections import defaultdict
-from datetime import datetime
 from typing import Optional
 
 from .database import ReadwiseDatabase
+from ..time_utils import utc_now_iso
 
 
 class ReadwiseAnalytics:
@@ -73,7 +73,7 @@ class ReadwiseAnalytics:
             stats[key]['word_counts'].append(wc)
 
         # Write to database
-        updated_at = datetime.utcnow().isoformat() + "Z"
+        updated_at = utc_now_iso()
 
         with self.db.get_connection() as conn:
             cursor = conn.cursor()

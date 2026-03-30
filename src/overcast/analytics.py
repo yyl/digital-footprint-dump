@@ -1,11 +1,11 @@
 """Analytics module for Overcast podcast data."""
 
 from collections import defaultdict
-from datetime import datetime
 from typing import Optional, Dict, Any
 
 from .database import OvercastDatabase
 from .models import CREATE_ANALYSIS_TABLE, CREATE_INDEXES
+from ..time_utils import utc_now_iso
 
 
 class OvercastAnalytics:
@@ -84,7 +84,7 @@ class OvercastAnalytics:
             all_months = set(feeds_added.keys()) | set(feeds_removed.keys()) | set(episodes_played.keys())
             
             # Write to database
-            updated_at = datetime.utcnow().isoformat() + "Z"
+            updated_at = utc_now_iso()
             
             for year, month in all_months:
                 year_month = f"{year}-{month}"

@@ -84,3 +84,35 @@ class TestPublisher(unittest.TestCase):
 
         result = self.publisher._get_overcast_analysis('2023-01')
         self.assertIsNone(result)
+
+    def test_get_latest_year_month_uses_all_sources(self):
+        self.mock_readwise_db.exists.return_value = True
+        self.mock_foursquare_db.exists.return_value = True
+        self.mock_letterboxd_db.exists.return_value = True
+        self.mock_overcast_db.exists.return_value = True
+        self.mock_strong_db.exists.return_value = True
+        self.mock_hardcover_db.exists.return_value = True
+        self.mock_github_activity_db.exists.return_value = True
+
+        self.mock_readwise_db.get_connection.side_effect = Exception("readwise missing")
+        self.mock_foursquare_db.get_connection.side_effect = Exception("foursquare missing")
+
+        def make_conn(year_month):
+            conn = MagicMock()
+            cursor = MagicMock()
+            conn.cursor.return_value = cursor
+            cursor.fetchone.return_value = None if year_month is None else {"year_month": year_month}
+            manager = MagicMock()
+            manager.__enter__.return_value = conn
+            manager.__exit__.return_value = None
+            return manager
+
+        self.mock_letterboxd_db.get_connection.return_value = make_conn("2024-12")
+        self.mock_overcast_db.get_connection.return_value = make_conn("2025-01")
+        self.mock_strong_db.get_connection.return_value = make_conn(None)
+        self.mock_hardcover_db.get_connection.return_value = make_conn("2025-03")
+        self.mock_github_activity_db.get_connection.return_value = make_conn("2025-02")
+
+        result = self.publisher._get_latest_year_month()
+
+        self.assertEqual(result, "2025-03")

@@ -1,10 +1,10 @@
 """Analytics for Hardcover book data."""
 
 from collections import defaultdict
-from datetime import datetime
 from typing import Optional
 
 from .database import HardcoverDatabase
+from ..time_utils import utc_now_iso
 
 
 class HardcoverAnalytics:
@@ -66,7 +66,7 @@ class HardcoverAnalytics:
                 monthly[year_month]["ratings"].append(row["rating"])
         
         # Write to analysis table
-        now = datetime.utcnow().isoformat() + "Z"
+        now = utc_now_iso()
         count = 0
         
         with self.db.get_connection() as conn:

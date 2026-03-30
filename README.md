@@ -174,6 +174,8 @@ Generates a monthly activity report as a draft Hugo post and commits it to a Git
 - `publish --dry-run`: Generates the markdown locally from the current analysis data without syncing or publishing anything.
 - `backfill`: Syncs latest data, runs analysis, generates Hugo data files (`data/activity/*.yaml`), and commits them to GitHub. These power the Activity page charts.
 
+The publish flow chooses the latest available `YYYY-MM` across all analysis databases that are present, so optional sources can be missing without blocking report generation.
+
 **Report output:**
 - Post title format: `Things I learned in {month}/{year}`
 - Post slug format: `things-i-learned-in-{month}-{year}`
@@ -197,6 +199,7 @@ Generates a monthly activity report as a draft Hugo post and commits it to a Git
 **Implementation note:**
 - GitHub publishing uses PyGithub for authenticated write operations.
 - If the target branch moves during publish, the GitHub client automatically retries non-fast-forward ref update failures.
+- GitHub activity sync now uses an inclusive timestamp cursor plus SHA de-duplication so same-second commits are not skipped during incremental sync.
 
 ---
 

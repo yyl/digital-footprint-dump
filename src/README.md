@@ -92,6 +92,8 @@ The `publish` action has two distinct paths:
 - `publish --skip-sync-analysis`: skips both sync and analysis, and publishes directly from the current analysis data in the local databases.
 - `publish --dry-run`: skips sync and publish, and only renders markdown from the current analysis data already present in the local databases.
 
+When selecting the reporting month, `publisher.py` now scans all available analysis databases and picks the latest `YYYY-MM` it can find, while tolerating optional sources that are absent or not initialized yet.
+
 The generated post currently uses:
 
 - title: `Things I learned in {month}/{year}`
@@ -263,6 +265,10 @@ with self.db.get_connection() as conn:
     rows = cursor.fetchall()
     # rows are sqlite3.Row objects — access like dicts: row['column']
 ```
+
+### Timestamp Helpers
+
+Timezone-aware UTC timestamps are generated via `src/time_utils.py:utc_now_iso()`, which returns ISO 8601 strings ending in `Z`. This avoids the Python 3.12 `datetime.utcnow()` deprecation warnings while keeping the stored format unchanged.
 
 ### Configuration
 

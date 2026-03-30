@@ -1,11 +1,11 @@
 """SQLite database manager for Readwise Data Exporter."""
 
 import sqlite3
-from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 from ..config import Config
 from ..database import BaseDatabase
+from ..time_utils import utc_now_iso
 from .models import ALL_TABLES, CREATE_INDEXES
 
 
@@ -97,7 +97,7 @@ class ReadwiseDatabase(BaseDatabase):
     ) -> None:
         """Update or insert sync state for an entity type."""
         if last_sync_at is None:
-            last_sync_at = datetime.utcnow().isoformat() + "Z"
+            last_sync_at = utc_now_iso()
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -164,7 +164,7 @@ class ReadwiseDatabase(BaseDatabase):
             book.get("external_id"),
             book.get("asin"),
             1 if book.get("is_deleted") else 0,
-            datetime.utcnow().isoformat() + "Z"
+            utc_now_iso()
         ))
 
         # Handle book tags

@@ -1,6 +1,6 @@
 """Database manager for GitHub activity data."""
 
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Iterable, Set
 
 from ..config import Config
 from ..database import BaseDatabase
@@ -80,6 +80,20 @@ class GitHubDatabase(BaseDatabase):
             )
             row = cursor.fetchone()
             return row[0] if row and row[0] else None
+
+    def get_existing_shas(self, shas: Iterable[str]) -> Set[str]:
+        """Return the subset of commit SHAs already present in the database."""
+        sha_list = [sha for sha in shas if sha]
+        if not sha_list:
+            return set()
+
+        placeholders = ", ".join("?" for _ in sha_list)
+        query = f"SELECT sha FROM commits WHERE sha IN ({placeholders})"
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, tuple(sha_list))
+            return {row[0] for row in cursor.fetchall()}
     
     def get_stats(self) -> Dict[str, Any]:
         """Get database statistics."""

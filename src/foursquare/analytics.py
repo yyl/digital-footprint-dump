@@ -1,10 +1,10 @@
 """Analytics module for Foursquare data."""
 
 from collections import defaultdict
-from datetime import datetime
 from typing import Optional, Dict, Any
 
 from .database import FoursquareDatabase
+from ..time_utils import utc_now_iso
 
 
 class FoursquareAnalytics:
@@ -45,7 +45,7 @@ class FoursquareAnalytics:
             rows = cursor.fetchall()
             
             # Write to database
-            updated_at = datetime.utcnow().isoformat() + "Z"
+            updated_at = utc_now_iso()
             
             for row in rows:
                 year = row['year']

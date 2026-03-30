@@ -1,10 +1,10 @@
 """Analytics module for Letterboxd data."""
 
 from collections import defaultdict
-from datetime import datetime
 from typing import Optional, Dict, Any
 
 from .database import LetterboxdDatabase
+from ..time_utils import utc_now_iso
 
 
 class LetterboxdAnalytics:
@@ -66,7 +66,7 @@ class LetterboxdAnalytics:
                 stats[key]['years_since_release'].append(years_since)
 
         # Write to database
-        updated_at = datetime.utcnow().isoformat() + "Z"
+        updated_at = utc_now_iso()
 
         with self.db.get_connection() as conn:
             cursor = conn.cursor()

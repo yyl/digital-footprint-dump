@@ -325,23 +325,29 @@ class Publisher:
     
     def _get_latest_year_month(self) -> Optional[str]:
         """Get the latest year_month from any analysis source."""
-        # Check Readwise first
-        with self.readwise_db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT year_month FROM analysis ORDER BY year_month DESC LIMIT 1")
-            row = cursor.fetchone()
-            if row:
-                return row['year_month']
-        
-        # Check Letterboxd
-        with self.letterboxd_db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT year_month FROM analysis ORDER BY year_month DESC LIMIT 1")
-            row = cursor.fetchone()
-            if row:
-                return row['year_month']
-        
-        return None
+        query = "SELECT year_month FROM analysis ORDER BY year_month DESC LIMIT 1"
+        latest_months = []
+
+        for db in [
+            self.readwise_db,
+            self.foursquare_db,
+            self.letterboxd_db,
+            self.overcast_db,
+            self.strong_db,
+            self.hardcover_db,
+            self.github_activity_db,
+        ]:
+            row = self._fetch_analysis(
+                db,
+                query,
+                (),
+                check_exists=True,
+                suppress_errors=True,
+            )
+            if row and row.get("year_month"):
+                latest_months.append(row["year_month"])
+
+        return max(latest_months) if latest_months else None
     
     def _ensure_github_client(self):
         """Initialize GitHub client if not already provided."""

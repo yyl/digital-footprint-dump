@@ -1,9 +1,9 @@
 """Sync manager for orchestrating Readwise data synchronization."""
 
-from datetime import datetime
 from typing import Optional
 
 from ..config import Config
+from ..time_utils import utc_now_iso
 from .database import ReadwiseDatabase
 from .api_client import ReadwiseAPIClient
 
@@ -75,7 +75,7 @@ class SyncManager:
             print("Performing initial full sync of books/highlights...")
         
         # Record sync start time
-        sync_start = datetime.utcnow().isoformat() + "Z"
+        sync_start = utc_now_iso()
         
         # Fetch and save books with highlights
         with self.db.get_connection() as conn:
@@ -121,7 +121,7 @@ class SyncManager:
             print("Performing initial full sync of documents...")
         
         # Record sync start time
-        sync_start = datetime.utcnow().isoformat() + "Z"
+        sync_start = utc_now_iso()
         
         # Fetch and save documents
         for doc in self.api.list_documents(updated_after=updated_after):

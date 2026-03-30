@@ -9,7 +9,9 @@ class TestGitHubSyncManager:
     @pytest.fixture
     def mock_db(self):
         """Mock GitHubDatabase."""
-        return MagicMock()
+        db = MagicMock()
+        db.get_existing_shas.return_value = set()
+        return db
 
     @pytest.fixture
     def mock_api(self):
@@ -76,11 +78,50 @@ class TestGitHubSyncManager:
         # Execute
         manager.sync()
 
-        # Verify since parameter (should be +1 second)
+        # Verify since parameter uses the inclusive high-water mark
         mock_api.get_commits.assert_called_with(
             "user", "repo",
-            since="2023-01-01T10:00:01Z"
+            since="2023-01-01T10:00:00Z"
         )
+
+    def test_sync_filters_existing_shas_from_inclusive_fetch(self, manager, mock_api, mock_db):
+        """Test that inclusive fetches do not re-upsert commits already stored."""
+        mock_api.get_public_repos.return_value = [{
+            "full_name": "user/repo",
+            "owner": {"login": "user"},
+            "name": "repo"
+        }]
+        mock_db.get_latest_commit_date.return_value = "2023-01-01T10:00:00Z"
+        mock_db.get_existing_shas.return_value = {"sha-existing"}
+        mock_api.get_commits.return_value = [
+            {
+                "sha": "sha-existing",
+                "commit": {
+                    "author": {"date": "2023-01-01T10:00:00Z"},
+                    "message": "feat: already synced"
+                }
+            },
+            {
+                "sha": "sha-new",
+                "commit": {
+                    "author": {"date": "2023-01-01T10:00:00Z"},
+                    "message": "fix: newly discovered sibling commit"
+                }
+            },
+        ]
+
+        stats = manager.sync()
+
+        assert stats == {"commits": 1, "repos": 1}
+        mock_db.upsert_commits.assert_called_once_with([
+            {
+                "sha": "sha-new",
+                "repo": "user/repo",
+                "message": "fix: newly discovered sibling commit",
+                "author_date": "2023-01-01T10:00:00Z",
+                "date_month": "2023-01"
+            }
+        ])
 
     def test_sync_process_commits(self, manager, mock_api, mock_db):
         """Test that commits are correctly processed and upserted."""

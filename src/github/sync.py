@@ -1,6 +1,5 @@
 """Sync manager for GitHub activity data."""
 
-from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
 from .database import GitHubDatabase
@@ -45,17 +44,9 @@ class GitHubSyncManager:
             owner = repo_data["owner"]["login"]
             repo = repo_data["name"]
             
-            # Incremental: only fetch commits after the latest we have
+            # Fetch inclusively at the latest timestamp, then de-duplicate by SHA
+            # so we do not skip sibling commits that share the same second.
             since = self.db.get_latest_commit_date(repo_name)
-            if since:
-                # GitHub's `since` is inclusive (>=), so bump by 1 second
-                # to exclude the commit we already have
-                try:
-                    dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
-                    dt += timedelta(seconds=1)
-                    since = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-                except (ValueError, TypeError):
-                    pass
             
             commits = self.api.get_commits(owner, repo, since=since)
             
@@ -91,6 +82,14 @@ class GitHubSyncManager:
                 
                 if commit["sha"]:
                     commits_to_upsert.append(commit)
+
+            existing_shas = self.db.get_existing_shas(
+                commit["sha"] for commit in commits_to_upsert
+            )
+            commits_to_upsert = [
+                commit for commit in commits_to_upsert
+                if commit["sha"] not in existing_shas
+            ]
 
             if commits_to_upsert:
                 self.db.upsert_commits(commits_to_upsert)

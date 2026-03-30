@@ -1,10 +1,10 @@
 """Analytics for GitHub activity data."""
 
 from collections import defaultdict
-from datetime import datetime
 from typing import Optional
 
 from .database import GitHubDatabase
+from ..time_utils import utc_now_iso
 
 
 class GitHubAnalytics:
@@ -40,7 +40,7 @@ class GitHubAnalytics:
             """)
             rows = cursor.fetchall()
         
-        now = datetime.utcnow().isoformat() + "Z"
+        now = utc_now_iso()
         count = 0
         
         with self.db.get_connection() as conn:
