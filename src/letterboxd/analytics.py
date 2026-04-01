@@ -1,6 +1,7 @@
 """Analytics module for Letterboxd data."""
 
 from collections import defaultdict
+from datetime import datetime
 from typing import Optional, Dict, Any
 
 from .database import LetterboxdDatabase
