@@ -85,7 +85,7 @@ class TestPublisher(unittest.TestCase):
         result = self.publisher._get_overcast_analysis('2023-01')
         self.assertIsNone(result)
 
-    def test_get_latest_year_month_uses_all_sources(self):
+    def test_get_target_year_month_uses_all_sources(self):
         self.mock_readwise_db.exists.return_value = True
         self.mock_foursquare_db.exists.return_value = True
         self.mock_letterboxd_db.exists.return_value = True
@@ -101,7 +101,7 @@ class TestPublisher(unittest.TestCase):
             conn = MagicMock()
             cursor = MagicMock()
             conn.cursor.return_value = cursor
-            cursor.fetchone.return_value = None if year_month is None else {"year_month": year_month}
+            cursor.fetchall.return_value = [] if year_month is None else [{"year_month": year_month}]
             manager = MagicMock()
             manager.__enter__.return_value = conn
             manager.__exit__.return_value = None
@@ -113,6 +113,10 @@ class TestPublisher(unittest.TestCase):
         self.mock_hardcover_db.get_connection.return_value = make_conn("2025-03")
         self.mock_github_activity_db.get_connection.return_value = make_conn("2025-02")
 
-        result = self.publisher._get_latest_year_month()
+        result = self.publisher._get_target_year_month()
 
         self.assertEqual(result, "2025-03")
+        
+        # Test last_month flag
+        result_last = self.publisher._get_target_year_month(last_month=True)
+        self.assertEqual(result_last, "2025-02")
