@@ -86,13 +86,14 @@ Each data source follows a consistent structure:
 
 ### Publish Flow
 
-The `publish` action has two distinct paths:
+The `publish` command supports several flags to customize its execution path:
 
 - `publish`: syncs all sources, reruns analysis, generates the latest monthly report, and commits a draft blog post.
 - `publish --skip-sync-analysis`: skips both sync and analysis, and publishes directly from the current analysis data in the local databases.
 - `publish --dry-run`: skips sync and publish, and only renders markdown from the current analysis data already present in the local databases.
+- `publish --last-month`: generates and publishes the report for the previous month instead of the latest available month.
 
-When selecting the reporting month, `publisher.py` now scans all available analysis databases and picks the latest `YYYY-MM` it can find, while tolerating optional sources that are absent or not initialized yet.
+When selecting the reporting month, `publisher.py` now scans all available analysis databases and picks the latest (or second-latest if `--last-month` is provided) `YYYY-MM` it can find, while tolerating optional sources that are absent or not initialized yet.
 
 The generated post currently uses:
 

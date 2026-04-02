@@ -151,12 +151,13 @@ def cmd_readwise_analyze():
     )
 
 
-def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False):
+def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False, last_month: bool = False):
     """Publish monthly summary to blog repository.
     
     Args:
         dry_run: If True, validate config and sync data but skip actual publish.
         skip_sync_analysis: If True, reuse current analysis data without rerunning sync/analyze.
+        last_month: If True, publish the summary for the previous month.
     """
     if dry_run:
         print("=== DRY RUN MODE ===")
@@ -166,7 +167,7 @@ def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False):
         
         try:
             publisher = Publisher()
-            markdown = publisher.generate_markdown()
+            markdown = publisher.generate_markdown(last_month=last_month)
             
             print("=" * 60)
             print(markdown)
@@ -213,7 +214,7 @@ def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False):
     
     try:
         publisher = Publisher()
-        result = publisher.publish()
+        result = publisher.publish(last_month=last_month)
         print(f"\nPublished successfully!")
         print(f"Commit: {result['url']}")
     except ValueError as e:
@@ -887,6 +888,11 @@ def main():
         action="store_true",
         help="Publish using the current analysis data without rerunning sync or analysis"
     )
+    publish_parser.add_argument(
+        "--last-month",
+        action="store_true",
+        help="Publish the report for the last month instead of the latest"
+    )
     
     args = parser.parse_args()
     
@@ -918,7 +924,8 @@ def main():
     if args.command == "publish":
         cmd_publish(
             dry_run=args.dry_run,
-            skip_sync_analysis=args.skip_sync_analysis
+            skip_sync_analysis=args.skip_sync_analysis,
+            last_month=args.last_month
         )
     elif args.command == "backfill":
         cmd_backfill()

@@ -172,6 +172,7 @@ Generates a monthly activity report as a draft Hugo post and commits it to a Git
 - `publish`: Syncs latest data, runs analysis, generates markdown, and commits the draft report post to GitHub.
 - `publish --skip-sync-analysis`: Generates and commits the draft report post using the current analysis data without rerunning sync or analysis.
 - `publish --dry-run`: Generates the markdown locally from the current analysis data without syncing or publishing anything.
+- `publish --last-month`: Generates and commits the report for the previous month instead of the latest month.
 - `backfill`: Syncs latest data, runs analysis, generates Hugo data files (`data/activity/*.yaml`), and commits them to GitHub. These power the Activity page charts.
 
 The publish flow chooses the latest available `YYYY-MM` across all analysis databases that are present, so optional sources can be missing without blocking report generation.
@@ -254,7 +255,8 @@ The workflow runs automatically on the **last day of each month at 11:00 AM UTC*
 1. Go to **Actions** tab in your repository
 2. Select **"Monthly Pipeline"** workflow
 3. Click **"Run workflow"**
-4. Optionally enable **dry-run mode** to validate without publishing
+4. Optionally check **"Publish for the last month"** to run the report for the previous month
+5. Optionally select **dry-run mode** from the command dropdown to validate without publishing
 
 ### Testing Locally
 

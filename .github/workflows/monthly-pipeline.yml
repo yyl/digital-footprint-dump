@@ -18,6 +18,11 @@ on:
           - publish
           - backfill
           - publish --dry-run
+      last_month:
+        description: 'Publish for the last month instead of the latest (for manual runs)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER }}
@@ -104,8 +109,18 @@ jobs:
             echo "Running: uv run main.py backfill"
             uv run --python $(cat .python-version) main.py backfill
           else
-            echo "Running: uv run main.py $COMMAND"
-            uv run --python $(cat .python-version) main.py $COMMAND
+            LAST_MONTH_FLAG=""
+            if [ "${{ inputs.last_month }}" == "true" ]; then
+              LAST_MONTH_FLAG="--last-month"
+            fi
+            
+            if [[ "$COMMAND" == publish* ]]; then
+              echo "Running: uv run main.py $COMMAND $LAST_MONTH_FLAG"
+              uv run --python $(cat .python-version) main.py $COMMAND $LAST_MONTH_FLAG
+            else
+              echo "Running: uv run main.py $COMMAND"
+              uv run --python $(cat .python-version) main.py $COMMAND
+            fi
           fi
 
       - name: Commit updated databases

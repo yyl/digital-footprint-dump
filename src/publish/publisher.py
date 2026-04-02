@@ -323,10 +323,10 @@ class Publisher:
             suppress_errors=True
         )
     
-    def _get_latest_year_month(self) -> Optional[str]:
-        """Get the latest year_month from any analysis source."""
-        query = "SELECT year_month FROM analysis ORDER BY year_month DESC LIMIT 1"
-        latest_months = []
+    def _get_target_year_month(self, last_month: bool = False) -> Optional[str]:
+        """Get the target year_month (latest or previous) from any analysis source."""
+        query = "SELECT DISTINCT year_month FROM analysis"
+        all_months = set()
 
         for db in [
             self.readwise_db,
@@ -337,17 +337,24 @@ class Publisher:
             self.hardcover_db,
             self.github_activity_db,
         ]:
-            row = self._fetch_analysis(
+            rows = self._fetch_rows(
                 db,
                 query,
                 (),
                 check_exists=True,
                 suppress_errors=True,
             )
-            if row and row.get("year_month"):
-                latest_months.append(row["year_month"])
+            for row in rows:
+                if row and row.get("year_month"):
+                    all_months.add(row["year_month"])
 
-        return max(latest_months) if latest_months else None
+        if not all_months:
+            return None
+            
+        sorted_months = sorted(list(all_months), reverse=True)
+        if last_month:
+            return sorted_months[1] if len(sorted_months) > 1 else None
+        return sorted_months[0]
     
     def _ensure_github_client(self):
         """Initialize GitHub client if not already provided."""
@@ -360,14 +367,17 @@ class Publisher:
                 target_branch=Config.BLOG_GITHUB_TARGET_BRANCH
             )
     
-    def publish(self) -> Dict[str, Any]:
+    def publish(self, last_month: bool = False) -> Dict[str, Any]:
         """Generate and publish the monthly summary blog post.
         
+        Args:
+            last_month: If True, generate the summary for the previous month.
+            
         Returns:
             Dictionary with commit information.
         """
-        # Get latest year_month
-        year_month = self._get_latest_year_month()
+        # Get target year_month
+        year_month = self._get_target_year_month(last_month)
         if not year_month:
             raise ValueError("No analysis data found. Run 'analyze' first.")
         
@@ -418,17 +428,18 @@ class Publisher:
         logger.info(f"Backfilled data to {result['url']}")
         return result
     
-    def generate_markdown(self, year_month: Optional[str] = None) -> str:
+    def generate_markdown(self, year_month: Optional[str] = None, last_month: bool = False) -> str:
         """Generate markdown content for a monthly summary.
         
         Args:
             year_month: Period to generate for (YYYY-MM format). Defaults to latest.
+            last_month: If True and year_month not provided, generates for the previous month.
             
         Returns:
             Generated markdown content as string.
         """
         if not year_month:
-            year_month = self._get_latest_year_month()
+            year_month = self._get_target_year_month(last_month)
         
         if not year_month:
             raise ValueError("No analysis data found. Run 'analyze' first.")
