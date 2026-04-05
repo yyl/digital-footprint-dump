@@ -60,10 +60,10 @@ jobs:
 
     steps:
       - name: Checkout code repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout data repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ env.DATA_REPO_OWNER }}/${{ env.DATA_REPO_NAME }}
           token: ${{ secrets.DATA_REPO_PAT }}
@@ -80,7 +80,7 @@ jobs:
           ln -sf $(pwd)/_data_repo/files $(pwd)/files
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Set up Python
         run: uv python install $(cat .python-version)
