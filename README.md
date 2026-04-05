@@ -185,12 +185,12 @@ The publish flow chooses the latest available `YYYY-MM` across all analysis data
 
 **Report contents:**
 - Keeps the existing top-level metrics, including MoM and YoY comparisons
-- Adds Readwise article tables grouped by source, with smaller sources rolled into `Other`, including per-article reading speed
+- Adds a ranked Readwise source summary table, then per-source article tables using the same grouping rule: sources with more than one article get their own section and one-off sources roll into `Other`
 - Skips broken Readwise newsletter-style `mailto:` links and renders those titles as plain text
 - Adds Readwise highlight tables grouped by article or book
 - Adds movie tables with watch date and rating
-- Adds podcast episode tables grouped by podcast title
-- Adds GitHub commit tables grouped by repo with merge-PR commits excluded
+- Adds podcast summaries ranked by episode count, followed by grouped episode tables using the same `Other` bucketing rule for one-off podcasts
+- Adds GitHub repo summaries ranked by commit count, followed by grouped commit tables using the same `Other` bucketing rule for one-off repos, with merge-PR commits excluded
 
 **Required in .env:**
 - `BLOG_GITHUB_TOKEN` - Fine-grained PAT scoped to blog repo with **Contents: Read and write** permission

@@ -301,23 +301,29 @@ categories: ["Summary"]
             source_name = (article.get('site_name') or "").strip() or "Other"
             source_counts[source_name] = source_counts.get(source_name, 0) + 1
 
+        grouped_counts: dict[str, int] = {}
         grouped: dict[str, list[Dict[str, Any]]] = {}
         for article in articles:
             source_name = (article.get('site_name') or "").strip() or "Other"
-            group_name = source_name if source_counts.get(source_name, 0) > 2 else "Other"
+            group_name = source_name if source_counts.get(source_name, 0) > 1 else "Other"
+            grouped_counts[group_name] = grouped_counts.get(group_name, 0) + 1
             grouped.setdefault(group_name, []).append(article)
 
-        ordered_group_names = [
-            name for name, _ in sorted(
-                grouped.items(),
-                key=lambda item: (item[0] == "Other", item[0].lower())
-            )
-        ]
+        ordered_group_names = self._ordered_group_names(grouped_counts)
 
         lines = ["", "### Articles Read"]
+        lines.extend([
+            "",
+            "| Source | Articles |",
+            "| --- | --- |",
+        ])
+        for source_name, count in self._sorted_group_counts(grouped_counts):
+            lines.append(f"| {self._escape_table_text(source_name)} | {count} |")
+
         for group_name in ordered_group_names:
             show_source_column = group_name == "Other"
             lines.extend([
+                "",
                 f"#### {self._escape_table_text(group_name)}",
                 "",
                 "| Date | Article | Speed | Source |" if show_source_column else "| Date | Article | Speed |",
@@ -392,29 +398,49 @@ categories: ["Summary"]
         if not episodes:
             return ""
 
-        grouped: dict[tuple[str, Optional[str]], list[Dict[str, Any]]] = {}
+        podcast_counts: dict[str, int] = {}
         for episode in episodes:
-            key = (
-                episode.get('podcast_title') or "Unknown podcast",
-                episode.get('podcast_link'),
-            )
-            grouped.setdefault(key, []).append(episode)
+            podcast_title = episode.get('podcast_title') or "Unknown podcast"
+            podcast_counts[podcast_title] = podcast_counts.get(podcast_title, 0) + 1
 
-        lines = ["", "### Episodes Listened"]
-        for (podcast_title, podcast_link), grouped_episodes in grouped.items():
+        grouped_counts: dict[str, int] = {}
+        grouped: dict[str, list[Dict[str, Any]]] = {}
+        podcast_links: dict[str, Optional[str]] = {}
+        for episode in episodes:
+            podcast_title = episode.get('podcast_title') or "Unknown podcast"
+            group_name = podcast_title if podcast_counts.get(podcast_title, 0) > 1 else "Other"
+            grouped_counts[group_name] = grouped_counts.get(group_name, 0) + 1
+            grouped.setdefault(group_name, []).append(episode)
+            if group_name != "Other":
+                podcast_links[group_name] = episode.get('podcast_link')
+
+        lines = ["", "### Episodes Listened", "", "| Podcast | Episodes |", "| --- | --- |"]
+        for podcast_title, count in self._sorted_group_counts(grouped_counts):
+            lines.append(f"| {self._escape_table_text(podcast_title)} | {count} |")
+
+        for podcast_title in self._ordered_group_names(grouped_counts):
+            grouped_episodes = grouped[podcast_title]
+            podcast_link = podcast_links.get(podcast_title)
             lines.extend([
+                "",
                 f"#### {self._markdown_link(podcast_title, podcast_link)}",
                 "",
-                "| Date | Episode |",
-                "| --- | --- |",
+                "| Date | Episode | Podcast |" if podcast_title == "Other" else "| Date | Episode |",
+                "| --- | --- | --- |" if podcast_title == "Other" else "| --- | --- |",
             ])
             for episode in grouped_episodes:
                 episode_title = episode.get('episode_title') or "Untitled episode"
                 episode_link = episode.get('episode_link')
                 episode_part = self._markdown_link(episode_title, episode_link)
-                lines.append(
-                    f"| {self._format_date(episode.get('userUpdatedDate'))} | {episode_part} |"
-                )
+                if podcast_title == "Other":
+                    source = self._escape_table_text(episode.get('podcast_title') or "Unknown podcast")
+                    lines.append(
+                        f"| {self._format_date(episode.get('userUpdatedDate'))} | {episode_part} | {source} |"
+                    )
+                else:
+                    lines.append(
+                        f"| {self._format_date(episode.get('userUpdatedDate'))} | {episode_part} |"
+                    )
         return "\n".join(lines)
 
     def _generate_commit_groups_block(self, commit_groups: list[Dict[str, Any]]) -> str:
@@ -422,21 +448,42 @@ categories: ["Summary"]
         if not commit_groups:
             return ""
 
-        lines = ["", "### Commits by Repo"]
+        repo_counts: dict[str, int] = {}
+        grouped: dict[str, list[Dict[str, Any]]] = {}
+        repo_urls: dict[str, str] = {}
         for group in commit_groups:
             repo = group.get('repo') or "unknown"
-            repo_url = f"https://github.com/{quote(repo, safe='/')}"
+            commits = group.get('commits', [])
+            group_name = repo if len(commits) > 1 else "Other"
+            repo_counts[group_name] = repo_counts.get(group_name, 0) + len(commits)
+            grouped.setdefault(group_name, []).extend(commits)
+            if group_name != "Other":
+                repo_urls[group_name] = f"https://github.com/{quote(repo, safe='/')}"
+
+        lines = ["", "### Commits by Repo", "", "| Repo | Commits |", "| --- | --- |"]
+        for repo, count in self._sorted_group_counts(repo_counts):
+            lines.append(f"| {self._escape_table_text(repo)} | {count} |")
+
+        for repo in self._ordered_group_names(repo_counts):
+            repo_url = repo_urls.get(repo)
             lines.extend([
+                "",
                 f"#### {self._markdown_link(repo, repo_url)}",
                 "",
-                "| Date | Commit Message |",
-                "| --- | --- |",
+                "| Date | Commit Message | Repo |" if repo == "Other" else "| Date | Commit Message |",
+                "| --- | --- | --- |" if repo == "Other" else "| --- | --- |",
             ])
-            for commit in group.get('commits', []):
+            for commit in grouped[repo]:
                 message = self._escape_table_text(
                     self._clean_text(commit.get('message')) or "(no message)"
                 )
-                lines.append(f"| {self._format_date(commit.get('author_date'))} | {message} |")
+                if repo == "Other":
+                    source_repo = self._escape_table_text(commit.get('repo') or "unknown")
+                    lines.append(
+                        f"| {self._format_date(commit.get('author_date'))} | {message} | {source_repo} |"
+                    )
+                else:
+                    lines.append(f"| {self._format_date(commit.get('author_date'))} | {message} |")
         return "\n".join(lines)
 
     def _markdown_link(self, label: str, url: Optional[str]) -> str:
@@ -455,6 +502,17 @@ categories: ["Summary"]
 
         parsed = urlparse(str(url).strip())
         return parsed.scheme.lower() != "mailto"
+
+    def _sorted_group_counts(self, group_counts: dict[str, int]) -> list[tuple[str, int]]:
+        """Return grouped counts sorted by count descending, with Other last on ties."""
+        return sorted(
+            group_counts.items(),
+            key=lambda item: (-item[1], item[0] == "Other", item[0].lower())
+        )
+
+    def _ordered_group_names(self, group_counts: dict[str, int]) -> list[str]:
+        """Return group names ordered consistently with the summary ranking."""
+        return [name for name, _ in self._sorted_group_counts(group_counts)]
 
     def _clean_text(self, value: Optional[str]) -> str:
         """Normalize multiline content for markdown bullet lists."""
