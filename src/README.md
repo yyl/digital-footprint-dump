@@ -26,16 +26,19 @@ Note: The file structure below is shown from the root directory.
 └── .github/workflows/      # CI/CD (tests.yml, monthly-pipeline.yml)
 ```
 
-## Data Source Resolution
+## Data Source / Storage Resolution
 
-The app resolves `data/` and `files/` from a storage root rather than always using this repo directly.
+This project reads and writes source databases and import files from a storage root. The app resolves `data/` and `files/` from a storage root rather than always using this repo directly.
 
 - Local runs default to the sibling repo `../digital-footprint-data` when it exists.
+- Otherwise, local runs fall back to this repo's own `data/` and `files/` directories.
 - GitHub Actions checks out the private data repo separately and links its `data/` and `files/` into the workspace.
 - You can explicitly override the local storage root with `DATA_REPO_LOCAL_PATH`.
 
 In practice this means:
 
+- SQLite databases live under `<storage-root>/data/`.
+- File imports live under `<storage-root>/files/`.
 - API-backed sources write their SQLite databases under `<storage-root>/data/`.
 - File-backed sources read imports from `<storage-root>/files/` and write their databases under `<storage-root>/data/`.
 
@@ -302,3 +305,57 @@ uv run pytest tests/test_comparison.py -v
 ```
 
 Test files cover: comparison utilities, data generator, cloud config, Foursquare client + security, GitHub client + sync, Hardcover sync/timeout, main refactor, Overcast importer security, Readwise client security + database.
+
+## Cloud Deployment (GitHub Actions)
+
+Automate the pipeline to run monthly using GitHub Actions with a private data repository.
+
+### Setup
+
+1. **Create a private data repository** (e.g., `digital-footprint-data`):
+   ```
+   digital-footprint-data/
+   ├── data/           # Empty initially, DBs auto-created
+   └── files/          # Manual exports (Letterboxd, Overcast, Strong)
+       ├── letterboxd-export/
+       ├── overcast.opml
+       └── strong_workouts.csv
+   ```
+
+2. **Create two fine-grained Personal Access Tokens** at [github.com/settings/tokens](https://github.com/settings/tokens):
+
+   | Token | Repo scope | Permissions needed |
+   |-------|-----------|--------------------|
+   | `DATA_REPO_PAT` | Private data repo | **Contents: Read and write** |
+   | `BLOG_GITHUB_TOKEN` | Blog repo | **Contents: Read and write** |
+
+   > These can be the same token if it has access to both repos.
+
+3. **Add secrets** to your public repo (Settings → Secrets → Actions):
+
+   | Secret | Description |
+   |--------|-------------|
+   | `DATA_REPO_OWNER` | Your GitHub username |
+   | `DATA_REPO_NAME` | Private data repo name |
+   | `DATA_REPO_PAT` | PAT with Contents read/write on data repo |
+   | `READWISE_ACCESS_TOKEN` | Readwise API token |
+   | `FOURSQUARE_ACCESS_TOKEN` | Foursquare OAuth token — required for all API calls |
+   | `FOURSQUARE_API_KEY` | *(optional)* Foursquare Places API for venue details |
+   | `HARDCOVER_ACCESS_TOKEN` | Hardcover API token |
+   | `CODEBASE_USERNAME` | Your GitHub username (for activity tracking) |
+   | `BLOG_GITHUB_TOKEN` | PAT with Contents read/write on blog repo |
+   | `BLOG_REPO_OWNER` | Blog repo owner |
+   | `BLOG_REPO_NAME` | Blog repo name |
+   | `BLOG_GITHUB_TARGET_BRANCH` | *(optional)* Branch to commit to, defaults to `main` |
+
+### Schedule
+
+The workflow runs automatically on the **last day of each month at 11:00 AM UTC**.
+
+### Manual Trigger
+
+1. Go to **Actions** tab in your repository
+2. Select **"Monthly Pipeline"** workflow
+3. Click **"Run workflow"**
+4. Optionally check **"Publish for the last month"** to run the report for the previous month
+5. Optionally select **dry-run mode** from the command dropdown to validate without publishing
