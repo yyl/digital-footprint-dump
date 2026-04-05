@@ -186,6 +186,7 @@ The publish flow chooses the latest available `YYYY-MM` across all analysis data
 **Report contents:**
 - Keeps the existing top-level metrics, including MoM and YoY comparisons
 - Adds Readwise article tables grouped by source, with smaller sources rolled into `Other`, including per-article reading speed
+- Skips broken Readwise newsletter-style `mailto:` links and renders those titles as plain text
 - Adds Readwise highlight tables grouped by article or book
 - Adds movie tables with watch date and rating
 - Adds podcast episode tables grouped by podcast title

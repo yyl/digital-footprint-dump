@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Dict, Any, Optional
 from zoneinfo import ZoneInfo
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from ..comparison import format_change, format_comparison_suffix
 
@@ -444,9 +444,17 @@ categories: ["Summary"]
         safe_label = self._escape_table_text(
             self._clean_text(label).replace("[", "\\[").replace("]", "\\]")
         )
-        if url:
+        if self._is_linkable_url(url):
             return f"[{safe_label}]({url})"
         return safe_label
+
+    def _is_linkable_url(self, url: Optional[str]) -> bool:
+        """Return True when a URL should be rendered as a clickable markdown link."""
+        if not url:
+            return False
+
+        parsed = urlparse(str(url).strip())
+        return parsed.scheme.lower() != "mailto"
 
     def _clean_text(self, value: Optional[str]) -> str:
         """Normalize multiline content for markdown bullet lists."""
