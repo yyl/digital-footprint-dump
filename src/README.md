@@ -102,9 +102,9 @@ When selecting the reporting month, `publisher.py` now scans all available analy
 
 The generated post currently uses:
 
-- title: `Things I learned in {month}/{year}`
-- slug: `things-i-learned-in-{month}-{year}`
-- path: `content/posts/{year}-{month}-monthly-report.md`
+- title: `Wrap up {month_name} {year}`
+- slug: `wrap-up-{month}-{year}`
+- path: `content/posts/wrap-up-{month}-{year}.md`
 - front matter: `draft: true`
 
 The report keeps the existing summary metrics and MoM/YoY comparisons, and adds richer detail sections:

@@ -57,10 +57,12 @@ class MarkdownGenerator:
     
     def _generate_front_matter(self, data: Dict[str, Any]) -> str:
         """Generate YAML front matter for the markdown file."""
-        month = data['month']
+        month_str = data['month']
         year = data['year']
-        title = f"Things I learned in {month}/{year}"
-        slug = f"things-i-learned-in-{month}-{year}"
+        month_name = datetime(int(year), int(month_str), 1).strftime('%B')
+        
+        title = f"Wrap up {month_name} {year}"
+        slug = f"wrap-up-{month_str}-{year}"
         
         # Use current time in PDT for the date
         pdt = ZoneInfo("America/Los_Angeles")
@@ -68,7 +70,7 @@ class MarkdownGenerator:
         date_iso = now.isoformat(timespec='seconds')
         
         # Build tags based on available data
-        tags = ["monthly", "digest", "automated"]
+        tags = ["monthly", "digest", "automated", "summary", "wrap-up", f"{month_str}-{year}"]
         if data.get('readwise'):
             tags.append("readwise")
         if data.get('foursquare'):

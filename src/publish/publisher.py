@@ -390,7 +390,7 @@ class Publisher:
         self._ensure_github_client()
         
         # Commit blog post
-        file_path = f"content/posts/{year}-{month}-monthly-report.md"
+        file_path = f"content/posts/wrap-up-{month}-{year}.md"
         commit_message = f"feat: Add monthly report draft for {month}/{year}"
         
         result = self.github_client.create_or_update_files(

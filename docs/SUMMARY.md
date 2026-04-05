@@ -9,9 +9,9 @@ It chooses the latest available `YYYY-MM` across all analysis databases that are
 
 ## Report Output Format
 
-- **Post title format:** `Things I learned in {month}/{year}`
-- **Post slug format:** `things-i-learned-in-{month}-{year}`
-- **Post file format:** `content/posts/{year}-{month}-monthly-report.md`
+- **Post title format:** `Wrap up {month_name} {year}`
+- **Post slug format:** `wrap-up-{month}-{year}`
+- **Post file format:** `content/posts/wrap-up-{month}-{year}.md`
 - **Draft status:** Posts are committed as drafts (`draft: true`)
 
 ## Report Contents
