@@ -154,3 +154,25 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertIn("#### Other", result)
         self.assertIn("| Date | Commit Message | Repo |", result)
         self.assertNotIn("#### [user/beta]", result)
+
+    def test_generate_readwise_highlights_block_uses_quote_format(self):
+        result = self.generator._generate_readwise_highlights_block([
+            {
+                "title": "Interesting Essay",
+                "category": "article",
+                "link": "https://example.com/essay",
+                "highlights": [
+                    {
+                        "date": "2026-04-04T10:00:00Z",
+                        "text": "A memorable line worth quoting.",
+                        "note": "This connects to the chapter above.",
+                    }
+                ],
+            }
+        ])
+
+        self.assertIn("#### [Interesting Essay](https://example.com/essay) (article)", result)
+        self.assertIn("> A memorable line worth quoting.", result)
+        self.assertIn("> Note: This connects to the chapter above.", result)
+        self.assertIn("*2026-04-04*", result)
+        self.assertNotIn("| Date | Highlight | Note |", result)

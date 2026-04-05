@@ -355,16 +355,11 @@ categories: ["Summary"]
             if category:
                 heading = f"{heading} ({category})"
             lines.extend([
-                f"#### {heading}",
                 "",
-                "| Date | Highlight | Note |",
-                "| --- | --- | --- |",
+                f"#### {heading}",
             ])
             for highlight in group.get('highlights', []):
-                date = self._format_date(highlight.get('date'))
-                text = self._escape_table_text(self._clean_text(highlight.get('text')))
-                note = self._escape_table_text(self._clean_text(highlight.get('note')))
-                lines.append(f"| {date} | {text} | {note} |")
+                lines.extend(self._format_readwise_highlight(highlight))
         return "\n".join(lines)
 
     def _generate_movies_block(self, movies: list[Dict[str, Any]]) -> str:
@@ -537,3 +532,20 @@ categories: ["Summary"]
         if value is None:
             return ""
         return f"{int(value)} wpm"
+
+    def _format_readwise_highlight(self, highlight: Dict[str, Any]) -> list[str]:
+        """Format a single Readwise highlight as a quote-style markdown block."""
+        text = self._clean_text(highlight.get('text'))
+        note = self._clean_text(highlight.get('note'))
+        date = self._format_date(highlight.get('date'))
+
+        lines = [""]
+        if text:
+            lines.append(f"> {text}")
+        if note:
+            lines.append(">")
+            lines.append(f"> Note: {note}")
+        if date:
+            lines.append("")
+            lines.append(f"*{date}*")
+        return lines
