@@ -1,5 +1,7 @@
 # digital-footprint-dump
 
+[![Tests](https://github.com/yyl/digital-footprint-dump/actions/workflows/tests.yml/badge.svg)](https://github.com/yyl/digital-footprint-dump/actions/workflows/tests.yml)
+
 A pipeline to fetch data from digital sources, analyze them, and publish a monthly draft report to a markdown blog site.
 
 ## Setup
