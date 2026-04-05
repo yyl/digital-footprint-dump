@@ -1,11 +1,6 @@
 {
   "name": "digital-footprint-dump",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
-  "features": {
-    "ghcr.io/devcontainers/features/github-cli:1": {}
-  },
+  "image": "yyl/dev-tools:latest",
   "customizations": {
     "vscode": {
       "settings": {
@@ -18,8 +13,8 @@
         "tamasfe.even-better-toml",
         "saoudrizwan.claude-dev",
         "rooveterinaryinc.roo-cline",
-        "Alibaba-Cloud.tongyi-lingma",
-        "sst-dev.opencode"
+        "sst-dev.opencode",
+        "thanhtunguet.qwen-code-vscode"
       ]
     }
   },

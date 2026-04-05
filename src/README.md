@@ -43,6 +43,8 @@ In practice this means:
 
 The repo pins Python in `.python-version`, and both GitHub Actions workflows use that exact version.
 
+For container-based local development, this repo's `.devcontainer/devcontainer.json` points at the shared `yyl/dev-tools:latest` image from the sibling `../dev-tools` folder, while keeping repo-specific VS Code settings, extensions, and the `uv sync` post-create step local to this repo.
+
 For a CI-like local test run, use:
 
 ```bash
