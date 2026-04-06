@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Optional
 
 from .database import ReadwiseDatabase
+from .models import CREATE_ANALYSIS_TABLE, ANALYSIS_INDEXES
 from ..time_utils import utc_now_iso
 
 
@@ -29,6 +30,13 @@ class ReadwiseAnalytics:
             return int(match.group(1))
         return 0
 
+    def _ensure_analysis_table(self) -> None:
+        """Create analysis table if it doesn't exist."""
+        with self.db.get_connection() as conn:
+            conn.execute(CREATE_ANALYSIS_TABLE)
+            for index_sql in ANALYSIS_INDEXES:
+                conn.execute(index_sql)
+
     def analyze_archived(self) -> int:
         """Analyze archived articles by month.
 
@@ -39,6 +47,8 @@ class ReadwiseAnalytics:
         Returns:
             Number of monthly records written to the database.
         """
+        self._ensure_analysis_table()
+
         query = """
         SELECT
             strftime('%m', last_moved_at) as month,

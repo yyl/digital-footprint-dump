@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from .database import LetterboxdDatabase
+from .models import CREATE_ANALYSIS_TABLE, ANALYSIS_INDEXES
 from ..time_utils import utc_now_iso
 
 
@@ -19,6 +20,13 @@ class LetterboxdAnalytics:
         """
         self.db = db or LetterboxdDatabase()
 
+    def _ensure_analysis_table(self) -> None:
+        """Create analysis table if it doesn't exist."""
+        with self.db.get_connection() as conn:
+            conn.execute(CREATE_ANALYSIS_TABLE)
+            for index_sql in ANALYSIS_INDEXES:
+                conn.execute(index_sql)
+
     def analyze_watched(self) -> int:
         """Analyze watched movies by month.
 
@@ -28,6 +36,8 @@ class LetterboxdAnalytics:
         Returns:
             Number of monthly records written to the database.
         """
+        self._ensure_analysis_table()
+
         # Get watched movies with their ratings (left join to include unrated)
         query = """
         SELECT

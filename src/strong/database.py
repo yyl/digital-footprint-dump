@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any, List
 
 from ..config import Config
 from ..database import BaseDatabase
-from .models import ALL_TABLES, CREATE_INDEXES
+from .models import RAW_TABLES, RAW_INDEXES
 
 
 class StrongDatabase(BaseDatabase):
@@ -17,14 +17,14 @@ class StrongDatabase(BaseDatabase):
         self.use_foreign_keys = True
     
     def init_tables(self) -> None:
-        """Create all tables if they don't exist."""
+        """Create raw sync tables if they don't exist."""
         is_new = not self.exists()
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            for table_sql in ALL_TABLES:
+            for table_sql in RAW_TABLES:
                 cursor.execute(table_sql)
-            for index_sql in CREATE_INDEXES:
+            for index_sql in RAW_INDEXES:
                 cursor.execute(index_sql)
         
         if is_new:

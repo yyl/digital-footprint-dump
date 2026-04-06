@@ -57,18 +57,20 @@ CREATE TABLE IF NOT EXISTS analysis (
 );
 """
 
-ALL_TABLES = [
+RAW_TABLES = [
     CREATE_USERS_TABLE,
     CREATE_WATCHED_TABLE,
     CREATE_RATINGS_TABLE,
-    CREATE_ANALYSIS_TABLE,
 ]
 
-CREATE_INDEXES = [
+RAW_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_watched_username ON watched(username);",
     "CREATE INDEX IF NOT EXISTS idx_watched_date ON watched(watched_at);",
     "CREATE INDEX IF NOT EXISTS idx_ratings_username ON ratings(username);",
     "CREATE INDEX IF NOT EXISTS idx_ratings_date ON ratings(rated_at);",
     "CREATE INDEX IF NOT EXISTS idx_ratings_rating ON ratings(rating);",
+]
+
+ANALYSIS_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_analysis_year_month ON analysis(year, month);",
 ]

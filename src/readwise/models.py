@@ -130,8 +130,8 @@ CREATE TABLE IF NOT EXISTS analysis (
 );
 """
 
-# List of all table creation statements
-ALL_TABLES = [
+# List of raw table creation statements
+RAW_TABLES = [
     CREATE_BOOKS_TABLE,
     CREATE_HIGHLIGHTS_TABLE,
     CREATE_HIGHLIGHT_TAGS_TABLE,
@@ -139,11 +139,10 @@ ALL_TABLES = [
     CREATE_DOCUMENTS_TABLE,
     CREATE_DOCUMENT_TAGS_TABLE,
     CREATE_SYNC_STATE_TABLE,
-    CREATE_ANALYSIS_TABLE,
 ]
 
-# Index creation for better query performance
-CREATE_INDEXES = [
+# Raw index creation for better query performance
+RAW_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_highlights_book_id ON highlights(book_id);",
     "CREATE INDEX IF NOT EXISTS idx_highlight_tags_highlight_id ON highlight_tags(highlight_id);",
     "CREATE INDEX IF NOT EXISTS idx_book_tags_book_id ON book_tags(book_id);",
@@ -151,5 +150,8 @@ CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_documents_parent_id ON documents(parent_id);",
     "CREATE INDEX IF NOT EXISTS idx_books_category ON books(category);",
     "CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category);",
+]
+
+ANALYSIS_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_analysis_year_month ON analysis(year, month);",
 ]

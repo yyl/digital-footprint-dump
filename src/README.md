@@ -74,6 +74,8 @@ Each data source follows a consistent structure:
 | `importer.py` | File parser (file-based sources only) |
 | `analytics.py` | Monthly analysis logic → writes to `analysis` table |
 
+Sync/import initialization creates raw source tables only. Each source's `analytics.py` is responsible for creating its own derived `analysis` table.
+
 ### Source Types
 
 | Type | Sources | Data Ingestion |

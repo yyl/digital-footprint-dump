@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Any
 from ..config import Config
 from ..database import BaseDatabase
 from ..time_utils import utc_now_iso
-from .models import ALL_TABLES, CREATE_INDEXES
+from .models import RAW_TABLES, RAW_INDEXES
 
 
 class ReadwiseDatabase(BaseDatabase):
@@ -21,38 +21,18 @@ class ReadwiseDatabase(BaseDatabase):
         super().__init__(db_path or str(Config.DATABASE_PATH))
     
     def init_tables(self) -> None:
-        """Create all tables if they don't exist."""
+        """Create raw sync tables if they don't exist."""
         is_new = not self.exists()
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            for table_sql in ALL_TABLES:
+            for table_sql in RAW_TABLES:
                 cursor.execute(table_sql)
-            for index_sql in CREATE_INDEXES:
+            for index_sql in RAW_INDEXES:
                 cursor.execute(index_sql)
         
         if is_new:
             print(f"Database initialized at: {self.db_path}")
-        else:
-            self._migrate_analysis_table()
-    
-    def _migrate_analysis_table(self) -> None:
-        """Add new columns to the analysis table if they don't exist yet."""
-        new_columns = [
-            ("max_words_per_article", "INTEGER DEFAULT 0"),
-            ("median_words_per_article", "INTEGER DEFAULT 0"),
-            ("min_words_per_article", "INTEGER DEFAULT 0"),
-        ]
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            for col_name, col_type in new_columns:
-                try:
-                    cursor.execute(
-                        f"ALTER TABLE analysis ADD COLUMN {col_name} {col_type}"
-                    )
-                except Exception:
-                    # Column already exists
-                    pass
 
     def check_tables_exist(self) -> bool:
         """Check if required tables exist in the database.

@@ -19,11 +19,10 @@ class GitHubDatabase(BaseDatabase):
         super().__init__(str(db_path or Config.CODEBASE_DATABASE_PATH))
     
     def init_tables(self) -> None:
-        """Create tables if they don't exist."""
+        """Create raw sync tables if they don't exist."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(models.CREATE_COMMITS_TABLE)
-            cursor.execute(models.CREATE_ANALYSIS_TABLE)
         print(f"GitHub database initialized at: {self.db_path}")
     
     def upsert_commit(self, commit: Dict[str, Any]) -> None:

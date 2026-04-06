@@ -21,3 +21,7 @@ CREATE TABLE IF NOT EXISTS analysis (
     updated_at TEXT
 )
 """
+
+ANALYSIS_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_analysis_year_month ON analysis(year, month);",
+]

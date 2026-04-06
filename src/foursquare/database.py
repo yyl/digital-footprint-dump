@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any
 
 from ..config import Config
 from ..database import BaseDatabase
-from .models import ALL_TABLES, CREATE_INDEXES, CREATE_VIEWS
+from .models import RAW_TABLES, RAW_INDEXES, CREATE_VIEWS
 
 
 class FoursquareDatabase(BaseDatabase):
@@ -18,15 +18,15 @@ class FoursquareDatabase(BaseDatabase):
         self.use_foreign_keys = True
     
     def init_tables(self) -> None:
-        """Create all tables if they don't exist."""
+        """Create raw sync tables if they don't exist."""
         # Use BaseDatabase.exists() which handles Path check
         is_new = not self.exists()
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            for table_sql in ALL_TABLES:
+            for table_sql in RAW_TABLES:
                 cursor.execute(table_sql)
-            for index_sql in CREATE_INDEXES:
+            for index_sql in RAW_INDEXES:
                 cursor.execute(index_sql)
             for view_sql in CREATE_VIEWS:
                 cursor.execute(view_sql)

@@ -90,17 +90,16 @@ CREATE TABLE IF NOT EXISTS analysis (
 );
 """
 
-# List of all table creation statements
-ALL_TABLES = [
+# List of raw table creation statements
+RAW_TABLES = [
     CREATE_USERS_TABLE,
     CREATE_PLACES_TABLE,
     CREATE_CHECKINS_TABLE,
     CREATE_SYNC_STATE_TABLE,
-    CREATE_ANALYSIS_TABLE,
 ]
 
-# Index creation for better query performance
-CREATE_INDEXES = [
+# Raw index creation for better query performance
+RAW_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_users_last_pulled ON users(last_pulled_timestamp);",
     "CREATE INDEX IF NOT EXISTS idx_places_name ON places(name);",
     "CREATE INDEX IF NOT EXISTS idx_places_locality ON places(locality);",
@@ -110,6 +109,10 @@ CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_checkins_place ON checkins(place_fsq_id);",
     "CREATE INDEX IF NOT EXISTS idx_checkins_created ON checkins(created_at);",
     "CREATE INDEX IF NOT EXISTS idx_checkins_user_created ON checkins(foursquare_user_id, created_at);",
+]
+
+ANALYSIS_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_analysis_year_month ON analysis(year, month);",
 ]
 
 # Views for convenient queries

@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import Optional
 
 from .database import GitHubDatabase
+from .models import CREATE_ANALYSIS_TABLE, ANALYSIS_INDEXES
 from ..time_utils import utc_now_iso
 
 
@@ -17,6 +18,13 @@ class GitHubAnalytics:
             db: Database manager instance.
         """
         self.db = db or GitHubDatabase()
+
+    def _ensure_analysis_table(self) -> None:
+        """Create analysis table if it doesn't exist."""
+        with self.db.get_connection() as conn:
+            conn.execute(CREATE_ANALYSIS_TABLE)
+            for index_sql in ANALYSIS_INDEXES:
+                conn.execute(index_sql)
     
     def analyze_commits(self) -> int:
         """Aggregate commits by month and write to analysis table.
@@ -28,6 +36,8 @@ class GitHubAnalytics:
         Returns:
             Number of monthly records written.
         """
+        self._ensure_analysis_table()
+
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             

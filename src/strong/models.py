@@ -40,15 +40,17 @@ CREATE TABLE IF NOT EXISTS analysis (
 );
 """
 
-ALL_TABLES = [
+RAW_TABLES = [
     CREATE_WORKOUTS_TABLE,
     CREATE_EXERCISES_TABLE,
-    CREATE_ANALYSIS_TABLE,
 ]
 
-CREATE_INDEXES = [
+RAW_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_exercises_workout_id ON exercises(workout_id);",
     "CREATE INDEX IF NOT EXISTS idx_exercises_name ON exercises(exercise_name);",
     "CREATE INDEX IF NOT EXISTS idx_workouts_started ON workouts(started_at);",
+]
+
+ANALYSIS_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_analysis_year_month ON analysis(year, month);",
 ]

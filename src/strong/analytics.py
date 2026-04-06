@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Optional, Dict, Any
 
 from .database import StrongDatabase
-from .models import CREATE_ANALYSIS_TABLE, CREATE_INDEXES
+from .models import CREATE_ANALYSIS_TABLE, ANALYSIS_INDEXES
 from ..time_utils import utc_now_iso
 
 
@@ -23,7 +23,7 @@ class StrongAnalytics:
         """Create analysis table if it doesn't exist."""
         with self.db.get_connection() as conn:
             conn.execute(CREATE_ANALYSIS_TABLE)
-            for index_sql in CREATE_INDEXES:
+            for index_sql in ANALYSIS_INDEXES:
                 conn.execute(index_sql)
 
     def analyze_workouts(self) -> int:

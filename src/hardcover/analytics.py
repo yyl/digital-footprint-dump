@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import Optional
 
 from .database import HardcoverDatabase
+from . import models
 from ..time_utils import utc_now_iso
 
 
@@ -17,6 +18,11 @@ class HardcoverAnalytics:
             db: Database manager instance.
         """
         self.db = db or HardcoverDatabase()
+
+    def _ensure_analysis_table(self) -> None:
+        """Create analysis table if it doesn't exist."""
+        with self.db.get_connection() as conn:
+            conn.execute(models.CREATE_ANALYSIS_TABLE)
     
     def analyze_books(self) -> int:
         """Aggregate books by month and write to analysis table.
@@ -28,6 +34,8 @@ class HardcoverAnalytics:
         Returns:
             Number of monthly records written.
         """
+        self._ensure_analysis_table()
+
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             
