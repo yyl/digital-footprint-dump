@@ -17,6 +17,8 @@ Usage:
     python main.py overcast-analyze  # Analyze Overcast podcasts
     python main.py strong-sync       # Import Strong workout data
     python main.py strong-analyze    # Analyze Strong workouts
+    python main.py apple-health-sync # Import Apple Health workouts
+    python main.py apple-health-analyze # Analyze Apple Health workouts
     python main.py hardcover-sync    # Sync Hardcover books
     python main.py hardcover-analyze # Analyze Hardcover books
     python main.py github-sync       # Sync GitHub commits
@@ -94,6 +96,11 @@ def cmd_init():
     from src.strong.database import StrongDatabase
     strong_db = StrongDatabase()
     strong_db.init_tables()
+
+    # Apple Health
+    from src.apple_health.database import AppleHealthDatabase
+    apple_health_db = AppleHealthDatabase()
+    apple_health_db.init_tables()
     
     # Hardcover
     from src.hardcover.database import HardcoverDatabase
@@ -198,6 +205,9 @@ def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False, last_mo
         print("\n--- Strong ---")
         cmd_strong_analyze()
 
+        print("\n--- Apple Health ---")
+        cmd_apple_health_analyze()
+
         print("\n--- Hardcover ---")
         cmd_hardcover_analyze()
 
@@ -241,7 +251,10 @@ def cmd_backfill():
     
     print("\n--- Strong ---")
     cmd_strong_analyze()
-    
+
+    print("\n--- Apple Health ---")
+    cmd_apple_health_analyze()
+
     print("\n--- Hardcover ---")
     cmd_hardcover_analyze()
     
@@ -404,6 +417,24 @@ def cmd_analyze():
         print(f"  Error: {e}")
     
     print()
+
+    # Apple Health
+    print("--- Apple Health ---")
+    try:
+        from src.apple_health.database import AppleHealthDatabase
+        from src.apple_health.analytics import AppleHealthAnalytics
+
+        cmd_apple_health_sync()
+
+        db = AppleHealthDatabase()
+        db.init_tables()
+        analytics = AppleHealthAnalytics(db=db)
+        count = analytics.analyze_workouts()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error: {e}")
+    
+    print()
     
     # Hardcover
     print("--- Hardcover ---")
@@ -484,6 +515,29 @@ def cmd_strong_analyze():
         service_name="Strong workouts",
         analysis_method="analyze_workouts",
         db_filename="strong.db"
+    )
+
+
+def cmd_apple_health_sync():
+    """Import Apple Health workout data from export.xml."""
+    from src.apple_health.importer import AppleHealthImporter
+
+    importer = AppleHealthImporter()
+    importer.sync()
+
+
+def cmd_apple_health_analyze():
+    """Analyze Apple Health workout data."""
+    from src.apple_health.database import AppleHealthDatabase
+    from src.apple_health.analytics import AppleHealthAnalytics
+
+    run_analysis(
+        sync_func=cmd_apple_health_sync,
+        db_cls=AppleHealthDatabase,
+        analytics_cls=AppleHealthAnalytics,
+        service_name="Apple Health workouts",
+        analysis_method="analyze_workouts",
+        db_filename="apple_health.db"
     )
 
 
@@ -581,6 +635,12 @@ def cmd_sync():
     print("--- Strong ---")
     cmd_strong_sync()
     
+    print()
+
+    # Apple Health
+    print("--- Apple Health ---")
+    cmd_apple_health_sync()
+
     print()
     
     # Hardcover
@@ -779,6 +839,46 @@ def cmd_status():
         print(f"  Error: {e}")
     
     print()
+
+    # Apple Health
+    print("--- Apple Health ---")
+    try:
+        from src.apple_health.importer import AppleHealthImporter
+        from src.apple_health.database import AppleHealthDatabase
+
+        importer = AppleHealthImporter()
+        status = importer.get_status()
+
+        if "error" in status:
+            print(f"  Error: {status['error']}")
+        else:
+            for entity, count in status.get("database_stats", {}).items():
+                print(f"  {entity}: {count}")
+            latest = status.get("latest_export")
+            if latest:
+                print(f"  latest_export: {latest.name}")
+
+        db = AppleHealthDatabase()
+        if db.exists():
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute("SELECT COUNT(*) FROM analysis")
+                    analysis_count = cursor.fetchone()[0]
+                    cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
+                    latest_analysis = cursor.fetchone()
+
+                    if analysis_count > 0 and latest_analysis:
+                        print(f"  analysis records: {analysis_count}")
+                        print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
+                    else:
+                        print("  analysis: no records")
+                except Exception:
+                    print("  analysis: no records")
+    except Exception as e:
+        print(f"  Error: {e}")
+
+    print()
     
     # Hardcover
     print("--- Hardcover ---")
@@ -869,6 +969,8 @@ def main():
     subparsers.add_parser("overcast-analyze", help="Analyze Overcast podcasts")
     subparsers.add_parser("strong-sync", help="Import Strong workout data")
     subparsers.add_parser("strong-analyze", help="Analyze Strong workouts")
+    subparsers.add_parser("apple-health-sync", help="Import Apple Health workout data")
+    subparsers.add_parser("apple-health-analyze", help="Analyze Apple Health workouts")
     subparsers.add_parser("hardcover-sync", help="Sync Hardcover books")
     subparsers.add_parser("hardcover-analyze", help="Analyze Hardcover books")
     subparsers.add_parser("github-sync", help="Sync GitHub commits")
@@ -914,6 +1016,8 @@ def main():
         "overcast-analyze": cmd_overcast_analyze,
         "strong-sync": cmd_strong_sync,
         "strong-analyze": cmd_strong_analyze,
+        "apple-health-sync": cmd_apple_health_sync,
+        "apple-health-analyze": cmd_apple_health_analyze,
         "hardcover-sync": cmd_hardcover_sync,
         "hardcover-analyze": cmd_hardcover_analyze,
         "github-sync": cmd_github_sync,

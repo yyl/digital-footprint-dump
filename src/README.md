@@ -7,7 +7,7 @@ This directory contains the core logic for the digital-footprint-dump pipeline.
 Note: The file structure below is shown from the root directory.
 
 ```
-├── main.py                 # CLI entry point (25 subcommands)
+├── main.py                 # CLI entry point
 ├── src/
 │   ├── config.py           # Environment configuration & validation
 │   ├── database.py         # Base SQLite connection manager
@@ -17,6 +17,7 @@ Note: The file structure below is shown from the root directory.
 │   ├── letterboxd/         # Letterboxd CSV import (file)
 │   ├── overcast/           # Overcast OPML import (file)
 │   ├── strong/             # Strong workout CSV import (file)
+│   ├── apple_health/       # Apple Health XML import (file)
 │   ├── hardcover/          # Hardcover book API integration (API)
 │   ├── github/             # GitHub commit activity tracking (API)
 │   └── publish/            # Markdown + data file generation & GitHub publishing
@@ -78,7 +79,7 @@ Each data source follows a consistent structure:
 | Type | Sources | Data Ingestion |
 |------|---------|----------------|
 | **API** | Readwise, Foursquare, Hardcover, GitHub | `api_client.py` + `sync.py` |
-| **File** | Letterboxd, Overcast, Strong | `importer.py` (reads from `files/`) |
+| **File** | Letterboxd, Overcast, Strong, Apple Health | `importer.py` (reads from `files/`) |
 
 ### Publish Module
 
@@ -97,6 +98,8 @@ The `publish` command supports several flags to customize its execution path:
 - `publish --skip-sync-analysis`: skips both sync and analysis, and publishes directly from the current analysis data in the local databases.
 - `publish --dry-run`: skips sync and publish, and only renders markdown from the current analysis data already present in the local databases.
 - `publish --last-month`: generates and publishes the report for the previous month instead of the latest available month.
+
+Published workout metrics now come from Apple Health monthly analysis. Strong remains importable and analyzable directly, but its exercise/set metrics are no longer used in the report or `workouts.yaml`.
 
 When selecting the reporting month, `publisher.py` now scans all available analysis databases and picks the latest (or second-latest if `--last-month` is provided) `YYYY-MM` it can find, while tolerating optional sources that are absent or not initialized yet.
 
@@ -182,9 +185,19 @@ Every source has an `analysis` table with this common structure:
 | Analysis Column | Type |
 |-----------------|------|
 | `workouts` | INTEGER |
-| `total_minutes` | INTEGER |
+| `total_duration_seconds` | INTEGER |
 | `unique_exercises` | INTEGER |
 | `total_sets` | INTEGER |
+
+#### Apple Health (`apple_health.db`)
+
+**Data tables:** `workouts`
+
+| Analysis Column | Type |
+|-----------------|------|
+| `workouts` | INTEGER |
+| `total_minutes` | INTEGER |
+| `total_calories` | REAL |
 
 #### Hardcover (`hardcover.db`)
 
@@ -216,7 +229,7 @@ All sources display month-over-month and year-over-year percentage changes in th
 | Foursquare | checkins, unique_places |
 | Letterboxd | movies_watched, avg_rating |
 | Overcast | episodes_played |
-| Strong | workouts, total_minutes |
+| Apple Health | workouts, total_duration_seconds, total_calories |
 | Hardcover | books_finished, avg_rating |
 | GitHub | commits, repos_touched |
 
@@ -257,7 +270,7 @@ The `publish/data_generator.py` module generates Hugo-compatible YAML data files
 | `travel.yaml` | Foursquare | `checkins`, `unique_places` |
 | `movies.yaml` | Letterboxd | `movies_watched`, `avg_rating` |
 | `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played` |
-| `workouts.yaml` | Strong | `workouts`, `total_minutes`, `unique_exercises`, `total_sets` |
+| `workouts.yaml` | Apple Health | `workouts`, `total_minutes` (derived from analysis seconds), `total_calories` |
 | `books.yaml` | Hardcover | `books_finished`, `avg_rating` |
 | `code.yaml` | GitHub | `commits`, `repos_touched` |
 
@@ -289,7 +302,7 @@ Timezone-aware UTC timestamps are generated via `src/time_utils.py:utc_now_iso()
 | GitHub Activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` | `validate_github_activity()` |
 | GitHub Publishing | `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME` | `validate_github()` |
 
-File-based sources (Letterboxd, Overcast, Strong) require no API tokens — they read from `<storage-root>/files/`.
+File-based sources (Letterboxd, Overcast, Strong, Apple Health) require no API tokens — they read from `<storage-root>/files/`.
 
 ## Testing
 
@@ -316,10 +329,11 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
    ```
    digital-footprint-data/
    ├── data/           # Empty initially, DBs auto-created
-   └── files/          # Manual exports (Letterboxd, Overcast, Strong)
+   └── files/          # Manual exports (Letterboxd, Overcast, Strong, Apple Health)
        ├── letterboxd-export/
        ├── overcast.opml
-       └── strong_workouts.csv
+       ├── strong_workouts.csv
+       └── export.xml
    ```
 
 2. **Create two fine-grained Personal Access Tokens** at [github.com/settings/tokens](https://github.com/settings/tokens):

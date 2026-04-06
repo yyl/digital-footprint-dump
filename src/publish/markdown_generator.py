@@ -41,9 +41,9 @@ class MarkdownGenerator:
         if data.get('overcast'):
             parts.append(self._generate_overcast_section(data['overcast']))
         
-        # Strong section
-        if data.get('strong'):
-            parts.append(self._generate_strong_section(data['strong']))
+        # Apple Health workout section
+        if data.get('apple_health'):
+            parts.append(self._generate_apple_health_section(data['apple_health']))
         
         # Hardcover section
         if data.get('hardcover'):
@@ -79,8 +79,8 @@ class MarkdownGenerator:
             tags.append("letterboxd")
         if data.get('overcast'):
             tags.append("overcast")
-        if data.get('strong'):
-            tags.append("strong")
+        if data.get('apple_health'):
+            tags.append("apple-health")
         if data.get('hardcover'):
             tags.append("hardcover")
         if data.get('github'):
@@ -232,13 +232,13 @@ categories: ["Summary"]
 {self._generate_podcasts_block(overcast_data.get('episodes', []))}
 """
     
-    def _generate_strong_section(self, strong_data: Dict[str, Any]) -> str:
-        """Generate the Strong/Workout statistics section."""
-        workouts = int(strong_data.get('workouts', 0))
-        total_minutes = int(strong_data.get('total_minutes', 0))
-        unique_exercises = int(strong_data.get('unique_exercises', 0))
-        total_sets = int(strong_data.get('total_sets', 0))
-        comparisons = strong_data.get('comparisons', {})
+    def _generate_apple_health_section(self, apple_health_data: Dict[str, Any]) -> str:
+        """Generate the Apple Health workout statistics section."""
+        workouts = int(apple_health_data.get('workouts', 0))
+        total_duration_seconds = int(apple_health_data.get('total_duration_seconds', 0))
+        total_minutes = round(total_duration_seconds / 60) if total_duration_seconds else 0
+        total_calories = apple_health_data.get('total_calories', 0) or 0
+        comparisons = apple_health_data.get('comparisons', {})
         
         # Format time
         if total_minutes < 60:
@@ -249,16 +249,35 @@ categories: ["Summary"]
             time_display = f"{hours}h {minutes}m"
         
         workouts_cmp = format_comparison_suffix(comparisons.get('workouts'))
-        time_cmp = format_comparison_suffix(comparisons.get('total_minutes'))
-        
+        time_cmp = format_comparison_suffix(comparisons.get('total_duration_seconds'))
+        calories_cmp = format_comparison_suffix(comparisons.get('total_calories'))
+
         return f"""
 ## Workout
 
 - **Workouts**: {workouts}{workouts_cmp}
 - **Total Time**: {time_display}{time_cmp}
-- **Unique Exercises**: {unique_exercises}
-- **Total Sets**: {total_sets}
+- **Total Calories**: {int(round(total_calories)):,} kcal{calories_cmp}
+{self._generate_activity_breakdown_block(apple_health_data.get('activity_breakdown', []))}
 """
+
+    def _generate_activity_breakdown_block(self, activity_breakdown: list[Dict[str, Any]]) -> str:
+        """Generate ranked Apple Health activity type summary."""
+        if not activity_breakdown:
+            return ""
+
+        lines = [
+            "",
+            "### Activity Types",
+            "",
+            "| Activity Type | Workouts |",
+            "| --- | --- |",
+        ]
+        for activity in activity_breakdown:
+            lines.append(
+                f"| {self._escape_table_text(activity.get('activity_type') or 'Unknown')} | {int(activity.get('workouts', 0))} |"
+            )
+        return "\n".join(lines)
     
     def _generate_hardcover_section(self, hardcover_data: Dict[str, Any]) -> str:
         """Generate the Hardcover/Books statistics section."""

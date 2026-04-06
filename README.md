@@ -32,7 +32,7 @@ The repo pins its expected Python version in `.python-version`. CI and the recom
 
 Run with: `uv run main.py <command>`
 
-See [docs/SOURCES.md](docs/SOURCES.md) for details on supported sources (`readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`, `hardcover`, `github`).
+See [docs/SOURCES.md](docs/SOURCES.md) for details on supported sources (`readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`, `apple-health`, `hardcover`, `github`).
 
 For specific details on tests, database definitions, module structure, storage and cloud deployment, see [src/README.md](src/README.md).
 

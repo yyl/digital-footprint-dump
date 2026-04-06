@@ -83,6 +83,30 @@ Imports workout data from Strong app CSV export to `<storage-root>/data/strong.d
 2. Place CSV in `<storage-root>/files/` (e.g., `files/strong_workouts.csv`)
 3. Run `uv run main.py strong-sync`
 
+Strong remains available as a standalone import and analysis source. Published workout metrics and `workouts.yaml` now come from Apple Health instead.
+
+---
+
+## Apple Health
+
+Imports workouts from Apple Health `export.xml` into `<storage-root>/data/apple_health.db`.
+
+**Commands:**
+- `apple-health-sync`: Imports per-workout activity, timing, calories, and heart-rate data from Apple Health XML.
+- `apple-health-analyze`: Generates monthly workout stats (workouts, total duration in seconds, total calories) and writes to the `analysis` table.
+
+**Required in .env:**
+- None (File-based export)
+
+**Setup:**
+1. Export your Apple Health data and extract `export.xml`
+2. Place `export.xml` in `<storage-root>/files/` or a child export folder under `<storage-root>/files/`
+3. Run `uv run main.py apple-health-sync`
+
+**Publishing notes:**
+- Apple Health is the published workout source for the monthly summary.
+- `data/activity/workouts.yaml` is generated from Apple Health analysis and includes `workouts`, derived `total_minutes`, and `total_calories`.
+
 ---
 
 ## Hardcover

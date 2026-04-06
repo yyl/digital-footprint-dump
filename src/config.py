@@ -67,6 +67,11 @@ class Config:
     # Strong Configuration
     # ==========================================================================
     STRONG_DATABASE_PATH = DATA_DIR / "strong.db"
+
+    # ==========================================================================
+    # Apple Health Configuration
+    # ==========================================================================
+    APPLE_HEALTH_DATABASE_PATH = DATA_DIR / "apple_health.db"
     
     # ==========================================================================
     # Hardcover Configuration

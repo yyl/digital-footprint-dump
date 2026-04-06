@@ -155,6 +155,30 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertIn("| Date | Commit Message | Repo |", result)
         self.assertNotIn("#### [user/beta]", result)
 
+    def test_generate_apple_health_section_includes_calories_and_activity_rank(self):
+        result = self.generator._generate_apple_health_section({
+            "workouts": 5,
+            "total_duration_seconds": 7500,
+            "total_calories": 1432.4,
+            "comparisons": {
+                "workouts": {"mom": 25.0, "yoy": 10.0},
+                "total_duration_seconds": {"mom": 12.0, "yoy": None},
+                "total_calories": {"mom": -5.0, "yoy": 20.0},
+            },
+            "activity_breakdown": [
+                {"activity_type": "run", "workouts": 3},
+                {"activity_type": "walk", "workouts": 2},
+            ],
+        })
+
+        self.assertIn("## Workout", result)
+        self.assertIn("- **Workouts**: 5 (+25% MoM, +10% YoY)", result)
+        self.assertIn("- **Total Time**: 2h 5m (+12% MoM, N/A YoY)", result)
+        self.assertIn("- **Total Calories**: 1,432 kcal (-5% MoM, +20% YoY)", result)
+        self.assertIn("| Activity Type | Workouts |", result)
+        self.assertIn("| run | 3 |", result)
+        self.assertIn("| walk | 2 |", result)
+
     def test_generate_readwise_highlights_block_uses_quote_format(self):
         result = self.generator._generate_readwise_highlights_block([
             {

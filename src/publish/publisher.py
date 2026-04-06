@@ -11,6 +11,7 @@ from ..foursquare.database import FoursquareDatabase
 from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
 from ..strong.database import StrongDatabase
+from ..apple_health.database import AppleHealthDatabase
 from ..hardcover.database import HardcoverDatabase
 from ..github.database import GitHubDatabase
 from .github_client import GitHubClient
@@ -30,6 +31,7 @@ class Publisher:
         letterboxd_db: Optional[LetterboxdDatabase] = None,
         overcast_db: Optional[OvercastDatabase] = None,
         strong_db: Optional[StrongDatabase] = None,
+        apple_health_db: Optional[AppleHealthDatabase] = None,
         hardcover_db: Optional[HardcoverDatabase] = None,
         github_activity_db: Optional[GitHubDatabase] = None,
         github_client: Optional[GitHubClient] = None
@@ -42,6 +44,7 @@ class Publisher:
             letterboxd_db: Letterboxd database manager.
             overcast_db: Overcast database manager.
             strong_db: Strong database manager.
+            apple_health_db: Apple Health database manager.
             hardcover_db: Hardcover database manager.
             github_activity_db: GitHub activity database manager.
             github_client: GitHub client for committing files.
@@ -51,6 +54,7 @@ class Publisher:
         self.letterboxd_db = letterboxd_db or LetterboxdDatabase()
         self.overcast_db = overcast_db or OvercastDatabase()
         self.strong_db = strong_db or StrongDatabase()
+        self.apple_health_db = apple_health_db or AppleHealthDatabase()
         self.hardcover_db = hardcover_db or HardcoverDatabase()
         self.github_activity_db = github_activity_db or GitHubDatabase()
         self.github_client = github_client
@@ -61,6 +65,7 @@ class Publisher:
             letterboxd_db=self.letterboxd_db,
             overcast_db=self.overcast_db,
             strong_db=self.strong_db,
+            apple_health_db=self.apple_health_db,
             hardcover_db=self.hardcover_db,
             github_activity_db=self.github_activity_db,
         )
@@ -183,6 +188,21 @@ class Publisher:
         """
         return self._fetch_analysis(
             self.strong_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
+
+    def _get_apple_health_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
+        """Get Apple Health analysis for a specific month."""
+        query = """
+        SELECT year_month, year, month, workouts, total_duration_seconds, total_calories
+        FROM analysis
+        WHERE year_month = ?
+        """
+        return self._fetch_analysis(
+            self.apple_health_db,
             query,
             (year_month,),
             check_exists=True,
@@ -322,6 +342,23 @@ class Publisher:
             check_exists=True,
             suppress_errors=True
         )
+
+    def _get_apple_health_activity_breakdown(self, year_month: str) -> List[Dict[str, Any]]:
+        """Get Apple Health activity types ranked by workout count."""
+        query = """
+        SELECT activity_type, COUNT(*) AS workouts
+        FROM workouts
+        WHERE strftime('%Y-%m', started_at) = ?
+        GROUP BY activity_type
+        ORDER BY workouts DESC, activity_type ASC
+        """
+        return self._fetch_rows(
+            self.apple_health_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
     
     def _get_target_year_month(self, last_month: bool = False) -> Optional[str]:
         """Get the target year_month (latest or previous) from any analysis source."""
@@ -333,7 +370,7 @@ class Publisher:
             self.foursquare_db,
             self.letterboxd_db,
             self.overcast_db,
-            self.strong_db,
+            self.apple_health_db,
             self.hardcover_db,
             self.github_activity_db,
         ]:
@@ -527,20 +564,20 @@ class Publisher:
             }
         
         # Get Strong analysis
-        strong = self._get_strong_analysis(year_month)
-        if strong:
-            strong_comparisons = compute_comparisons(
-                current_stats=strong,
-                historical_getter=self._get_strong_analysis,
+        apple_health = self._get_apple_health_analysis(year_month)
+        if apple_health:
+            apple_health_comparisons = compute_comparisons(
+                current_stats=apple_health,
+                historical_getter=self._get_apple_health_analysis,
                 year_month=year_month,
-                metrics=['workouts', 'total_minutes']
+                metrics=['workouts', 'total_duration_seconds', 'total_calories']
             )
-            data['strong'] = {
-                'workouts': strong['workouts'],
-                'total_minutes': strong['total_minutes'],
-                'unique_exercises': strong['unique_exercises'],
-                'total_sets': strong['total_sets'],
-                'comparisons': strong_comparisons
+            data['apple_health'] = {
+                'workouts': apple_health['workouts'],
+                'total_duration_seconds': apple_health['total_duration_seconds'],
+                'total_calories': apple_health['total_calories'],
+                'activity_breakdown': self._get_apple_health_activity_breakdown(year_month),
+                'comparisons': apple_health_comparisons
             }
         
         # Get Hardcover analysis

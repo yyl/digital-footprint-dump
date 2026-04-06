@@ -123,6 +123,19 @@ class TestDataGeneratorOutput:
         
         assert 'checkins:' in yaml
         assert 'unique_places:' in yaml
+
+    def test_workouts_yaml_structure_uses_apple_health_fields(self):
+        """Verify workouts.yaml uses Apple Health summary fields."""
+        records = [
+            {'month': '2025-08', 'workouts': 14, 'total_minutes': 560, 'total_calories': 4820.5},
+        ]
+        yaml = _to_yaml(records, "Monthly workout activity data")
+
+        assert 'workouts:' in yaml
+        assert 'total_minutes:' in yaml
+        assert 'total_calories:' in yaml
+        assert 'unique_exercises:' not in yaml
+        assert 'total_sets:' not in yaml
     
     def test_records_sorted_ascending(self):
         """Test that records appear in order in the output."""
