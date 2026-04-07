@@ -122,6 +122,7 @@ class AppleHealthImporter:
     def import_from_file(self, xml_path: Path) -> Dict[str, int]:
         """Import Apple Health workouts from an export.xml file."""
         self.db.init_tables()
+        self._validate_xml_input(xml_path)
         workouts, samples = self._parse_export(xml_path)
         self._apply_record_fallbacks(workouts, samples)
         saved = self.db.save_workouts([workout.to_db_row() for workout in workouts])
@@ -150,6 +151,23 @@ class AppleHealthImporter:
             }
         except Exception as exc:
             return {"error": str(exc)}
+
+    def _validate_xml_input(self, xml_path: Path) -> None:
+        """Fail fast with clearer errors for common non-XML inputs."""
+        with xml_path.open("rb") as handle:
+            prefix = handle.read(128)
+
+        trimmed = prefix.lstrip()
+        if trimmed.startswith(b"version https://git-lfs.github.com/spec/v1"):
+            raise ValueError(
+                f"{xml_path} is a Git LFS pointer, not the real Apple Health export.xml. "
+                "Fetch LFS objects before running apple-health-sync."
+            )
+
+        if not (trimmed.startswith(b"<?xml") or trimmed.startswith(b"<HealthData")):
+            raise ValueError(
+                f"{xml_path} does not appear to be an Apple Health export.xml file."
+            )
 
     def _parse_export(self, xml_path: Path) -> tuple[List[WorkoutRecord], List[RecordSample]]:
         """Parse export.xml into workouts plus relevant fallback samples."""

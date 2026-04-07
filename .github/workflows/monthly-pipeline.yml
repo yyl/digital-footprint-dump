@@ -68,6 +68,7 @@ jobs:
           repository: ${{ env.DATA_REPO_OWNER }}/${{ env.DATA_REPO_NAME }}
           token: ${{ secrets.DATA_REPO_PAT }}
           path: _data_repo
+          lfs: true
 
       - name: Setup data directories
         run: |

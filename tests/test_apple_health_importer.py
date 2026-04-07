@@ -1,4 +1,5 @@
 from pathlib import Path
+import pytest
 
 from src.apple_health.database import AppleHealthDatabase
 from src.apple_health.importer import AppleHealthImporter
@@ -184,3 +185,21 @@ def test_importer_prefers_external_uuid_for_workout_id(tmp_path):
         cursor = conn.cursor()
         cursor.execute("SELECT id FROM workouts")
         assert cursor.fetchone()[0] == "oura-workout-272c6e69-1bd4-458a-a13b-ef8a3485e6a8"
+
+
+def test_importer_rejects_git_lfs_pointer_file(tmp_path):
+    xml_path = tmp_path / "export.xml"
+    db_path = tmp_path / "apple_health.db"
+    xml_path.write_text(
+        "\n".join([
+            "version https://git-lfs.github.com/spec/v1",
+            "oid sha256:1234567890abcdef",
+            "size 99587116",
+        ]),
+        encoding="utf-8",
+    )
+
+    importer = AppleHealthImporter(db=AppleHealthDatabase(str(db_path)))
+
+    with pytest.raises(ValueError, match="Git LFS pointer"):
+        importer.import_from_file(xml_path)
