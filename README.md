@@ -32,7 +32,7 @@ The repo pins its expected Python version in `.python-version`. CI and the recom
 
 Run with: `uv run main.py <command>`
 
-See [docs/SOURCES.md](docs/SOURCES.md) for details on supported sources (`readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`, `apple-health`, `hardcover`, `github`).
+See [docs/SOURCES.md](docs/SOURCES.md) for details on supported sources (`readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`, `apple-health`, `blog`, `hardcover`, `github`).
 
 `sync`/`{source}-sync` create or refresh raw source data only. Monthly `analysis` tables are created when you run `analyze`, `{source}-analyze`, or `publish`.
 
@@ -53,6 +53,9 @@ The pipeline generates a markdown report from the local SQLite databases. See [d
 - `BLOG_REPO_OWNER` - Repository owner username
 - `BLOG_REPO_NAME` - Repository name
 - `BLOG_GITHUB_TARGET_BRANCH` - (optional) Branch to commit to, defaults to `main`
+
+**Optional blog tracking config:**
+- `BLOG_POSTS_INDEX_URL` - Public Hugo JSON export for published posts, defaults to `https://www.mildlyjournaling.com/posts/index.json`
 
 ### GitHub Actions Workflow
 

@@ -12,6 +12,7 @@ class TestPublisher(unittest.TestCase):
         self.mock_overcast_db = MagicMock(spec=BaseDatabase)
         self.mock_strong_db = MagicMock(spec=BaseDatabase)
         self.mock_apple_health_db = MagicMock(spec=BaseDatabase)
+        self.mock_blog_db = MagicMock(spec=BaseDatabase)
         self.mock_hardcover_db = MagicMock(spec=BaseDatabase)
         self.mock_github_activity_db = MagicMock(spec=BaseDatabase)
 
@@ -23,6 +24,7 @@ class TestPublisher(unittest.TestCase):
             overcast_db=self.mock_overcast_db,
             strong_db=self.mock_strong_db,
             apple_health_db=self.mock_apple_health_db,
+            blog_db=self.mock_blog_db,
             hardcover_db=self.mock_hardcover_db,
             github_activity_db=self.mock_github_activity_db
         )
@@ -115,6 +117,34 @@ class TestPublisher(unittest.TestCase):
             {'activity_type': 'walk', 'workouts': 2},
         ])
 
+    def test_get_blog_analysis_exists_success(self):
+        self.mock_blog_db.exists.return_value = True
+        conn = MagicMock()
+        cursor = MagicMock()
+        self.mock_blog_db.get_connection.return_value.__enter__.return_value = conn
+        conn.cursor.return_value = cursor
+        cursor.fetchone.return_value = {'year_month': '2023-01', 'posts': 2, 'total_words': 1800, 'unique_tags': 3}
+
+        result = self.publisher._get_blog_analysis('2023-01')
+        self.assertEqual(result, {'year_month': '2023-01', 'posts': 2, 'total_words': 1800, 'unique_tags': 3})
+
+    def test_get_blog_top_tags(self):
+        self.mock_blog_db.exists.return_value = True
+        conn = MagicMock()
+        cursor = MagicMock()
+        self.mock_blog_db.get_connection.return_value.__enter__.return_value = conn
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [
+            {'tag': 'python', 'posts': 2},
+            {'tag': 'hugo', 'posts': 1},
+        ]
+
+        result = self.publisher._get_blog_top_tags('2023-01')
+        self.assertEqual(result, [
+            {'tag': 'python', 'posts': 2},
+            {'tag': 'hugo', 'posts': 1},
+        ])
+
     def test_get_target_year_month_uses_all_sources(self):
         self.mock_readwise_db.exists.return_value = True
         self.mock_foursquare_db.exists.return_value = True
@@ -122,6 +152,7 @@ class TestPublisher(unittest.TestCase):
         self.mock_overcast_db.exists.return_value = True
         self.mock_strong_db.exists.return_value = True
         self.mock_apple_health_db.exists.return_value = True
+        self.mock_blog_db.exists.return_value = True
         self.mock_hardcover_db.exists.return_value = True
         self.mock_github_activity_db.exists.return_value = True
 
@@ -142,13 +173,14 @@ class TestPublisher(unittest.TestCase):
         self.mock_overcast_db.get_connection.return_value = make_conn("2025-01")
         self.mock_strong_db.get_connection.return_value = make_conn("2025-12")
         self.mock_apple_health_db.get_connection.return_value = make_conn("2025-02")
+        self.mock_blog_db.get_connection.return_value = make_conn("2025-04")
         self.mock_hardcover_db.get_connection.return_value = make_conn("2025-03")
         self.mock_github_activity_db.get_connection.return_value = make_conn("2025-01")
 
         result = self.publisher._get_target_year_month()
 
-        self.assertEqual(result, "2025-03")
+        self.assertEqual(result, "2025-04")
         
         # Test last_month flag
         result_last = self.publisher._get_target_year_month(last_month=True)
-        self.assertEqual(result_last, "2025-02")
+        self.assertEqual(result_last, "2025-03")

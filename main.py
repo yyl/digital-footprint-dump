@@ -19,6 +19,8 @@ Usage:
     python main.py strong-analyze    # Analyze Strong workouts
     python main.py apple-health-sync # Import Apple Health workouts
     python main.py apple-health-analyze # Analyze Apple Health workouts
+    python main.py blog-sync         # Sync public blog posts
+    python main.py blog-analyze      # Analyze published blog posts
     python main.py hardcover-sync    # Sync Hardcover books
     python main.py hardcover-analyze # Analyze Hardcover books
     python main.py github-sync       # Sync GitHub commits
@@ -101,6 +103,11 @@ def cmd_init():
     from src.apple_health.database import AppleHealthDatabase
     apple_health_db = AppleHealthDatabase()
     apple_health_db.init_tables()
+
+    # Blog
+    from src.blog.database import BlogDatabase
+    blog_db = BlogDatabase()
+    blog_db.init_tables()
     
     # Hardcover
     from src.hardcover.database import HardcoverDatabase
@@ -207,6 +214,9 @@ def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False, last_mo
 
         print("\n--- Apple Health ---")
         cmd_apple_health_analyze()
+
+        print("\n--- Blog ---")
+        cmd_blog_analyze()
 
         print("\n--- Hardcover ---")
         cmd_hardcover_analyze()
@@ -435,6 +445,24 @@ def cmd_analyze():
         print(f"  Error: {e}")
     
     print()
+
+    # Blog
+    print("--- Blog ---")
+    try:
+        from src.blog.analytics import BlogAnalytics
+        from src.blog.database import BlogDatabase
+
+        cmd_blog_sync()
+
+        db = BlogDatabase()
+        db.init_tables()
+        analytics = BlogAnalytics(db=db)
+        count = analytics.analyze_posts()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error: {e}")
+
+    print()
     
     # Hardcover
     print("--- Hardcover ---")
@@ -541,6 +569,29 @@ def cmd_apple_health_analyze():
     )
 
 
+def cmd_blog_sync():
+    """Sync public blog posts from the Hugo JSON export."""
+    from src.blog.sync import BlogSyncManager
+
+    sync_manager = BlogSyncManager()
+    sync_manager.sync()
+
+
+def cmd_blog_analyze():
+    """Analyze published blog posts."""
+    from src.blog.analytics import BlogAnalytics
+    from src.blog.database import BlogDatabase
+
+    run_analysis(
+        sync_func=cmd_blog_sync,
+        db_cls=BlogDatabase,
+        analytics_cls=BlogAnalytics,
+        service_name="Blog posts",
+        analysis_method="analyze_posts",
+        db_filename="blog.db",
+    )
+
+
 def cmd_hardcover_sync():
     """Sync Hardcover book data."""
     try:
@@ -640,6 +691,12 @@ def cmd_sync():
     # Apple Health
     print("--- Apple Health ---")
     cmd_apple_health_sync()
+
+    print()
+
+    # Blog
+    print("--- Blog ---")
+    cmd_blog_sync()
 
     print()
     
@@ -885,6 +942,44 @@ def cmd_status():
         print(f"  Error: {e}")
 
     print()
+
+    # Blog
+    print("--- Blog ---")
+    try:
+        from src.blog.database import BlogDatabase
+        from src.blog.sync import BlogSyncManager
+
+        sync_manager = BlogSyncManager()
+        status = sync_manager.get_status()
+
+        for entity, count in status.get("database_stats", {}).items():
+            print(f"  {entity}: {count}")
+        print(f"  source_url: {status.get('source_url')}")
+        latest_post = status.get("latest_post")
+        if latest_post:
+            print(f"  latest post: {latest_post['published_at']} — {latest_post['title']}")
+
+        db = BlogDatabase()
+        if db.exists():
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute("SELECT COUNT(*) FROM analysis")
+                    analysis_count = cursor.fetchone()[0]
+                    cursor.execute("SELECT year_month, updated_at FROM analysis ORDER BY year_month DESC LIMIT 1")
+                    latest_analysis = cursor.fetchone()
+
+                    if analysis_count > 0 and latest_analysis:
+                        print(f"  analysis records: {analysis_count}")
+                        print(f"  latest analysis: {latest_analysis['year_month']} (updated: {latest_analysis['updated_at']})")
+                    else:
+                        print("  analysis: no records")
+                except Exception:
+                    print("  analysis: no records")
+    except Exception as e:
+        print(f"  Error: {e}")
+
+    print()
     
     # Hardcover
     print("--- Hardcover ---")
@@ -977,6 +1072,8 @@ def main():
     subparsers.add_parser("strong-analyze", help="Analyze Strong workouts")
     subparsers.add_parser("apple-health-sync", help="Import Apple Health workout data")
     subparsers.add_parser("apple-health-analyze", help="Analyze Apple Health workouts")
+    subparsers.add_parser("blog-sync", help="Sync public blog posts")
+    subparsers.add_parser("blog-analyze", help="Analyze published blog posts")
     subparsers.add_parser("hardcover-sync", help="Sync Hardcover books")
     subparsers.add_parser("hardcover-analyze", help="Analyze Hardcover books")
     subparsers.add_parser("github-sync", help="Sync GitHub commits")
@@ -1024,6 +1121,8 @@ def main():
         "strong-analyze": cmd_strong_analyze,
         "apple-health-sync": cmd_apple_health_sync,
         "apple-health-analyze": cmd_apple_health_analyze,
+        "blog-sync": cmd_blog_sync,
+        "blog-analyze": cmd_blog_analyze,
         "hardcover-sync": cmd_hardcover_sync,
         "hardcover-analyze": cmd_hardcover_analyze,
         "github-sync": cmd_github_sync,

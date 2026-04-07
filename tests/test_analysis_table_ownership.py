@@ -8,6 +8,8 @@ from src.letterboxd.database import LetterboxdDatabase
 from src.letterboxd.analytics import LetterboxdAnalytics
 from src.strong.database import StrongDatabase
 from src.strong.analytics import StrongAnalytics
+from src.blog.database import BlogDatabase
+from src.blog.analytics import BlogAnalytics
 from src.hardcover.database import HardcoverDatabase
 from src.hardcover.analytics import HardcoverAnalytics
 from src.github.database import GitHubDatabase
@@ -30,6 +32,7 @@ def test_sync_side_init_only_creates_raw_tables(tmp_path):
         FoursquareDatabase(str(tmp_path / "foursquare.db")),
         LetterboxdDatabase(str(tmp_path / "letterboxd.db")),
         StrongDatabase(str(tmp_path / "strong.db")),
+        BlogDatabase(str(tmp_path / "blog.db")),
         HardcoverDatabase(str(tmp_path / "hardcover.db")),
         GitHubDatabase(str(tmp_path / "github.db")),
     ]
@@ -45,6 +48,7 @@ def test_analytics_creates_analysis_tables_when_missing(tmp_path):
         (FoursquareDatabase(str(tmp_path / "foursquare.db")), FoursquareAnalytics),
         (LetterboxdDatabase(str(tmp_path / "letterboxd.db")), LetterboxdAnalytics),
         (StrongDatabase(str(tmp_path / "strong.db")), StrongAnalytics),
+        (BlogDatabase(str(tmp_path / "blog.db")), BlogAnalytics),
         (HardcoverDatabase(str(tmp_path / "hardcover.db")), HardcoverAnalytics),
         (GitHubDatabase(str(tmp_path / "github.db")), GitHubAnalytics),
     ]

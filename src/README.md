@@ -18,6 +18,7 @@ Note: The file structure below is shown from the root directory.
 │   ├── overcast/           # Overcast OPML import (file)
 │   ├── strong/             # Strong workout CSV import (file)
 │   ├── apple_health/       # Apple Health XML import (file)
+│   ├── blog/               # Public Hugo posts JSON tracking (API)
 │   ├── hardcover/          # Hardcover book API integration (API)
 │   ├── github/             # GitHub commit activity tracking (API)
 │   └── publish/            # Markdown + data file generation & GitHub publishing
@@ -80,7 +81,7 @@ Sync/import initialization creates raw source tables only. Each source's `analyt
 
 | Type | Sources | Data Ingestion |
 |------|---------|----------------|
-| **API** | Readwise, Foursquare, Hardcover, GitHub | `api_client.py` + `sync.py` |
+| **API** | Readwise, Foursquare, Blog, Hardcover, GitHub | `api_client.py` + `sync.py` |
 | **File** | Letterboxd, Overcast, Strong, Apple Health | `importer.py` (reads from `files/`) |
 
 ### Publish Module
@@ -88,7 +89,7 @@ Sync/import initialization creates raw source tables only. Each source's `analyt
 | File | Description |
 |------|-------------|
 | `publisher.py` | Orchestrates analysis fetching, comparison computation, report assembly, and publishing |
-| `markdown_generator.py` | Hugo-compatible markdown generation for the monthly draft report (sections: Reading, Travel, Movies, Podcasts, Workout, Books, Code) |
+| `markdown_generator.py` | Hugo-compatible markdown generation for the monthly draft report (sections: Reading, Travel, Movies, Podcasts, Workout, Writing, Books, Code) |
 | `data_generator.py` | Generates Hugo data files (`data/activity/*.yaml`) from analysis tables |
 | `github_client.py` | PyGithub-based wrapper for multi-file atomic commits via the Git tree API, with retry handling for non-fast-forward ref updates |
 
@@ -102,6 +103,8 @@ The `publish` command supports several flags to customize its execution path:
 - `publish --last-month`: generates and publishes the report for the previous month instead of the latest available month.
 
 Published workout metrics now come from Apple Health monthly analysis. Strong remains importable and analyzable directly, but its exercise/set metrics are no longer used in the report or `workouts.yaml`.
+
+Published writing metrics now come from the public Hugo posts JSON export. The report renders a `Writing` section, and backfill writes `writing.yaml`.
 
 When selecting the reporting month, `publisher.py` now scans all available analysis databases and picks the latest (or second-latest if `--last-month` is provided) `YYYY-MM` it can find, while tolerating optional sources that are absent or not initialized yet.
 
@@ -198,8 +201,18 @@ Every source has an `analysis` table with this common structure:
 | Analysis Column | Type |
 |-----------------|------|
 | `workouts` | INTEGER |
-| `total_minutes` | INTEGER |
+| `total_duration_seconds` | INTEGER |
 | `total_calories` | REAL |
+
+#### Blog (`blog.db`)
+
+**Data tables:** `posts`, `post_tags`
+
+| Analysis Column | Type |
+|-----------------|------|
+| `posts` | INTEGER |
+| `total_words` | INTEGER |
+| `unique_tags` | INTEGER |
 
 #### Hardcover (`hardcover.db`)
 
@@ -232,6 +245,7 @@ All sources display month-over-month and year-over-year percentage changes in th
 | Letterboxd | movies_watched, avg_rating |
 | Overcast | episodes_played |
 | Apple Health | workouts, total_duration_seconds, total_calories |
+| Blog | posts, total_words, unique_tags |
 | Hardcover | books_finished, avg_rating |
 | GitHub | commits, repos_touched |
 
@@ -273,6 +287,7 @@ The `publish/data_generator.py` module generates Hugo-compatible YAML data files
 | `movies.yaml` | Letterboxd | `movies_watched`, `avg_rating` |
 | `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played` |
 | `workouts.yaml` | Apple Health | `workouts`, `total_minutes` (derived from analysis seconds), `total_calories` |
+| `writing.yaml` | Blog | `posts`, `total_words`, `unique_tags` |
 | `books.yaml` | Hardcover | `books_finished`, `avg_rating` |
 | `code.yaml` | GitHub | `commits`, `repos_touched` |
 
@@ -304,7 +319,7 @@ Timezone-aware UTC timestamps are generated via `src/time_utils.py:utc_now_iso()
 | GitHub Activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` | `validate_github_activity()` |
 | GitHub Publishing | `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME` | `validate_github()` |
 
-File-based sources (Letterboxd, Overcast, Strong, Apple Health) require no API tokens — they read from `<storage-root>/files/`.
+File-based sources (Letterboxd, Overcast, Strong, Apple Health) require no API tokens — they read from `<storage-root>/files/`. Blog tracking also requires no token by default and reads from the public `BLOG_POSTS_INDEX_URL`.
 
 ## Testing
 

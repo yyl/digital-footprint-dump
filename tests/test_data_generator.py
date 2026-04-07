@@ -136,6 +136,17 @@ class TestDataGeneratorOutput:
         assert 'total_calories:' in yaml
         assert 'unique_exercises:' not in yaml
         assert 'total_sets:' not in yaml
+
+    def test_writing_yaml_structure(self):
+        """Verify writing.yaml has the expected field names."""
+        records = [
+            {'month': '2025-08', 'posts': 2, 'total_words': 3200, 'unique_tags': 5},
+        ]
+        yaml = _to_yaml(records, "Monthly writing activity data")
+
+        assert 'posts:' in yaml
+        assert 'total_words:' in yaml
+        assert 'unique_tags:' in yaml
     
     def test_records_sorted_ascending(self):
         """Test that records appear in order in the output."""

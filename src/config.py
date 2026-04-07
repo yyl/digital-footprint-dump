@@ -72,6 +72,15 @@ class Config:
     # Apple Health Configuration
     # ==========================================================================
     APPLE_HEALTH_DATABASE_PATH = DATA_DIR / "apple_health.db"
+
+    # ==========================================================================
+    # Blog Tracking Configuration
+    # ==========================================================================
+    BLOG_DATABASE_PATH = DATA_DIR / "blog.db"
+    BLOG_POSTS_INDEX_URL: str = os.getenv(
+        "BLOG_POSTS_INDEX_URL",
+        "https://www.mildlyjournaling.com/posts/index.json",
+    )
     
     # ==========================================================================
     # Hardcover Configuration

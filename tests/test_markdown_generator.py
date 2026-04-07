@@ -179,6 +179,30 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertIn("| run | 3 |", result)
         self.assertIn("| walk | 2 |", result)
 
+    def test_generate_blog_section_includes_top_tags(self):
+        result = self.generator._generate_blog_section({
+            "posts": 3,
+            "total_words": 4567,
+            "unique_tags": 4,
+            "comparisons": {
+                "posts": {"mom": 50.0, "yoy": None},
+                "total_words": {"mom": 10.0, "yoy": 25.0},
+                "unique_tags": {"mom": -20.0, "yoy": 0.0},
+            },
+            "top_tags": [
+                {"tag": "python", "posts": 2},
+                {"tag": "hugo", "posts": 1},
+            ],
+        })
+
+        self.assertIn("## Writing", result)
+        self.assertIn("- **Posts**: 3 (+50% MoM, N/A YoY)", result)
+        self.assertIn("- **Total Words**: 4,567 (+10% MoM, +25% YoY)", result)
+        self.assertIn("- **Unique Tags**: 4 (-20% MoM, +0% YoY)", result)
+        self.assertIn("| Tag | Posts |", result)
+        self.assertIn("| python | 2 |", result)
+        self.assertIn("| hugo | 1 |", result)
+
     def test_generate_readwise_highlights_block_uses_quote_format(self):
         result = self.generator._generate_readwise_highlights_block([
             {

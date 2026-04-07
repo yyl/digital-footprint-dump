@@ -109,6 +109,7 @@ class TestDatabasePaths:
         assert Config.LETTERBOXD_DATABASE_PATH.is_absolute()
         assert Config.OVERCAST_DATABASE_PATH.is_absolute()
         assert Config.APPLE_HEALTH_DATABASE_PATH.is_absolute()
+        assert Config.BLOG_DATABASE_PATH.is_absolute()
 
     def test_database_paths_in_data_dir(self):
         """Test that all database paths are in the data directory."""
@@ -119,6 +120,13 @@ class TestDatabasePaths:
         assert Config.LETTERBOXD_DATABASE_PATH.parent == Config.DATA_DIR
         assert Config.OVERCAST_DATABASE_PATH.parent == Config.DATA_DIR
         assert Config.APPLE_HEALTH_DATABASE_PATH.parent == Config.DATA_DIR
+        assert Config.BLOG_DATABASE_PATH.parent == Config.DATA_DIR
+
+    def test_blog_posts_index_url_has_default(self):
+        """Test that blog posts JSON export URL has a default."""
+        from src.config import Config
+
+        assert Config.BLOG_POSTS_INDEX_URL == "https://www.mildlyjournaling.com/posts/index.json"
 
     def test_ensure_data_dir_creates_directory(self, tmp_path):
         """Test that ensure_data_dir creates the data directory."""

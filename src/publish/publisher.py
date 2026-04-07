@@ -12,6 +12,7 @@ from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
 from ..strong.database import StrongDatabase
 from ..apple_health.database import AppleHealthDatabase
+from ..blog.database import BlogDatabase
 from ..hardcover.database import HardcoverDatabase
 from ..github.database import GitHubDatabase
 from .github_client import GitHubClient
@@ -32,6 +33,7 @@ class Publisher:
         overcast_db: Optional[OvercastDatabase] = None,
         strong_db: Optional[StrongDatabase] = None,
         apple_health_db: Optional[AppleHealthDatabase] = None,
+        blog_db: Optional[BlogDatabase] = None,
         hardcover_db: Optional[HardcoverDatabase] = None,
         github_activity_db: Optional[GitHubDatabase] = None,
         github_client: Optional[GitHubClient] = None
@@ -45,6 +47,7 @@ class Publisher:
             overcast_db: Overcast database manager.
             strong_db: Strong database manager.
             apple_health_db: Apple Health database manager.
+            blog_db: Blog database manager.
             hardcover_db: Hardcover database manager.
             github_activity_db: GitHub activity database manager.
             github_client: GitHub client for committing files.
@@ -55,6 +58,7 @@ class Publisher:
         self.overcast_db = overcast_db or OvercastDatabase()
         self.strong_db = strong_db or StrongDatabase()
         self.apple_health_db = apple_health_db or AppleHealthDatabase()
+        self.blog_db = blog_db or BlogDatabase()
         self.hardcover_db = hardcover_db or HardcoverDatabase()
         self.github_activity_db = github_activity_db or GitHubDatabase()
         self.github_client = github_client
@@ -66,6 +70,7 @@ class Publisher:
             overcast_db=self.overcast_db,
             strong_db=self.strong_db,
             apple_health_db=self.apple_health_db,
+            blog_db=self.blog_db,
             hardcover_db=self.hardcover_db,
             github_activity_db=self.github_activity_db,
         )
@@ -203,6 +208,21 @@ class Publisher:
         """
         return self._fetch_analysis(
             self.apple_health_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
+
+    def _get_blog_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
+        """Get blog analysis for a specific month."""
+        query = """
+        SELECT year_month, year, month, posts, total_words, unique_tags
+        FROM analysis
+        WHERE year_month = ?
+        """
+        return self._fetch_analysis(
+            self.blog_db,
             query,
             (year_month,),
             check_exists=True,
@@ -359,6 +379,24 @@ class Publisher:
             check_exists=True,
             suppress_errors=True
         )
+
+    def _get_blog_top_tags(self, year_month: str) -> List[Dict[str, Any]]:
+        """Get blog tags ranked by number of posts in a month."""
+        query = """
+        SELECT pt.tag, COUNT(DISTINCT pt.permalink) AS posts
+        FROM post_tags pt
+        JOIN posts p ON p.permalink = pt.permalink
+        WHERE strftime('%Y-%m', p.published_at) = ?
+        GROUP BY pt.tag
+        ORDER BY posts DESC, pt.tag ASC
+        """
+        return self._fetch_rows(
+            self.blog_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
     
     def _get_target_year_month(self, last_month: bool = False) -> Optional[str]:
         """Get the target year_month (latest or previous) from any analysis source."""
@@ -371,6 +409,7 @@ class Publisher:
             self.letterboxd_db,
             self.overcast_db,
             self.apple_health_db,
+            self.blog_db,
             self.hardcover_db,
             self.github_activity_db,
         ]:
@@ -578,6 +617,22 @@ class Publisher:
                 'total_calories': apple_health['total_calories'],
                 'activity_breakdown': self._get_apple_health_activity_breakdown(year_month),
                 'comparisons': apple_health_comparisons
+            }
+
+        blog = self._get_blog_analysis(year_month)
+        if blog:
+            blog_comparisons = compute_comparisons(
+                current_stats=blog,
+                historical_getter=self._get_blog_analysis,
+                year_month=year_month,
+                metrics=['posts', 'total_words', 'unique_tags']
+            )
+            data['blog'] = {
+                'posts': blog['posts'],
+                'total_words': blog['total_words'],
+                'unique_tags': blog['unique_tags'],
+                'top_tags': self._get_blog_top_tags(year_month),
+                'comparisons': blog_comparisons,
             }
         
         # Get Hardcover analysis

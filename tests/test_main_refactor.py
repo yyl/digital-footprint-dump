@@ -204,6 +204,27 @@ class TestMainRefactor(unittest.TestCase):
         self.assertEqual(kwargs['db_filename'], "apple_health.db")
 
     @patch('main.run_analysis')
+    def test_cmd_blog_analyze(self, mock_run):
+        try:
+            main.cmd_blog_analyze()
+        except (Exception, SystemExit):
+            pass
+
+        if not mock_run.called:
+             self.skipTest("cmd_blog_analyze not implemented yet")
+
+        _, kwargs = mock_run.call_args
+        from src.blog.database import BlogDatabase
+        from src.blog.analytics import BlogAnalytics
+
+        self.assertEqual(kwargs['sync_func'], main.cmd_blog_sync)
+        self.assertEqual(kwargs['db_cls'], BlogDatabase)
+        self.assertEqual(kwargs['analytics_cls'], BlogAnalytics)
+        self.assertEqual(kwargs['service_name'], "Blog posts")
+        self.assertEqual(kwargs['analysis_method'], "analyze_posts")
+        self.assertEqual(kwargs['db_filename'], "blog.db")
+
+    @patch('main.run_analysis')
     def test_cmd_hardcover_analyze(self, mock_run):
         try:
             main.cmd_hardcover_analyze()

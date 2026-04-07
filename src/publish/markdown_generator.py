@@ -44,6 +44,10 @@ class MarkdownGenerator:
         # Apple Health workout section
         if data.get('apple_health'):
             parts.append(self._generate_apple_health_section(data['apple_health']))
+
+        # Blog writing section
+        if data.get('blog'):
+            parts.append(self._generate_blog_section(data['blog']))
         
         # Hardcover section
         if data.get('hardcover'):
@@ -81,6 +85,8 @@ class MarkdownGenerator:
             tags.append("overcast")
         if data.get('apple_health'):
             tags.append("apple-health")
+        if data.get('blog'):
+            tags.append("blog")
         if data.get('hardcover'):
             tags.append("hardcover")
         if data.get('github'):
@@ -261,6 +267,26 @@ categories: ["Summary"]
 {self._generate_activity_breakdown_block(apple_health_data.get('activity_breakdown', []))}
 """
 
+    def _generate_blog_section(self, blog_data: Dict[str, Any]) -> str:
+        """Generate the blog writing statistics section."""
+        posts = int(blog_data.get('posts', 0))
+        total_words = int(blog_data.get('total_words', 0))
+        unique_tags = int(blog_data.get('unique_tags', 0))
+        comparisons = blog_data.get('comparisons', {})
+
+        posts_cmp = format_comparison_suffix(comparisons.get('posts'))
+        words_cmp = format_comparison_suffix(comparisons.get('total_words'))
+        tags_cmp = format_comparison_suffix(comparisons.get('unique_tags'))
+
+        return f"""
+## Writing
+
+- **Posts**: {posts}{posts_cmp}
+- **Total Words**: {total_words:,}{words_cmp}
+- **Unique Tags**: {unique_tags}{tags_cmp}
+{self._generate_blog_top_tags_block(blog_data.get('top_tags', []))}
+"""
+
     def _generate_activity_breakdown_block(self, activity_breakdown: list[Dict[str, Any]]) -> str:
         """Generate ranked Apple Health activity type summary."""
         if not activity_breakdown:
@@ -276,6 +302,24 @@ categories: ["Summary"]
         for activity in activity_breakdown:
             lines.append(
                 f"| {self._escape_table_text(activity.get('activity_type') or 'Unknown')} | {int(activity.get('workouts', 0))} |"
+            )
+        return "\n".join(lines)
+
+    def _generate_blog_top_tags_block(self, top_tags: list[Dict[str, Any]]) -> str:
+        """Generate ranked monthly blog tag summary."""
+        if not top_tags:
+            return ""
+
+        lines = [
+            "",
+            "### Top Tags",
+            "",
+            "| Tag | Posts |",
+            "| --- | --- |",
+        ]
+        for tag in top_tags[:10]:
+            lines.append(
+                f"| {self._escape_table_text(tag.get('tag') or 'Unknown')} | {int(tag.get('posts', 0))} |"
             )
         return "\n".join(lines)
     

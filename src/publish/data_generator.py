@@ -9,6 +9,7 @@ from ..letterboxd.database import LetterboxdDatabase
 from ..overcast.database import OvercastDatabase
 from ..strong.database import StrongDatabase
 from ..apple_health.database import AppleHealthDatabase
+from ..blog.database import BlogDatabase
 from ..hardcover.database import HardcoverDatabase
 from ..github.database import GitHubDatabase
 
@@ -63,6 +64,7 @@ class DataGenerator:
         overcast_db: Optional[OvercastDatabase] = None,
         strong_db: Optional[StrongDatabase] = None,
         apple_health_db: Optional[AppleHealthDatabase] = None,
+        blog_db: Optional[BlogDatabase] = None,
         hardcover_db: Optional[HardcoverDatabase] = None,
         github_activity_db: Optional[GitHubDatabase] = None,
     ):
@@ -75,6 +77,7 @@ class DataGenerator:
             overcast_db: Overcast database manager.
             strong_db: Strong database manager.
             apple_health_db: Apple Health database manager.
+            blog_db: Blog database manager.
             hardcover_db: Hardcover database manager.
             github_activity_db: GitHub activity database manager.
         """
@@ -84,6 +87,7 @@ class DataGenerator:
         self.overcast_db = overcast_db or OvercastDatabase()
         self.strong_db = strong_db or StrongDatabase()
         self.apple_health_db = apple_health_db or AppleHealthDatabase()
+        self.blog_db = blog_db or BlogDatabase()
         self.hardcover_db = hardcover_db or HardcoverDatabase()
         self.github_activity_db = github_activity_db or GitHubDatabase()
     
@@ -247,6 +251,34 @@ class DataGenerator:
             ]
         except Exception:
             return []
+
+    def _get_all_blog(self) -> List[Dict[str, Any]]:
+        """Get all blog analysis records, oldest first."""
+        if not self.blog_db.exists():
+            return []
+
+        query = """
+        SELECT year_month, posts, total_words, unique_tags
+        FROM analysis
+        ORDER BY year_month ASC
+        """
+        try:
+            with self.blog_db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                rows = cursor.fetchall()
+
+            return [
+                {
+                    'month': dict(row)['year_month'],
+                    'posts': dict(row)['posts'],
+                    'total_words': dict(row)['total_words'],
+                    'unique_tags': dict(row)['unique_tags'],
+                }
+                for row in rows
+            ]
+        except Exception:
+            return []
     
     def _get_all_hardcover(self) -> List[Dict[str, Any]]:
         """Get all Hardcover analysis records, oldest first."""
@@ -350,6 +382,14 @@ class DataGenerator:
                 workouts_records, "Monthly workout activity data"
             )
             logger.info(f"Generated workouts.yaml with {len(workouts_records)} records")
+
+        # Writing (Blog)
+        writing_records = self._get_all_blog()
+        if writing_records:
+            files["data/activity/writing.yaml"] = _to_yaml(
+                writing_records, "Monthly writing activity data"
+            )
+            logger.info(f"Generated writing.yaml with {len(writing_records)} records")
         
         # Books (Hardcover)
         books_records = self._get_all_hardcover()

@@ -109,6 +109,26 @@ Imports workouts from Apple Health `export.xml` into `<storage-root>/data/apple_
 
 ---
 
+## Blog
+
+Tracks published blog posts from a public Hugo JSON export into `<storage-root>/data/blog.db`.
+
+**Commands:**
+- `blog-sync`: Fetches the public `posts/index.json` export and stores raw posts + tags locally.
+- `blog-analyze`: Generates monthly stats (posts, total words, unique tags) and writes to the `analysis` table.
+
+**Required in .env:**
+- None
+
+**Optional in .env:**
+- `BLOG_POSTS_INDEX_URL` - Override the default public JSON source URL (`https://www.mildlyjournaling.com/posts/index.json`)
+
+**Publishing notes:**
+- The monthly summary includes a `Writing` section sourced from blog analysis.
+- `data/activity/writing.yaml` is generated from blog analysis and includes `posts`, `total_words`, and `unique_tags`.
+
+---
+
 ## Hardcover
 
 Syncs finished books from [Hardcover](https://hardcover.app/) via their GraphQL API to `<storage-root>/data/hardcover.db`.
