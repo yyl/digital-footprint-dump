@@ -184,3 +184,31 @@ class TestPublisher(unittest.TestCase):
         # Test last_month flag
         result_last = self.publisher._get_target_year_month(last_month=True)
         self.assertEqual(result_last, "2025-03")
+
+    def test_get_new_github_repos_returns_repos(self):
+        self.mock_github_activity_db.exists.return_value = True
+        conn = MagicMock()
+        cursor = MagicMock()
+        self.mock_github_activity_db.get_connection.return_value.__enter__.return_value = conn
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [
+            {'repo': 'user/another-new'},
+            {'repo': 'user/new-project'},
+        ]
+
+        result = self.publisher._get_new_github_repos('2025-04')
+        self.assertEqual(result, ['user/another-new', 'user/new-project'])
+
+    def test_get_new_github_repos_db_not_exists(self):
+        self.mock_github_activity_db.exists.return_value = False
+
+        result = self.publisher._get_new_github_repos('2025-04')
+        self.assertEqual(result, [])
+        self.mock_github_activity_db.get_connection.assert_not_called()
+
+    def test_get_new_github_repos_exception_suppressed(self):
+        self.mock_github_activity_db.exists.return_value = True
+        self.mock_github_activity_db.get_connection.side_effect = Exception("DB Error")
+
+        result = self.publisher._get_new_github_repos('2025-04')
+        self.assertEqual(result, [])

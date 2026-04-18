@@ -16,7 +16,7 @@ It chooses the latest available `YYYY-MM` across all analysis databases that are
 
 ## Report Contents
 
-- A "What's new" section right below the front matter dynamically populated with newly discovered reading sources and podcast feeds.
+- A "What's new" section right below the front matter dynamically populated with newly discovered reading sources, podcast feeds, and GitHub repos.
 - Keeps the existing top-level metrics, including Month-over-Month (MoM) and Year-over-Year (YoY) comparisons.
 - **Readwise (Articles):** Adds a ranked Readwise source summary table, then per-source article tables using the same grouping rule: sources with more than one article get their own section and one-off sources roll into `Other`. First-time sources are highlighted with a 🆕 emoji and get their own standalone row in the summary table.
 - **Readwise (Newsletters):** Skips broken Readwise newsletter-style `mailto:` links and renders those titles as plain text.
