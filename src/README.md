@@ -108,21 +108,13 @@ Published writing metrics now come from the public Hugo posts JSON export. The r
 
 When selecting the reporting month, `publisher.py` now scans all available analysis databases and picks the latest (or second-latest if `--last-month` is provided) `YYYY-MM` it can find, while tolerating optional sources that are absent or not initialized yet.
 
-The generated post currently uses:
+See [docs/SUMMARY.md](../docs/SUMMARY.md) for full details on the generated report format and content.
 
-- title: `Wrap up {month_name} {year}`
-- slug: `wrap-up-{month}-{year}`
-- path: `content/posts/wrap-up-{month}-{year}.md`
-- front matter: `draft: true`
+### Publish Implementation Details
 
-The report keeps the existing summary metrics and MoM/YoY comparisons, and adds richer detail sections:
-
-- Readwise articles rendered with a ranked source summary table, followed by per-source article tables where sources with more than one article get their own section and one-off sources are grouped under `Other`
-- Readwise article titles with newsletter-style `mailto:` links are rendered as plain text instead of broken hyperlinks
-- Readwise highlights rendered as grouped quote-style entries with date and note metadata
-- Letterboxd movies rendered as a dated table
-- Overcast episodes rendered with a ranked podcast summary table, then grouped dated tables where one-off podcasts are rolled into `Other`
-- GitHub commits rendered with a ranked repo summary table, then grouped dated tables where one-off repos are rolled into `Other`, excluding merge commit messages that start with `Merge pull request #`
+- GitHub publishing uses PyGithub for authenticated write operations.
+- If the target branch moves during publish, the GitHub client automatically retries non-fast-forward ref update failures.
+- GitHub activity sync uses an inclusive timestamp cursor plus SHA de-duplication so same-second commits are not skipped during incremental sync.
 
 ## Database Schemas
 

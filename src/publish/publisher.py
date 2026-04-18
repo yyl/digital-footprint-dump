@@ -303,6 +303,27 @@ class Publisher:
         """
         return self._fetch_rows(self.readwise_db, query, (year_month,))
 
+    def _get_new_reading_sources(self, year_month: str) -> List[str]:
+        """Get 'new' reading sources that appeared for the first time in the given month."""
+        query = """
+        SELECT DISTINCT d.site_name
+        FROM documents d
+        WHERE d.location = 'archive'
+          AND d.site_name IS NOT NULL
+          AND d.site_name != ''
+          AND strftime('%Y-%m', d.last_moved_at) = ?
+          AND NOT EXISTS (
+              SELECT 1 FROM documents d2
+              WHERE d2.location = 'archive'
+                AND d2.site_name = d.site_name
+                AND d2.last_moved_at IS NOT NULL
+                AND strftime('%Y-%m', d2.last_moved_at) < ?
+          )
+        ORDER BY d.site_name ASC
+        """
+        rows = self._fetch_rows(self.readwise_db, query, (year_month, year_month))
+        return [row['site_name'] for row in rows if row.get('site_name')]
+
     def _get_movies_watched(self, year_month: str) -> List[Dict[str, Any]]:
         """Get movies watched in a specific month."""
         query = """
@@ -342,6 +363,23 @@ class Publisher:
             check_exists=True,
             suppress_errors=True
         )
+
+    def _get_new_podcast_feeds(self, year_month: str) -> List[str]:
+        """Get new podcast feeds subscribed in the given month."""
+        query = """
+        SELECT title
+        FROM feeds
+        WHERE overcastAddedDate IS NOT NULL
+          AND strftime('%Y-%m', overcastAddedDate) = ?
+        """
+        rows = self._fetch_rows(
+            self.overcast_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
+        return [row['title'] for row in rows if row.get('title')]
 
     def _get_github_commits(self, year_month: str) -> List[Dict[str, Any]]:
         """Get GitHub commits for a specific month."""
@@ -545,6 +583,7 @@ class Publisher:
                 'median_words_per_article': readwise['median_words_per_article'],
                 'min_words_per_article': readwise['min_words_per_article'],
                 'article_list': self._get_readwise_articles(year_month),
+                'new_sources': self._get_new_reading_sources(year_month),
                 'highlight_groups': self._group_readwise_highlights(
                     self._get_readwise_highlights(year_month)
                 ),
@@ -600,6 +639,7 @@ class Publisher:
                 'episodes_played': overcast['episodes_played'],
                 'minutes_listened': overcast.get('minutes_listened', 0),
                 'episodes': self._get_podcast_episodes(year_month),
+                'new_feeds': self._get_new_podcast_feeds(year_month),
                 'comparisons': overcast_comparisons
             }
         

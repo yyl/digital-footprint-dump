@@ -84,6 +84,51 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertNotIn("#### Beta", result)
         self.assertNotIn("#### Gamma", result)
 
+    def test_generate_readwise_articles_block_promotes_new_sources(self):
+        result = self.generator._generate_readwise_articles_block([
+            {
+                "title": "Essay A",
+                "link": "https://example.com/a",
+                "site_name": "Old Source",
+                "last_moved_at": "2026-04-04T10:00:00Z",
+                "reading_speed_wpm": 250,
+            },
+            {
+                "title": "Essay B",
+                "link": "https://example.com/b",
+                "site_name": "New Source 1",
+                "last_moved_at": "2026-04-03T10:00:00Z",
+                "reading_speed_wpm": 260,
+            },
+            {
+                "title": "Essay C",
+                "link": "https://example.com/c",
+                "site_name": "New Source 2",
+                "last_moved_at": "2026-04-02T10:00:00Z",
+                "reading_speed_wpm": 270,
+            },
+            {
+                "title": "Essay D",
+                "link": "https://example.com/d",
+                "site_name": "New Source 2",
+                "last_moved_at": "2026-04-01T10:00:00Z",
+                "reading_speed_wpm": 280,
+            },
+        ], new_sources=["New Source 1", "New Source 2"])
+
+        # Summary table:
+        self.assertIn("| Source | Articles |", result)
+        self.assertIn("| New Source 2 🆕 | 2 |", result)
+        self.assertIn("| New Source 1 🆕 | 1 |", result)
+        self.assertIn("| Other | 1 |", result)  # Old Source is count=1, it goes to Other
+        
+        # Breakdown section: New Source 2 has its own section
+        self.assertIn("#### 🆕 New Source 2", result)
+        # Breakdown section: New Source 1 and Old Source are in Other
+        self.assertIn("#### Other", result)
+        self.assertIn("| New Source 1 🆕 |", result)
+        self.assertIn("| Old Source |", result)
+
     def test_generate_podcasts_block_adds_ranked_summary_and_groups_other(self):
         result = self.generator._generate_podcasts_block([
             {
@@ -123,6 +168,51 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertIn("#### Other", result)
         self.assertIn("| Date | Episode | Podcast |", result)
         self.assertNotIn("#### [Beta Show]", result)
+
+    def test_generate_podcasts_block_promotes_new_feeds(self):
+        result = self.generator._generate_podcasts_block([
+            {
+                "podcast_title": "Old Show",
+                "podcast_link": "https://example.com/old",
+                "episode_title": "Episode 1",
+                "episode_link": "https://example.com/old-1",
+                "userUpdatedDate": "2026-04-04T10:00:00Z",
+            },
+            {
+                "podcast_title": "New Show 1",
+                "podcast_link": "https://example.com/ns1",
+                "episode_title": "Episode 2",
+                "episode_link": "https://example.com/ns1-1",
+                "userUpdatedDate": "2026-04-03T10:00:00Z",
+            },
+            {
+                "podcast_title": "New Show 2",
+                "podcast_link": "https://example.com/ns2",
+                "episode_title": "Episode 3",
+                "episode_link": "https://example.com/ns2-1",
+                "userUpdatedDate": "2026-04-02T10:00:00Z",
+            },
+            {
+                "podcast_title": "New Show 2",
+                "podcast_link": "https://example.com/ns2",
+                "episode_title": "Episode 4",
+                "episode_link": "https://example.com/ns2-2",
+                "userUpdatedDate": "2026-04-01T10:00:00Z",
+            },
+        ], new_feeds=["New Show 1", "New Show 2"])
+
+        # Summary table:
+        self.assertIn("| Podcast | Episodes |", result)
+        self.assertIn("| New Show 2 🆕 | 2 |", result)
+        self.assertIn("| New Show 1 🆕 | 1 |", result)
+        self.assertIn("| Other | 1 |", result)  # Old Show is count=1, it goes to Other
+        
+        # Breakdown section: New Show 2 has its own section
+        self.assertIn("#### 🆕 [New Show 2](https://example.com/ns2)", result)
+        # Breakdown section: New Show 1 and Old Show are in Other
+        self.assertIn("#### Other", result)
+        self.assertIn("| New Show 1 🆕 |", result)
+        self.assertIn("| Old Show |", result)
 
     def test_generate_commit_groups_block_adds_ranked_summary_and_groups_other(self):
         result = self.generator._generate_commit_groups_block([

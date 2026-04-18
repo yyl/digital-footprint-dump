@@ -16,16 +16,11 @@ It chooses the latest available `YYYY-MM` across all analysis databases that are
 
 ## Report Contents
 
+- A "What's new" section right below the front matter dynamically populated with newly discovered reading sources and podcast feeds.
 - Keeps the existing top-level metrics, including Month-over-Month (MoM) and Year-over-Year (YoY) comparisons.
-- **Readwise (Articles):** Adds a ranked Readwise source summary table, then per-source article tables using the same grouping rule: sources with more than one article get their own section and one-off sources roll into `Other`.
+- **Readwise (Articles):** Adds a ranked Readwise source summary table, then per-source article tables using the same grouping rule: sources with more than one article get their own section and one-off sources roll into `Other`. First-time sources are highlighted with a 🆕 emoji and get their own standalone row in the summary table.
 - **Readwise (Newsletters):** Skips broken Readwise newsletter-style `mailto:` links and renders those titles as plain text.
 - **Readwise (Highlights):** Adds Readwise highlights as grouped quote-style entries with date and note metadata.
 - **Movies (Letterboxd):** Adds movie tables with watch date and rating.
-- **Podcasts (Overcast):** Adds podcast summaries ranked by episode count, followed by grouped episode tables using the same `Other` bucketing rule for one-off podcasts.
-- **GitHub Commits:** Adds GitHub repo summaries ranked by commit count, followed by grouped commit tables using the same `Other` bucketing rule for one-off repos, with merge-PR commits excluded.
-
-## Implementation Details
-
-- GitHub publishing uses PyGithub for authenticated write operations.
-- If the target branch moves during publish, the GitHub client automatically retries non-fast-forward ref update failures.
-- GitHub activity sync uses an inclusive timestamp cursor plus SHA de-duplication so same-second commits are not skipped during incremental sync.
+- **Podcasts (Overcast):** Adds podcast summaries ranked by episode count, followed by grouped episode tables using the same `Other` bucketing rule for one-off podcasts. Newly subscribed feeds are highlighted with a 🆕 emoji and get their own standalone row in the summary table.
+- **GitHub Commits:** Adds GitHub repo summaries ranked by commit count, followed by grouped commit tables using the same `Other` bucketing rule for one-off repos, with merge PR commits (`Merge pull request #`) excluded.

@@ -40,7 +40,7 @@ For specific details on tests, database definitions, module structure, storage a
 
 ### Publishing
 
-The pipeline generates a markdown report from the local SQLite databases. See [docs/SUMMARY.md](docs/SUMMARY.md) for details on the report format and logic.
+The pipeline generates a markdown report from the local SQLite databases. See [docs/SUMMARY.md](docs/SUMMARY.md) for full details on the report format and logic.
 
 **Commands:**
 - `publish`: Syncs latest data, runs analysis, generates markdown, and commits the draft report post to GitHub.

@@ -25,6 +25,12 @@ class OvercastAnalytics:
             conn.execute(CREATE_ANALYSIS_TABLE)
             for index_sql in CREATE_INDEXES:
                 conn.execute(index_sql)
+            
+            # Migration: Add minutes_listened for older DBs safely catching duplicate warnings
+            try:
+                conn.execute("ALTER TABLE analysis ADD COLUMN minutes_listened INTEGER DEFAULT 0;")
+            except Exception:
+                pass
 
     def analyze_podcasts(self) -> int:
         """Analyze podcast activity by month.

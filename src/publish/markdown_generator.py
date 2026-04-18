@@ -25,6 +25,11 @@ class MarkdownGenerator:
         # Front matter
         parts.append(self._generate_front_matter(data))
         
+        # What's new section
+        whats_new = self._generate_whats_new_section(data)
+        if whats_new:
+            parts.append(whats_new)
+        
         # Readwise section
         if data.get('readwise'):
             parts.append(self._generate_readwise_section(data['readwise']))
@@ -59,6 +64,43 @@ class MarkdownGenerator:
         
         return "\n".join(parts)
     
+    def _generate_whats_new_section(self, data: Dict[str, Any]) -> str:
+        """Generate the What's new section."""
+        new_sources = []
+        if data.get('readwise') and data['readwise'].get('new_sources'):
+            new_sources = data['readwise']['new_sources']
+            
+        new_feeds = []
+        if data.get('overcast') and data['overcast'].get('new_feeds'):
+            new_feeds = data['overcast']['new_feeds']
+            
+        if not new_sources and not new_feeds:
+            return ""
+            
+        lines = [
+            "## What's new",
+        ]
+        
+        if new_sources:
+            plural = "s" if len(new_sources) > 1 else ""
+            lines.extend([
+                "",
+                f"{len(new_sources)} new article source{plural}:",
+            ])
+            for source in new_sources:
+                lines.append(f"- {self._clean_text(source)}")
+                
+        if new_feeds:
+            plural = "s" if len(new_feeds) > 1 else ""
+            lines.extend([
+                "",
+                f"{len(new_feeds)} new podcast channel{plural}:",
+            ])
+            for feed in new_feeds:
+                lines.append(f"- {self._clean_text(feed)}")
+                
+        return "\n".join(lines) + "\n"
+
     def _generate_front_matter(self, data: Dict[str, Any]) -> str:
         """Generate YAML front matter for the markdown file."""
         month_str = data['month']
@@ -149,7 +191,7 @@ categories: ["Summary"]
 - **Max Words (single article)**: {max_wpa:,}
 - **Median Words (per article)**: {median_wpa:,}
 - **Min Words (single article)**: {min_wpa:,}
-{self._generate_readwise_articles_block(readwise_data.get('article_list', []))}
+{self._generate_readwise_articles_block(readwise_data.get('article_list', []), readwise_data.get('new_sources', []))}
 {self._generate_readwise_highlights_block(readwise_data.get('highlight_groups', []))}
 """
     
@@ -235,7 +277,7 @@ categories: ["Summary"]
 - **New Feeds Subscribed**: {feeds_added}
 - **Feeds Removed**: {feeds_removed}
 - **Episodes Played**: {episodes_played}{played_cmp}
-{self._generate_podcasts_block(overcast_data.get('episodes', []))}
+{self._generate_podcasts_block(overcast_data.get('episodes', []), overcast_data.get('new_feeds', []))}
 """
     
     def _generate_apple_health_section(self, apple_health_data: Dict[str, Any]) -> str:
@@ -356,20 +398,30 @@ categories: ["Summary"]
 {self._generate_commit_groups_block(github_data.get('commit_groups', []))}
 """
 
-    def _generate_readwise_articles_block(self, articles: list[Dict[str, Any]]) -> str:
+    def _generate_readwise_articles_block(self, articles: list[Dict[str, Any]], new_sources: list[str] = None) -> str:
         """Generate the archived article list block."""
         if not articles:
             return ""
+
+        new_sources_set = set(new_sources or [])
 
         source_counts: dict[str, int] = {}
         for article in articles:
             source_name = (article.get('site_name') or "").strip() or "Other"
             source_counts[source_name] = source_counts.get(source_name, 0) + 1
 
+        summary_counts: dict[str, int] = {}
         grouped_counts: dict[str, int] = {}
         grouped: dict[str, list[Dict[str, Any]]] = {}
         for article in articles:
             source_name = (article.get('site_name') or "").strip() or "Other"
+            
+            # Summary table grouping (promote new sources)
+            is_new = source_name in new_sources_set
+            summary_group = source_name if (source_counts.get(source_name, 0) > 1 or is_new) else "Other"
+            summary_counts[summary_group] = summary_counts.get(summary_group, 0) + 1
+            
+            # Breakdown table grouping (keep original logic)
             group_name = source_name if source_counts.get(source_name, 0) > 1 else "Other"
             grouped_counts[group_name] = grouped_counts.get(group_name, 0) + 1
             grouped.setdefault(group_name, []).append(article)
@@ -382,14 +434,22 @@ categories: ["Summary"]
             "| Source | Articles |",
             "| --- | --- |",
         ])
-        for source_name, count in self._sorted_group_counts(grouped_counts):
-            lines.append(f"| {self._escape_table_text(source_name)} | {count} |")
+        for source_name, count in self._sorted_group_counts(summary_counts):
+            display_name = self._escape_table_text(source_name)
+            if source_name != "Other" and source_name in new_sources_set:
+                display_name = f"{display_name} 🆕"
+            lines.append(f"| {display_name} | {count} |")
 
         for group_name in ordered_group_names:
             show_source_column = group_name == "Other"
+            
+            heading = self._escape_table_text(group_name)
+            if group_name != "Other" and group_name in new_sources_set:
+                heading = f"🆕 {heading}"
+
             lines.extend([
                 "",
-                f"#### {self._escape_table_text(group_name)}",
+                f"#### {heading}",
                 "",
                 "| Date | Article | Speed | Source |" if show_source_column else "| Date | Article | Speed |",
                 "| --- | --- | --- | --- |" if show_source_column else "| --- | --- | --- |",
@@ -400,8 +460,12 @@ categories: ["Summary"]
                 label = self._markdown_link(title, link)
                 date = self._format_date(article.get('last_moved_at'))
                 speed = self._format_speed(article.get('reading_speed_wpm'))
-                source = self._escape_table_text((article.get('site_name') or "").strip())
+                
                 if show_source_column:
+                    raw_source = (article.get('site_name') or "").strip()
+                    source = self._escape_table_text(raw_source)
+                    if raw_source in new_sources_set:
+                        source = f"{source} 🆕"
                     lines.append(f"| {date} | {label} | {speed} | {source} |")
                 else:
                     lines.append(f"| {date} | {label} | {speed} |")
@@ -453,21 +517,31 @@ categories: ["Summary"]
             )
         return "\n".join(lines)
 
-    def _generate_podcasts_block(self, episodes: list[Dict[str, Any]]) -> str:
+    def _generate_podcasts_block(self, episodes: list[Dict[str, Any]], new_feeds: list[str] = None) -> str:
         """Generate podcasts and episode list block."""
         if not episodes:
             return ""
+
+        new_feeds_set = set(new_feeds or [])
 
         podcast_counts: dict[str, int] = {}
         for episode in episodes:
             podcast_title = episode.get('podcast_title') or "Unknown podcast"
             podcast_counts[podcast_title] = podcast_counts.get(podcast_title, 0) + 1
 
+        summary_counts: dict[str, int] = {}
         grouped_counts: dict[str, int] = {}
         grouped: dict[str, list[Dict[str, Any]]] = {}
         podcast_links: dict[str, Optional[str]] = {}
         for episode in episodes:
             podcast_title = episode.get('podcast_title') or "Unknown podcast"
+            
+            # Summary table grouping
+            is_new = podcast_title in new_feeds_set
+            summary_group = podcast_title if (podcast_counts.get(podcast_title, 0) > 1 or is_new) else "Other"
+            summary_counts[summary_group] = summary_counts.get(summary_group, 0) + 1
+            
+            # Breakdown grouping
             group_name = podcast_title if podcast_counts.get(podcast_title, 0) > 1 else "Other"
             grouped_counts[group_name] = grouped_counts.get(group_name, 0) + 1
             grouped.setdefault(group_name, []).append(episode)
@@ -475,15 +549,25 @@ categories: ["Summary"]
                 podcast_links[group_name] = episode.get('podcast_link')
 
         lines = ["", "### Episodes Listened", "", "| Podcast | Episodes |", "| --- | --- |"]
-        for podcast_title, count in self._sorted_group_counts(grouped_counts):
-            lines.append(f"| {self._escape_table_text(podcast_title)} | {count} |")
+        for podcast_title, count in self._sorted_group_counts(summary_counts):
+            display_name = self._escape_table_text(podcast_title)
+            if podcast_title != "Other" and podcast_title in new_feeds_set:
+                display_name = f"{display_name} 🆕"
+            lines.append(f"| {display_name} | {count} |")
 
         for podcast_title in self._ordered_group_names(grouped_counts):
             grouped_episodes = grouped[podcast_title]
             podcast_link = podcast_links.get(podcast_title)
+            
+            heading_title = podcast_title
+            if podcast_title != "Other" and podcast_title in new_feeds_set:
+                heading_title = f"🆕 {podcast_title}"
+                
+            heading_link = self._markdown_link(heading_title, podcast_link) if podcast_title != "Other" else heading_title
+            
             lines.extend([
                 "",
-                f"#### {self._markdown_link(podcast_title, podcast_link)}",
+                f"#### {heading_link}",
                 "",
                 "| Date | Episode | Podcast |" if podcast_title == "Other" else "| Date | Episode |",
                 "| --- | --- | --- |" if podcast_title == "Other" else "| --- | --- |",
@@ -493,7 +577,10 @@ categories: ["Summary"]
                 episode_link = episode.get('episode_link')
                 episode_part = self._markdown_link(episode_title, episode_link)
                 if podcast_title == "Other":
-                    source = self._escape_table_text(episode.get('podcast_title') or "Unknown podcast")
+                    raw_source = episode.get('podcast_title') or "Unknown podcast"
+                    source = self._escape_table_text(raw_source)
+                    if raw_source in new_feeds_set:
+                        source = f"{source} 🆕"
                     lines.append(
                         f"| {self._format_date(episode.get('userUpdatedDate'))} | {episode_part} | {source} |"
                     )
