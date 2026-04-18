@@ -5,7 +5,6 @@ import logging
 import xml.etree.ElementTree as ET
 from typing import Dict, Optional, Tuple
 from urllib.request import Request, urlopen
-from urllib.error import URLError
 
 from .duration import parse_duration
 
@@ -68,7 +67,7 @@ class RSSFetcher:
             req = Request(xml_url, headers={"User-Agent": "Mozilla/5.0"})
             with urlopen(req, timeout=self.timeout) as resp:
                 rss_data = resp.read()
-        except (URLError, TimeoutError, OSError) as e:
+        except Exception as e:
             logger.warning("Failed to fetch RSS for %s: %s", feed_title, e)
             return result
 
