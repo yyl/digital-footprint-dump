@@ -182,6 +182,9 @@ Every source has an `analysis` table with this common structure:
 | `feeds_added` | INTEGER |
 | `feeds_removed` | INTEGER |
 | `episodes_played` | INTEGER |
+| `minutes_listened` | INTEGER |
+
+*Note: The `overcast-sync` command automatically fetches missing episode durations from live RSS feeds using title-matching, which populates the `duration_seconds` column in `episodes` and enables the `minutes_listened` analysis.*
 
 #### Strong (`strong.db`)
 

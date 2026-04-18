@@ -12,8 +12,15 @@ CREATE TABLE IF NOT EXISTS analysis (
     feeds_added INTEGER DEFAULT 0,
     feeds_removed INTEGER DEFAULT 0,
     episodes_played INTEGER DEFAULT 0,
+    minutes_listened INTEGER DEFAULT 0,
     updated_at TEXT
 );
+"""
+
+# Migration: add duration_seconds to the episodes table created by overcast-to-sqlite.
+# Idempotent — safe to run multiple times.
+ADD_DURATION_COLUMN = """
+ALTER TABLE episodes ADD COLUMN duration_seconds INTEGER;
 """
 
 CREATE_INDEXES = [

@@ -68,17 +68,22 @@ class OvercastAnalytics:
                     feeds_removed[(row['year'], row['month'])] += 1
             
             # Get episodes played by month (using userUpdatedDate for played episodes)
+            # Also sum up the duration_seconds to get total_seconds
             episodes_played: Dict[tuple, int] = defaultdict(int)
+            total_duration_seconds: Dict[tuple, int] = defaultdict(int)
             cursor.execute("""
                 SELECT 
                     strftime('%Y', userUpdatedDate) as year,
-                    strftime('%m', userUpdatedDate) as month
+                    strftime('%m', userUpdatedDate) as month,
+                    duration_seconds
                 FROM episodes
                 WHERE played = 1 AND userUpdatedDate IS NOT NULL
             """)
             for row in cursor.fetchall():
                 if row['year'] and row['month']:
                     episodes_played[(row['year'], row['month'])] += 1
+                    if row['duration_seconds']:
+                        total_duration_seconds[(row['year'], row['month'])] += row['duration_seconds']
             
             # Merge all months
             all_months = set(feeds_added.keys()) | set(feeds_removed.keys()) | set(episodes_played.keys())
@@ -88,14 +93,16 @@ class OvercastAnalytics:
             
             for year, month in all_months:
                 year_month = f"{year}-{month}"
+                minutes_listened = round((total_duration_seconds[(year, month)]) / 60)
                 
                 cursor.execute("""
-                    INSERT INTO analysis (year_month, year, month, feeds_added, feeds_removed, episodes_played, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO analysis (year_month, year, month, feeds_added, feeds_removed, episodes_played, minutes_listened, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(year_month) DO UPDATE SET
                         feeds_added = excluded.feeds_added,
                         feeds_removed = excluded.feeds_removed,
                         episodes_played = excluded.episodes_played,
+                        minutes_listened = excluded.minutes_listened,
                         updated_at = excluded.updated_at
                 """, (
                     year_month,
@@ -104,6 +111,7 @@ class OvercastAnalytics:
                     feeds_added[(year, month)],
                     feeds_removed[(year, month)],
                     episodes_played[(year, month)],
+                    minutes_listened,
                     updated_at
                 ))
         

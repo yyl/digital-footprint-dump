@@ -172,7 +172,7 @@ class Publisher:
     def _get_overcast_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
         """Get Overcast analysis for a specific month."""
         query = """
-        SELECT year_month, year, month, feeds_added, feeds_removed, episodes_played
+        SELECT year_month, year, month, feeds_added, feeds_removed, episodes_played, minutes_listened
         FROM analysis
         WHERE year_month = ?
         """
@@ -592,12 +592,13 @@ class Publisher:
                 current_stats=overcast,
                 historical_getter=self._get_overcast_analysis,
                 year_month=year_month,
-                metrics=['episodes_played']
+                metrics=['episodes_played', 'minutes_listened']
             )
             data['overcast'] = {
                 'feeds_added': overcast['feeds_added'],
                 'feeds_removed': overcast['feeds_removed'],
                 'episodes_played': overcast['episodes_played'],
+                'minutes_listened': overcast.get('minutes_listened', 0),
                 'episodes': self._get_podcast_episodes(year_month),
                 'comparisons': overcast_comparisons
             }
