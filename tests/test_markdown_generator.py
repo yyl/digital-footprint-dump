@@ -314,3 +314,47 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertIn("> Note: This connects to the chapter above.", result)
         self.assertIn("*2026-04-04*", result)
         self.assertNotIn("| Date | Highlight | Note |", result)
+
+    def test_generate_whats_new_section_includes_new_repos(self):
+        result = self.generator._generate_whats_new_section({
+            'github': {
+                'new_repos': ['user/new-project', 'user/another-new'],
+            }
+        })
+
+        self.assertIn("## What's new", result)
+        self.assertIn("2 new repos:", result)
+        self.assertIn("- user/new-project", result)
+        self.assertIn("- user/another-new", result)
+
+    def test_generate_whats_new_section_single_new_repo(self):
+        result = self.generator._generate_whats_new_section({
+            'github': {
+                'new_repos': ['user/solo-project'],
+            }
+        })
+
+        self.assertIn("1 new repo:", result)
+        self.assertNotIn("1 new repos:", result)
+
+    def test_generate_whats_new_section_new_repos_combined_with_sources_and_feeds(self):
+        result = self.generator._generate_whats_new_section({
+            'readwise': {'new_sources': ['Example Blog']},
+            'overcast': {'new_feeds': ['Tech Podcast']},
+            'github': {'new_repos': ['user/new-project']},
+        })
+
+        self.assertIn("## What's new", result)
+        self.assertIn("1 new article source:", result)
+        self.assertIn("- Example Blog", result)
+        self.assertIn("1 new podcast channel:", result)
+        self.assertIn("- Tech Podcast", result)
+        self.assertIn("1 new repo:", result)
+        self.assertIn("- user/new-project", result)
+
+    def test_generate_whats_new_section_empty_when_no_new_repos_or_sources(self):
+        result = self.generator._generate_whats_new_section({
+            'github': {'new_repos': []},
+        })
+
+        self.assertEqual(result, "")

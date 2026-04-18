@@ -381,6 +381,28 @@ class Publisher:
         )
         return [row['title'] for row in rows if row.get('title')]
 
+    def _get_new_github_repos(self, year_month: str) -> List[str]:
+        """Get repos that appear for the first time in the given month."""
+        query = """
+        SELECT DISTINCT repo
+        FROM commits
+        WHERE date_month = ?
+          AND NOT EXISTS (
+              SELECT 1 FROM commits c2
+              WHERE c2.repo = commits.repo
+                AND c2.date_month < ?
+          )
+        ORDER BY repo ASC
+        """
+        rows = self._fetch_rows(
+            self.github_activity_db,
+            query,
+            (year_month, year_month),
+            check_exists=True,
+            suppress_errors=True
+        )
+        return [row['repo'] for row in rows if row.get('repo')]
+
     def _get_github_commits(self, year_month: str) -> List[Dict[str, Any]]:
         """Get GitHub commits for a specific month."""
         query = """
@@ -706,6 +728,7 @@ class Publisher:
                 'commit_groups': self._group_commits_by_repo(
                     self._get_github_commits(year_month)
                 ),
+                'new_repos': self._get_new_github_repos(year_month),
                 'comparisons': github_comparisons
             }
 

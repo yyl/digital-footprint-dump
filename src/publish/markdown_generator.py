@@ -73,8 +73,12 @@ class MarkdownGenerator:
         new_feeds = []
         if data.get('overcast') and data['overcast'].get('new_feeds'):
             new_feeds = data['overcast']['new_feeds']
-            
-        if not new_sources and not new_feeds:
+
+        new_repos = []
+        if data.get('github') and data['github'].get('new_repos'):
+            new_repos = data['github']['new_repos']
+
+        if not new_sources and not new_feeds and not new_repos:
             return ""
             
         lines = [
@@ -98,6 +102,15 @@ class MarkdownGenerator:
             ])
             for feed in new_feeds:
                 lines.append(f"- {self._clean_text(feed)}")
+
+        if new_repos:
+            plural = "s" if len(new_repos) > 1 else ""
+            lines.extend([
+                "",
+                f"{len(new_repos)} new repo{plural}:",
+            ])
+            for repo in new_repos:
+                lines.append(f"- {self._clean_text(repo)}")
                 
         return "\n".join(lines) + "\n"
 
