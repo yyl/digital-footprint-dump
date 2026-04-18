@@ -384,20 +384,16 @@ class Publisher:
     def _get_new_github_repos(self, year_month: str) -> List[str]:
         """Get repos that appear for the first time in the given month."""
         query = """
-        SELECT DISTINCT repo
+        SELECT repo
         FROM commits
-        WHERE date_month = ?
-          AND NOT EXISTS (
-              SELECT 1 FROM commits c2
-              WHERE c2.repo = commits.repo
-                AND c2.date_month < ?
-          )
+        GROUP BY repo
+        HAVING MIN(date_month) = ?
         ORDER BY repo ASC
         """
         rows = self._fetch_rows(
             self.github_activity_db,
             query,
-            (year_month, year_month),
+            (year_month,),
             check_exists=True,
             suppress_errors=True
         )
