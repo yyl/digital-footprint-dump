@@ -559,11 +559,9 @@ categories: ["Summary"]
             grouped_episodes = grouped[podcast_title]
             podcast_link = podcast_links.get(podcast_title)
             
-            heading_title = podcast_title
+            heading_link = self._markdown_link(podcast_title, podcast_link) if podcast_title != "Other" else podcast_title
             if podcast_title != "Other" and podcast_title in new_feeds_set:
-                heading_title = f"🆕 {podcast_title}"
-                
-            heading_link = self._markdown_link(heading_title, podcast_link) if podcast_title != "Other" else heading_title
+                heading_link = f"🆕 {heading_link}"
             
             lines.extend([
                 "",
