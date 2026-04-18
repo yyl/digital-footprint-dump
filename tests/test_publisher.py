@@ -192,12 +192,12 @@ class TestPublisher(unittest.TestCase):
         self.mock_github_activity_db.get_connection.return_value.__enter__.return_value = conn
         conn.cursor.return_value = cursor
         cursor.fetchall.return_value = [
-            {'repo': 'user/new-project'},
             {'repo': 'user/another-new'},
+            {'repo': 'user/new-project'},
         ]
 
         result = self.publisher._get_new_github_repos('2025-04')
-        self.assertEqual(result, ['user/new-project', 'user/another-new'])
+        self.assertEqual(result, ['user/another-new', 'user/new-project'])
 
     def test_get_new_github_repos_db_not_exists(self):
         self.mock_github_activity_db.exists.return_value = False
