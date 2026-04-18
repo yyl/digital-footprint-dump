@@ -288,7 +288,7 @@ The `publish/data_generator.py` module generates Hugo-compatible YAML data files
 | `reading.yaml` | Readwise | `articles_archived`, `total_words`, `time_spent_minutes`, `avg_reading_speed`, `max_words_per_article`, `median_words_per_article`, `min_words_per_article` |
 | `travel.yaml` | Foursquare | `checkins`, `unique_places` |
 | `movies.yaml` | Letterboxd | `movies_watched`, `avg_rating` |
-| `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played` |
+| `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played`, `minutes_listened` |
 | `workouts.yaml` | Apple Health | `workouts`, `total_minutes` (derived from analysis seconds), `total_calories` |
 | `writing.yaml` | Blog | `posts`, `total_words`, `unique_tags` |
 | `books.yaml` | Hardcover | `books_finished`, `avg_rating` |

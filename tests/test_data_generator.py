@@ -106,13 +106,14 @@ class TestDataGeneratorOutput:
     def test_podcasts_yaml_structure(self):
         """Verify podcasts.yaml has the expected field names."""
         records = [
-            {'month': '2025-08', 'feeds_added': 2, 'feeds_removed': 1, 'episodes_played': 28},
+            {'month': '2025-08', 'feeds_added': 2, 'feeds_removed': 1, 'episodes_played': 28, 'minutes_listened': 1234},
         ]
         yaml = _to_yaml(records, "Monthly podcasts activity data")
         
         assert 'feeds_added:' in yaml
         assert 'feeds_removed:' in yaml
         assert 'episodes_played:' in yaml
+        assert 'minutes_listened:' in yaml
     
     def test_travel_yaml_structure(self):
         """Verify travel.yaml has the expected field names."""

@@ -1,5 +1,7 @@
 # Podcast Duration: Implementation Plan
 
+**Status: Implemented**
+
 ## Goal
 
 Add episode duration (in minutes) to the Overcast podcast data pipeline so the monthly summary can report **total minutes listened** and show per-episode duration.

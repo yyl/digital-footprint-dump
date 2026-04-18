@@ -51,11 +51,11 @@ Imports watched movies and ratings from CSV export to `<storage-root>/data/lette
 
 ## Overcast
 
-Imports podcast feeds and episodes from OPML export to `<storage-root>/data/overcast.db`.
+Imports podcast feeds and episodes from Overcast OPML export to `<storage-root>/data/overcast.db`.
 
 **Commands:**
-- `overcast-sync`: Imports data from Overcast OPML export.
-- `overcast-analyze`: Generates monthly podcast stats (feeds added, feeds removed, episodes played) and writes to the `analysis` table.
+- `overcast-sync`: Imports data from Overcast OPML export and automatically fetches missing episode durations from live RSS feeds using title-matching.
+- `overcast-analyze`: Generates monthly podcast stats (feeds added, feeds removed, episodes played, minutes listened) and writes to the `analysis` table.
 
 **Required in .env:**
 - None (File-based export)

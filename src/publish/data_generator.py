@@ -173,7 +173,7 @@ class DataGenerator:
             return []
         
         query = """
-        SELECT year_month, feeds_added, feeds_removed, episodes_played
+        SELECT year_month, feeds_added, feeds_removed, episodes_played, minutes_listened
         FROM analysis
         ORDER BY year_month ASC
         """
@@ -189,6 +189,7 @@ class DataGenerator:
                     'feeds_added': dict(row)['feeds_added'],
                     'feeds_removed': dict(row)['feeds_removed'],
                     'episodes_played': dict(row)['episodes_played'],
+                    'minutes_listened': dict(row)['minutes_listened'],
                 }
                 for row in rows
             ]
