@@ -26,9 +26,7 @@ class MarkdownGenerator:
         parts.append(self._generate_front_matter(data))
         
         # What's new section
-        whats_new = self._generate_whats_new_section(data)
-        if whats_new:
-            parts.append(whats_new)
+        parts.append(self._generate_whats_new_section(data))
         
         # Readwise section
         if data.get('readwise'):
@@ -78,12 +76,13 @@ class MarkdownGenerator:
         if data.get('github') and data['github'].get('new_repos'):
             new_repos = data['github']['new_repos']
 
-        if not new_sources and not new_feeds and not new_repos:
-            return ""
-            
         lines = [
             "## What's new",
         ]
+
+        if not new_sources and not new_feeds and not new_repos:
+            lines.extend(["", "everything feels so old this month."])
+            return "\n".join(lines) + "\n"
         
         if new_sources:
             plural = "s" if len(new_sources) > 1 else ""
