@@ -39,6 +39,7 @@ def mock_db():
     db = MagicMock(spec=LetterboxdDatabase)
     db.upsert_watched.return_value = True
     db.upsert_rating.return_value = True
+    db.movie_exists_on_date.return_value = False
     return db
 
 def test_uri_normalization(mock_db):
