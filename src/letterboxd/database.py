@@ -69,6 +69,30 @@ class LetterboxdDatabase(BaseDatabase):
             ))
             return True
     
+    def ensure_user(self, username: str) -> bool:
+        """Ensure a user exists, creating a minimal record if needed."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM users WHERE username = ?", (username,))
+            if cursor.fetchone():
+                return False  # already exists
+            cursor.execute(
+                "INSERT INTO users (username, updated_at) VALUES (?, ?)",
+                (username, int(time.time()))
+            )
+            return True  # created
+
+    def movie_exists_on_date(self, username: str, movie_name: str, watched_at: str) -> bool:
+        """Check if a watch record exists for a movie around a given date (+/- 2 days to handle timezones)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT 1 FROM watched 
+                WHERE username = ? AND movie_name = ? 
+                AND abs(julianday(watched_at) - julianday(?)) <= 2
+            """, (username, movie_name, watched_at))
+            return cursor.fetchone() is not None
+    
     def upsert_watched(self, watched_data: Dict[str, Any], username: str) -> bool:
         """Insert or update a watched movie."""
         return self.upsert_watched_batch([watched_data], username) > 0

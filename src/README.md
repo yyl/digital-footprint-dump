@@ -14,7 +14,7 @@ Note: The file structure below is shown from the root directory.
 │   ├── comparison.py       # Generic MoM/YoY comparison utilities
 │   ├── readwise/           # Readwise Reader integration (API)
 │   ├── foursquare/         # Foursquare/Swarm integration (API)
-│   ├── letterboxd/         # Letterboxd CSV import (file)
+│   ├── letterboxd/         # RSS feed sync + CSV import fallback
 │   ├── overcast/           # Overcast OPML import (file)
 │   ├── strong/             # Strong workout CSV import (file)
 │   ├── apple_health/       # Apple Health XML import (file)
@@ -164,6 +164,8 @@ Every source has an `analysis` table with this common structure:
 | `min_rating` | REAL |
 | `max_rating` | REAL |
 | `avg_years_since_release` | REAL |
+
+*Technical Note (Letterboxd Hybrid Syncing): Letterboxd uses a hybrid integration architecture. It fetches incremental updates via the public RSS feed (`LETTERBOXD_RSS_URL`), but automatically falls back to manual CSV directory parsing (`files/letterboxd-*`) if the database is entirely empty (for historical backfill seeding) or if the RSS config is absent. Because the CSV export and RSS feed use varying canonical ID formats (short URLs vs canonical slugs) and boundary timezone definitions for dates, the importer automatically deduplicates overlapping movie watches across these two ingestion methods by checking if the movie name matches any existing watch record within a +/- 2 day window.*
 
 #### Overcast (`overcast.db`)
 

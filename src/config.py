@@ -57,6 +57,10 @@ class Config:
     # Letterboxd Configuration
     # ==========================================================================
     LETTERBOXD_DATABASE_PATH = DATA_DIR / "letterboxd.db"
+    LETTERBOXD_RSS_URL: str = os.getenv(
+        "LETTERBOXD_RSS_URL",
+        "https://letterboxd.com/longyu/rss/"
+    )
     
     # ==========================================================================
     # Overcast Configuration

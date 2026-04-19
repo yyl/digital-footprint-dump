@@ -116,17 +116,46 @@ class LetterboxdImporter:
     def sync(self) -> Dict[str, int]:
         """Auto-discover latest export and import it.
         
-        Returns:
-            Dictionary with import counts
-        """
-        export_dir = self.find_latest_export()
-        if not export_dir:
-            print("Error: No Letterboxd export folder found in files/")
-            print("  Expected: files/letterboxd-*")
-            return {"users": 0, "watched": 0, "ratings": 0}
+        If a CSV export exists in files/, it imports that first as a historical 
+        backfill. Then, if an RSS URL is configured, it fetches incremental updates.
         
-        print(f"Found export: {export_dir.name}")
-        return self.import_from_directory(export_dir)
+        Returns:
+            Dictionary with combined import counts
+        """
+        stats = {"users": 0, "watched": 0, "ratings": 0}
+
+        # 1. Fallback / Historical CSV import (Only if database is empty)
+        try:
+            self.db.init_tables()
+            is_empty = self.db.get_stats().get("watched", 0) == 0
+        except Exception:
+            is_empty = True
+
+        if is_empty:
+            export_dir = self.find_latest_export()
+            if export_dir:
+                print(f"Database empty. Found Letterboxd export for backfill: {export_dir.name}")
+                csv_stats = self.import_from_directory(export_dir)
+                stats["users"] += csv_stats.get("users", 0)
+                stats["watched"] += csv_stats.get("watched", 0)
+                stats["ratings"] += csv_stats.get("ratings", 0)
+            else:
+                print("No Letterboxd export folder found in files/ (skipping CSV historical import)")
+        else:
+            print("Database already populated (skipping historical CSV backfill)")
+
+        # 2. Incremental RSS sync
+        rss_url = Config.LETTERBOXD_RSS_URL
+        if rss_url:
+            from .rss_syncer import LetterboxdRSSSyncer
+            syncer = LetterboxdRSSSyncer(db=self.db, rss_url=rss_url)
+            rss_stats = syncer.sync()
+            stats["watched"] += rss_stats.get("watched", 0)
+            stats["ratings"] += rss_stats.get("ratings", 0)
+        else:
+            print("No Letterboxd RSS URL configured (skipping RSS sync)")
+        
+        return stats
     
     def get_status(self) -> Dict[str, Any]:
         """Get current status."""

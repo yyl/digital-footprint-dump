@@ -33,19 +33,23 @@ Exports checkins and places to `<storage-root>/data/foursquare.db`.
 
 ## Letterboxd
 
-Imports watched movies and ratings from CSV export to `<storage-root>/data/letterboxd.db`.
+Imports watched movies and ratings. 
 
 **Commands:**
-- `letterboxd-sync`: Imports data from Letterboxd CSV export.
+- `letterboxd-sync`: Automatically synchronizes Letterboxd data via RSS. If the database is empty, it automatically parses CSV exports from the `files/` folder first for historical seeding.
 - `letterboxd-analyze`: Generates monthly movie stats (count, avg/min/max rating, avg years since release) and writes to the `analysis` table.
 
 **Required in .env:**
-- None (File-based export)
+- `LETTERBOXD_RSS_URL` - Your public RSS feed URL
 
-**Setup:**
+**Optional Setup (Historical CSV Seeding):**
+To load history older than the ~50 items provided by RSS:
 1. Export your data from [letterboxd.com/settings/data](https://letterboxd.com/settings/data/)
 2. Unzip and place folder in `<storage-root>/files/` (e.g., `files/letterboxd-username-2025-...`)
-3. Run `uv run main.py letterboxd-sync`
+3. Ensure you're starting from an empty/non-existent `letterboxd.db`
+4. Run `uv run main.py letterboxd-sync`
+
+See `src/README.md` for technical details on how deduplication and CSV/RSS overlaps are handled.
 
 ---
 
