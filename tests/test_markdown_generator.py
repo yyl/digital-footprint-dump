@@ -357,4 +357,11 @@ class TestMarkdownGenerator(unittest.TestCase):
             'github': {'new_repos': []},
         })
 
-        self.assertEqual(result, "")
+        self.assertIn("## What's new", result)
+        self.assertIn("everything feels so old this month.", result)
+
+    def test_generate_whats_new_section_fallback_message_when_no_data_at_all(self):
+        result = self.generator._generate_whats_new_section({})
+
+        self.assertIn("## What's new", result)
+        self.assertIn("everything feels so old this month.", result)
