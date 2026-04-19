@@ -75,12 +75,16 @@ class MarkdownGenerator:
         new_repos = []
         if data.get('github') and data['github'].get('new_repos'):
             new_repos = data['github']['new_repos']
+            
+        new_places = []
+        if data.get('foursquare') and data['foursquare'].get('new_places'):
+            new_places = data['foursquare']['new_places']
 
         lines = [
             "## What's new",
         ]
 
-        if not new_sources and not new_feeds and not new_repos:
+        if not new_sources and not new_feeds and not new_repos and not new_places:
             lines.extend(["", "everything feels so old this month."])
             return "\n".join(lines) + "\n"
         
@@ -110,6 +114,15 @@ class MarkdownGenerator:
             ])
             for repo in new_repos:
                 lines.append(f"- {self._clean_text(repo)}")
+                
+        if new_places:
+            plural = "s" if len(new_places) > 1 else ""
+            lines.extend([
+                "",
+                f"{len(new_places)} new place{plural} visited:",
+            ])
+            for place in new_places:
+                lines.append(f"- {self._clean_text(place)}")
                 
         return "\n".join(lines) + "\n"
 

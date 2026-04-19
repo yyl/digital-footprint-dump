@@ -381,6 +381,25 @@ class Publisher:
         )
         return [row['title'] for row in rows if row.get('title')]
 
+    def _get_new_places(self, year_month: str) -> List[str]:
+        """Get places that were visited for the first time in the given month."""
+        query = """
+        SELECT p.name
+        FROM checkins c
+        JOIN places p ON c.place_fsq_id = p.fsq_place_id
+        GROUP BY c.place_fsq_id
+        HAVING strftime('%Y-%m', MIN(c.created_at), 'unixepoch') = ?
+        ORDER BY p.name ASC
+        """
+        rows = self._fetch_rows(
+            self.foursquare_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True
+        )
+        return [row['name'] for row in rows if row.get('name')]
+
     def _get_new_github_repos(self, year_month: str) -> List[str]:
         """Get repos that appear for the first time in the given month."""
         query = """
@@ -620,6 +639,7 @@ class Publisher:
             data['foursquare'] = {
                 'checkins': foursquare['checkins'],
                 'unique_places': foursquare['unique_places'],
+                'new_places': self._get_new_places(year_month),
                 'comparisons': foursquare_comparisons
             }
         

@@ -8,4 +8,4 @@
    - `README.md`: User guide, high-level project setup, and CLI command usage.
    - `src/README.md`: Technical details, implementation architecture, and database schemas.
 3. Use `make test-ci` when you need a local run that matches the pinned CI Python version and test entrypoint as closely as possible.
-4. Always run `uv run pytest` (or `make test-ci`) and confirm all tests pass before committing. Never commit code with failing tests.
+4. Always run `make test-ci` after code changes made to confirm all tests pass before committing. Never commit code with failing tests.
