@@ -343,12 +343,13 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
    ```
    digital-footprint-data/
    ├── data/           # Empty initially, DBs auto-created
-   └── files/          # Manual exports (Letterboxd, Overcast, Strong, Apple Health)
+   └── files/          # Manual exports (Letterboxd, Strong, Apple Health, optional Overcast fallback)
        ├── letterboxd-export/
-       ├── overcast.opml
        ├── strong_workouts.csv
        └── export.xml
    ```
+
+   If you configure direct Overcast export auth in Actions secrets, the workflow does not need a checked-in `overcast.opml`. You can still keep `files/overcast*.opml` as a fallback.
 
 2. **Create two fine-grained Personal Access Tokens** at [github.com/settings/tokens](https://github.com/settings/tokens):
 
@@ -369,12 +370,17 @@ Automate the pipeline to run monthly using GitHub Actions with a private data re
    | `READWISE_ACCESS_TOKEN` | Readwise API token |
    | `FOURSQUARE_ACCESS_TOKEN` | Foursquare OAuth token — required for all API calls |
    | `FOURSQUARE_API_KEY` | *(optional)* Foursquare Places API for venue details |
+   | `OVERCAST_COOKIE` | *(optional)* Overcast authenticated `o` cookie for direct OPML export |
+   | `OVERCAST_EMAIL` | *(optional)* Overcast login email for direct OPML export |
+   | `OVERCAST_PASSWORD` | *(optional)* Overcast login password for direct OPML export |
    | `HARDCOVER_ACCESS_TOKEN` | Hardcover API token |
    | `CODEBASE_USERNAME` | Your GitHub username (for activity tracking) |
    | `BLOG_GITHUB_TOKEN` | PAT with Contents read/write on blog repo |
    | `BLOG_REPO_OWNER` | Blog repo owner |
    | `BLOG_REPO_NAME` | Blog repo name |
    | `BLOG_GITHUB_TARGET_BRANCH` | *(optional)* Branch to commit to, defaults to `main` |
+
+   Prefer `OVERCAST_COOKIE` if you already have a working authenticated cookie. Otherwise set both `OVERCAST_EMAIL` and `OVERCAST_PASSWORD`. If none of those are present, the workflow falls back to `files/overcast*.opml`.
 
 ### Schedule
 

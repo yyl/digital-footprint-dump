@@ -66,6 +66,9 @@ class Config:
     # Overcast Configuration
     # ==========================================================================
     OVERCAST_DATABASE_PATH = DATA_DIR / "overcast.db"
+    OVERCAST_COOKIE: str = os.getenv("OVERCAST_COOKIE", "").strip()
+    OVERCAST_EMAIL: str = os.getenv("OVERCAST_EMAIL", "").strip()
+    OVERCAST_PASSWORD: str = os.getenv("OVERCAST_PASSWORD", "")
     
     # ==========================================================================
     # Strong Configuration

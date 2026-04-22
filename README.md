@@ -36,6 +36,8 @@ See [docs/SOURCES.md](docs/SOURCES.md) for details on supported sources (`readwi
 
 `sync`/`{source}-sync` create or refresh raw source data only. Monthly `analysis` tables are created when you run `analyze`, `{source}-analyze`, or `publish`. (Note: `overcast-sync` also performs an active network fetch to pull missing episode durations from live RSS feeds).
 
+`overcast-sync` can now fetch the OPML export directly when `OVERCAST_COOKIE` or `OVERCAST_EMAIL` + `OVERCAST_PASSWORD` are configured; otherwise it still falls back to a manual `files/overcast*.opml` import.
+
 For specific details on tests, database definitions, module structure, storage and cloud deployment, see [src/README.md](src/README.md).
 
 ### Publishing

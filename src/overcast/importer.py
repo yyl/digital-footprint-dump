@@ -1,8 +1,11 @@
 """Overcast OPML importer with auto-discovery."""
 
+import os
 import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any
+
+import requests
 
 from ..config import Config
 from .database import OvercastDatabase
@@ -16,6 +19,42 @@ class OvercastImporter:
     def __init__(self):
         """Initialize importer."""
         self.db = OvercastDatabase()
+
+    @staticmethod
+    def get_authenticated_cookie() -> Optional[str]:
+        """Return an Overcast session cookie for direct export, if configured."""
+        if Config.OVERCAST_COOKIE:
+            return Config.OVERCAST_COOKIE
+
+        if not (Config.OVERCAST_EMAIL and Config.OVERCAST_PASSWORD):
+            return None
+
+        try:
+            session = requests.Session()
+            response = session.post(
+                "https://overcast.fm/login",
+                data={
+                    "then": "podcasts",
+                    "email": Config.OVERCAST_EMAIL,
+                    "password": Config.OVERCAST_PASSWORD,
+                },
+                allow_redirects=True,
+                timeout=30,
+            )
+        except requests.RequestException as exc:
+            print(f"Error authenticating to Overcast: {exc}")
+            return None
+
+        if "Incorrect password" in response.text:
+            print("Error: Overcast login failed. Check OVERCAST_EMAIL / OVERCAST_PASSWORD.")
+            return None
+
+        cookie = session.cookies.get("o")
+        if not cookie:
+            print("Error: Overcast login did not return a session cookie.")
+            return None
+
+        return cookie
     
     @staticmethod
     def find_latest_export() -> Optional[Path]:
@@ -43,28 +82,40 @@ class OvercastImporter:
             Dictionary with import counts
         """
         stats = {"feeds": 0, "episodes": 0, "playlists": 0}
-        
-        opml_file = self.find_latest_export()
-        if not opml_file:
-            print("Error: No Overcast OPML file found in files/")
-            print("  Expected: files/overcast*.opml")
-            return stats
-        
-        print(f"Found export: {opml_file.name}")
+
+        opml_file = None
+        run_env = None
+        command = [
+            "overcast-to-sqlite", "save",
+            str(self.db.db_path),
+            "--no-archive",
+        ]
+
+        cookie = self.get_authenticated_cookie()
+        if cookie:
+            print("Fetching export directly from Overcast...")
+            run_env = os.environ.copy()
+            run_env["OVERCAST_COOKIE"] = cookie
+        else:
+            opml_file = self.find_latest_export()
+            if not opml_file:
+                print("Error: No Overcast export source found.")
+                print("  Configure OVERCAST_COOKIE or OVERCAST_EMAIL / OVERCAST_PASSWORD,")
+                print("  or place files/overcast*.opml in the storage files/ directory.")
+                return stats
+
+            print(f"Found export: {opml_file.name}")
+            command.extend(["--load", str(opml_file)])
         
         # Run overcast-to-sqlite command
         try:
             result = subprocess.run(
-                [
-                    "overcast-to-sqlite", "save",
-                    str(self.db.db_path),
-                    "--load", str(opml_file),
-                    "--no-archive"
-                ],
+                command,
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=60
+                timeout=60,
+                env=run_env,
             )
             print("Import complete!")
             
@@ -182,5 +233,9 @@ class OvercastImporter:
         """Get current status."""
         return {
             "database_stats": self.get_db_stats(),
-            "latest_export": self.find_latest_export()
+            "latest_export": self.find_latest_export(),
+            "direct_export_configured": bool(
+                Config.OVERCAST_COOKIE or
+                (Config.OVERCAST_EMAIL and Config.OVERCAST_PASSWORD)
+            ),
         }

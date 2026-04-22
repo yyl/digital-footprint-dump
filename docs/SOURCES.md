@@ -61,12 +61,13 @@ Imports podcast feeds and episodes from Overcast OPML export to `<storage-root>/
 - `overcast-sync`: Imports data from Overcast OPML export and automatically fetches missing episode durations from live RSS feeds using title-matching.
 - `overcast-analyze`: Generates monthly podcast stats (feeds added, feeds removed, episodes played, minutes listened) and writes to the `analysis` table.
 
-**Required in .env:**
-- None (File-based export)
+**Optional in .env for direct export:**
+- `OVERCAST_COOKIE` - Existing authenticated Overcast `o` cookie
+- `OVERCAST_EMAIL` and `OVERCAST_PASSWORD` - Used to log in and fetch the export automatically
 
 **Setup:**
-1. Export from [overcast.fm/account](https://overcast.fm/account) → "All data" OPML
-2. Place file in `<storage-root>/files/` (e.g., `files/overcast.opml`)
+1. Preferred: set `OVERCAST_COOKIE`, or set `OVERCAST_EMAIL` and `OVERCAST_PASSWORD`
+2. Fallback: export from [overcast.fm/account](https://overcast.fm/account) → "All data" OPML and place it in `<storage-root>/files/` (e.g., `files/overcast.opml`)
 3. Run `uv run main.py overcast-sync`
 
 ---
