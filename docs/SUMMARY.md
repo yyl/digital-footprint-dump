@@ -1,26 +1,155 @@
 # Report Summary Format
 
-This document details the exact contents, layout, and output format for the generated monthly reports.
+This document describes what the generated monthly report looks like.
 
 ## Overview
 
-The `publish` command generates a monthly activity report as a draft Hugo post and commits it to a GitHub-hosted blog.
-It chooses the latest available `YYYY-MM` across all analysis databases that are present, so optional sources can be missing without blocking report generation.
+The `publish` command generates a draft markdown wrap-up post for a single month.
 
-## Report Output Format
+The report is built from each source's monthly analysis data and includes the latest available month across the initialized sources, unless `--last-month` is used.
 
-- **Post title format:** `Wrap up {month_name} {year}`
-- **Post slug format:** `wrap-up-{month}-{year}`
-- **Post file format:** `content/posts/wrap-up-{month}-{year}.md`
-- **Draft status:** Posts are committed as drafts (`draft: true`)
+## Output Format
 
-## Report Contents
+- Title format: `Wrap up {month_name} {year}`
+- Slug format: `wrap-up-{month}-{year}`
+- Output path: `content/posts/wrap-up-{month}-{year}.md`
+- Draft status: `draft: true`
 
-- A "What's new" section right below the front matter dynamically populated with newly discovered reading sources, podcast feeds, and GitHub repos.
-- Keeps the existing top-level metrics, including Month-over-Month (MoM) and Year-over-Year (YoY) comparisons.
-- **Readwise (Articles):** Adds a ranked Readwise source summary table, then per-source article tables using the same grouping rule: sources with more than one article get their own section and one-off sources roll into `Other`. First-time sources are highlighted with a 🆕 emoji and get their own standalone row in the summary table.
-- **Readwise (Newsletters):** Skips broken Readwise newsletter-style `mailto:` links and renders those titles as plain text.
-- **Readwise (Highlights):** Adds Readwise highlights as grouped quote-style entries with date and note metadata.
-- **Movies (Letterboxd):** Adds movie tables with watch date and rating.
-- **Podcasts (Overcast):** Includes monthly feed adds, feed removals, episodes played, and minutes played with MoM/YoY comparisons when available. It also adds podcast summaries ranked by episode count, followed by grouped episode tables using the same `Other` bucketing rule for one-off podcasts. Newly subscribed feeds are highlighted with a 🆕 emoji and get their own standalone row in the summary table.
-- **GitHub Commits:** Adds GitHub repo summaries ranked by commit count, followed by grouped commit tables using the same `Other` bucketing rule for one-off repos, with merge PR commits (`Merge pull request #`) excluded.
+## High-Level Layout
+
+The report contains:
+
+1. Hugo front matter
+2. `What's new`
+3. `Reading`
+4. `Travel`
+5. `Movies`
+6. `Podcasts`
+7. `Workout`
+8. `Writing`
+9. `Books`
+10. `Code`
+
+Only sections with available data are included.
+
+## What's New
+
+The `What's new` section appears near the top of the report and highlights newly seen items for the month, such as:
+
+- new reading sources
+- new podcast feeds
+- new GitHub repos
+- new places visited
+
+## Section Details
+
+### Reading
+
+Shows article totals and reading metrics such as:
+
+- articles archived
+- total words
+- time spent reading
+- average reading speed
+- max, median, and min words per article
+
+It also includes:
+
+- a ranked source summary table
+- grouped article tables
+- grouped highlights
+
+First-time reading sources are marked with `🆕`.
+
+Newsletter-style `mailto:` links are rendered as plain text instead of broken links.
+
+### Travel
+
+Shows:
+
+- checkins
+- unique places visited
+
+### Movies
+
+Shows:
+
+- movies watched
+- average rating
+- min rating
+- max rating
+- average years since release
+
+It also includes a movie table with watch date and rating for the month.
+
+### Podcasts
+
+Shows:
+
+- new feeds subscribed
+- feeds removed
+- episodes played
+- minutes played
+
+It also includes:
+
+- a ranked podcast summary table
+- grouped episode tables
+
+New podcast feeds are marked with `🆕`.
+
+### Workout
+
+Shows:
+
+- workouts
+- total time
+- total calories
+
+This section is sourced from Apple Health analysis.
+
+### Writing
+
+Shows:
+
+- posts
+- total words
+- unique tags
+
+It also includes a top-tags table when available.
+
+### Books
+
+Shows:
+
+- books finished
+- average rating
+
+### Code
+
+Shows:
+
+- commits
+- repos touched
+
+It also includes:
+
+- a ranked repo summary table
+- grouped commit tables
+
+Merge commits of the form `Merge pull request #...` are excluded.
+
+## Comparisons
+
+Where enough historical data exists, the report includes:
+
+- Month-over-Month (`MoM`) comparisons
+- Year-over-Year (`YoY`) comparisons
+
+These appear inline with top-line metrics.
+
+## Activity Data Files
+
+The related `backfill` workflow regenerates monthly YAML data files under `data/activity/` for the blog.
+
+Those files are not the markdown report itself, but they are derived from the same monthly analysis layer.

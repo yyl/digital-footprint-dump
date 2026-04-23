@@ -1,285 +1,130 @@
 # Source Modules
 
-This directory contains the core logic for the digital-footprint-dump pipeline.
+This document is the developer-oriented guide to how the codebase works.
+
+It covers architecture, storage layout, per-source implementation patterns, analysis tables, publishing, backfill behavior, and deployment details that are useful when modifying the repo.
 
 ## Project Structure
 
-Note: The file structure below is shown from the root directory.
+Note: the tree below is shown from the repository root.
 
-```
+```text
 ├── main.py                 # CLI entry point
 ├── src/
-│   ├── config.py           # Environment configuration & validation
+│   ├── config.py           # Environment configuration and storage resolution
 │   ├── database.py         # Base SQLite connection manager
-│   ├── comparison.py       # Generic MoM/YoY comparison utilities
-│   ├── readwise/           # Readwise Reader integration (API)
-│   ├── foursquare/         # Foursquare/Swarm integration (API)
-│   ├── letterboxd/         # RSS feed sync + CSV import fallback
-│   ├── overcast/           # Overcast OPML import (file)
-│   ├── strong/             # Strong workout CSV import (file)
-│   ├── apple_health/       # Apple Health XML import (file)
-│   ├── blog/               # Public Hugo posts JSON tracking (API)
-│   ├── hardcover/          # Hardcover book API integration (API)
-│   ├── github/             # GitHub commit activity tracking (API)
-│   └── publish/            # Markdown + data file generation & GitHub publishing
-├── data/                   # SQLite databases (generated)
-├── files/                  # Import files (user-provided)
-├── tests/                  # Test suite (13 test files)
-└── .github/workflows/      # CI/CD (tests.yml, monthly-pipeline.yml)
+│   ├── comparison.py       # Shared MoM/YoY comparison helpers
+│   ├── time_utils.py       # UTC timestamp helpers
+│   ├── readwise/
+│   ├── foursquare/
+│   ├── letterboxd/
+│   ├── overcast/
+│   ├── strong/
+│   ├── apple_health/
+│   ├── blog/
+│   ├── hardcover/
+│   ├── github/
+│   └── publish/
+├── docs/
+├── tests/
+└── .github/workflows/
 ```
 
-## Data Source / Storage Resolution
+## Storage Resolution
 
-This project reads and writes source databases and import files from a storage root. The app resolves `data/` and `files/` from a storage root rather than always using this repo directly.
+The app does not always read and write data from this repo directly.
 
-- Local runs default to the sibling repo `../digital-footprint-data` when it exists.
-- Otherwise, local runs fall back to this repo's own `data/` and `files/` directories.
-- GitHub Actions checks out the private data repo separately and links its `data/` and `files/` into the workspace.
-- You can explicitly override the local storage root with `DATA_REPO_LOCAL_PATH`.
+It resolves a storage root, then uses:
 
-In practice this means:
+- `<storage-root>/data/` for SQLite databases
+- `<storage-root>/files/` for file imports
 
-- SQLite databases live under `<storage-root>/data/`.
-- File imports live under `<storage-root>/files/`.
-- API-backed sources write their SQLite databases under `<storage-root>/data/`.
-- File-backed sources read imports from `<storage-root>/files/` and write their databases under `<storage-root>/data/`.
+Resolution order:
 
-## Local/CI Consistency
+1. `DATA_REPO_LOCAL_PATH` if set
+2. sibling repo `../digital-footprint-data` if it exists
+3. this repo itself
 
-The repo pins Python in `.python-version`, and both GitHub Actions workflows use that exact version.
+That means local development often uses:
 
-For container-based local development, this repo's `.devcontainer/devcontainer.json` points at the shared `yyl/dev-tools:latest` image from the sibling `../dev-tools` folder, while keeping repo-specific VS Code settings, extensions, and the `uv sync` post-create step local to this repo.
+- `/.../digital-footprint-data/data/*.db`
+- `/.../digital-footprint-data/files/*`
 
-For a CI-like local test run, use:
+GitHub Actions checks out the private data repo separately and links its `data/` and `files/` into the workspace.
+
+## Local and CI Consistency
+
+The repo pins Python in `.python-version`.
+
+Recommended validation:
 
 ```bash
 make test-ci
 ```
 
-That command:
+That command installs the pinned Python version with `uv`, syncs dependencies, and runs `pytest` with the same interpreter used by CI.
 
-- installs the pinned Python version with `uv`
-- syncs dependencies against that version
-- runs `pytest` with the same pinned interpreter
+For markdown generation changes, also run:
+
+```bash
+uv run main.py publish --dry-run
+```
 
 ## Module Pattern
 
-Each data source follows a consistent structure:
+Each source generally follows the same structure:
 
 | File | Purpose |
-|------|---------| 
-| `models.py` | SQL schema definitions (CREATE TABLE statements) |
-| `database.py` | Database manager (inherits from `BaseDatabase`) with CRUD |
-| `api_client.py` | API wrapper (API sources only) |
-| `sync.py` | Sync orchestration (API sources only) |
-| `importer.py` | File parser (file-based sources only) |
-| `analytics.py` | Monthly analysis logic → writes to `analysis` table |
+|------|---------|
+| `models.py` | SQL schema definitions |
+| `database.py` | Source-specific database manager |
+| `api_client.py` | External API wrapper for API-backed sources |
+| `sync.py` | Sync orchestration for API-backed sources |
+| `importer.py` | File import path for file-backed sources |
+| `analytics.py` | Monthly rollups written into `analysis` |
 
-Sync/import initialization creates raw source tables only. Each source's `analytics.py` is responsible for creating its own derived `analysis` table.
+Raw data tables are created during sync/import setup. Derived monthly `analysis` tables are owned by each source's `analytics.py`.
 
-### Source Types
+## Source Types
 
-| Type | Sources | Data Ingestion |
+| Type | Sources | Ingestion Path |
 |------|---------|----------------|
-| **API** | Readwise, Foursquare, Blog, Hardcover, GitHub | `api_client.py` + `sync.py` |
-| **File** | Letterboxd, Overcast, Strong, Apple Health | `importer.py` (reads from `files/`) |
+| API-backed | Readwise, Foursquare, Blog, Hardcover, GitHub | `api_client.py` + `sync.py` |
+| File-backed | Letterboxd, Overcast, Strong, Apple Health | `importer.py` |
 
-### Publish Module
+Letterboxd is hybrid in practice: it uses RSS for incremental sync, plus CSV export seeding when the DB is empty.
 
-| File | Description |
-|------|-------------|
-| `publisher.py` | Orchestrates analysis fetching, comparison computation, report assembly, and publishing |
-| `markdown_generator.py` | Hugo-compatible markdown generation for the monthly draft report (sections: Reading, Travel, Movies, Podcasts, Workout, Writing, Books, Code) |
-| `data_generator.py` | Generates Hugo data files (`data/activity/*.yaml`) from analysis tables |
-| `github_client.py` | PyGithub-based wrapper for multi-file atomic commits via the Git tree API, with retry handling for non-fast-forward ref updates |
+## Publish Module
 
-### Publish Flow
+The `src/publish/` package contains the publishing layer.
 
-The `publish` command supports several flags to customize its execution path:
+| File | Purpose |
+|------|---------|
+| `publisher.py` | Orchestrates data fetch, comparisons, report assembly, and publish flow |
+| `markdown_generator.py` | Renders the monthly markdown report |
+| `data_generator.py` | Generates `data/activity/*.yaml` files from analysis tables |
+| `github_client.py` | Writes report/data files to GitHub using PyGithub |
 
-- `publish`: syncs all sources, reruns analysis, generates the latest monthly report, and commits a draft blog post.
-- `publish --skip-sync-analysis`: skips both sync and analysis, and publishes directly from the current analysis data in the local databases.
-- `publish --dry-run`: skips sync and publish, and only renders markdown from the current analysis data already present in the local databases.
-- `publish --last-month`: generates and publishes the report for the previous month instead of the latest available month.
-- `backfill`: runs the analyze commands for Readwise, Letterboxd, Foursquare, Overcast, Strong, Apple Health, Blog, Hardcover, and GitHub, then commits regenerated Hugo data files under `data/activity/`. Each analyze command refreshes its raw source data first via its paired sync step.
+## Publish and Backfill Flows
 
-Published workout metrics now come from Apple Health monthly analysis. Strong remains importable and analyzable directly, but its exercise/set metrics are no longer used in the report or `workouts.yaml`.
+### Publish
 
-Published writing metrics now come from the public Hugo posts JSON export. The report renders a `Writing` section, and backfill writes `writing.yaml`.
+Supported paths:
 
-When selecting the reporting month, `publisher.py` now scans all available analysis databases and picks the latest (or second-latest if `--last-month` is provided) `YYYY-MM` it can find, while tolerating optional sources that are absent or not initialized yet.
+- `publish`: sync all sources, analyze all sources, generate the report, commit the draft post
+- `publish --skip-sync-analysis`: generate the report from existing analysis data
+- `publish --dry-run`: render the report locally only
+- `publish --last-month`: publish the previous month instead of the latest available month
 
-See [docs/SUMMARY.md](../docs/SUMMARY.md) for full details on the generated report format and content.
+The publish flow scans the available analysis DBs and chooses the latest available `YYYY-MM`, while tolerating optional sources that may be missing.
 
-### Publish Implementation Details
+### Backfill
 
-- GitHub publishing uses PyGithub for authenticated write operations.
-- If the target branch moves during publish, the GitHub client automatically retries non-fast-forward ref update failures.
-- GitHub activity sync uses an inclusive timestamp cursor plus SHA de-duplication so same-second commits are not skipped during incremental sync.
+`backfill` regenerates blog activity data files under `data/activity/`.
 
-## Database Schemas
+It does that by running each source's analyze command, and those analyze commands in turn refresh raw source data first through their paired sync path.
 
-Each source stores data in a separate SQLite database under `<storage-root>/data/`.
-
-### Analysis Tables
-
-Every source has an `analysis` table with this common structure:
-- `year_month` (TEXT, PRIMARY KEY) — Format: `YYYY-MM`
-- `year` (TEXT), `month` (TEXT)
-- Source-specific metrics (see below)
-- `updated_at` (TEXT) — ISO timestamp
-
-### Per-Source Schemas
-
-#### Readwise (`readwise.db`)
-
-**Data tables:** `books`, `highlights`, `highlight_tags`, `book_tags`, `documents`, `document_tags`, `sync_state`
-
-| Analysis Column | Type |
-|-----------------|------|
-| `articles` | INTEGER |
-| `words` | INTEGER |
-| `reading_time_mins` | INTEGER |
-| `max_words_per_article` | INTEGER |
-| `median_words_per_article` | INTEGER |
-| `min_words_per_article` | INTEGER |
-
-#### Foursquare (`foursquare.db`)
-
-**Data tables:** `users`, `places`, `checkins`, `sync_state`
-**Views:** `checkins_with_places`, `user_stats`
-
-| Analysis Column | Type |
-|-----------------|------|
-| `checkins` | INTEGER |
-| `unique_places` | INTEGER |
-
-#### Letterboxd (`letterboxd.db`)
-
-**Data tables:** `users`, `watched`, `ratings`
-
-`watched` also stores per-film enrichment fields: `tmdb_id`, `runtime_minutes`, `metadata_updated_at`
-
-| Analysis Column | Type |
-|-----------------|------|
-| `movies_watched` | REAL |
-| `minutes_watched` | INTEGER |
-| `avg_rating` | REAL |
-| `min_rating` | REAL |
-| `max_rating` | REAL |
-| `avg_years_since_release` | REAL |
-
-*Technical Note (Letterboxd Hybrid Syncing): Letterboxd uses a hybrid integration architecture. It fetches incremental updates via the public RSS feed (`LETTERBOXD_RSS_URL`), but automatically falls back to manual CSV directory parsing (`files/letterboxd-*`) if the database is entirely empty (for historical backfill seeding) or if the RSS config is absent. Because the CSV export and RSS feed use varying canonical ID formats (short URLs vs canonical slugs) and boundary timezone definitions for dates, the importer automatically deduplicates overlapping movie watches across these two ingestion methods by checking if the movie name matches any existing watch record within a +/- 2 day window. After sync, it can also enrich missing film runtimes from TMDB when `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY` is configured.*
-
-#### Overcast (`overcast.db`)
-
-**Data tables:** Created externally by `overcast-to-sqlite` (`feeds`, `episodes`, `playlists`)
-
-| Analysis Column | Type |
-|-----------------|------|
-| `feeds_added` | INTEGER |
-| `feeds_removed` | INTEGER |
-| `episodes_played` | INTEGER |
-| `minutes_listened` | INTEGER |
-
-*Note: The `overcast-sync` command automatically fetches missing episode durations from live RSS feeds using title-matching, which populates the `duration_seconds` column in `episodes` and enables the `minutes_listened` analysis.*
-
-#### Strong (`strong.db`)
-
-**Data tables:** `workouts`, `exercises`
-
-| Analysis Column | Type |
-|-----------------|------|
-| `workouts` | INTEGER |
-| `total_duration_seconds` | INTEGER |
-| `unique_exercises` | INTEGER |
-| `total_sets` | INTEGER |
-
-#### Apple Health (`apple_health.db`)
-
-**Data tables:** `workouts`
-
-| Analysis Column | Type |
-|-----------------|------|
-| `workouts` | INTEGER |
-| `total_duration_seconds` | INTEGER |
-| `total_calories` | REAL |
-
-#### Blog (`blog.db`)
-
-**Data tables:** `posts`, `post_tags`
-
-| Analysis Column | Type |
-|-----------------|------|
-| `posts` | INTEGER |
-| `total_words` | INTEGER |
-| `unique_tags` | INTEGER |
-
-#### Hardcover (`hardcover.db`)
-
-**Data tables:** `books`
-
-| Analysis Column | Type |
-|-----------------|------|
-| `books_finished` | INTEGER |
-| `avg_rating` | REAL |
-
-#### GitHub (`github.db`)
-
-**Data tables:** `commits`
-
-| Analysis Column | Type |
-|-----------------|------|
-| `commits` | INTEGER |
-| `repos_touched` | INTEGER |
-
-## Key Concepts
-
-### MoM/YoY Comparisons
-
-All sources display month-over-month and year-over-year percentage changes in their output.
-
-| Source | Metrics with MoM/YoY |
-|--------|---------------------|
-| Readwise | articles, words, reading_time_mins, avg_speed (derived) |
-| Foursquare | checkins, unique_places |
-| Letterboxd | movies_watched, avg_rating |
-| Overcast | episodes_played |
-| Apple Health | workouts, total_duration_seconds, total_calories |
-| Blog | posts, total_words, unique_tags |
-| Hardcover | books_finished, avg_rating |
-| GitHub | commits, repos_touched |
-
-The `comparison.py` module provides shared utilities:
-
-```python
-from src.comparison import compute_comparisons, format_comparison_suffix
-
-# In publisher.py — compute comparisons
-comparisons = compute_comparisons(
-    current_stats=data,
-    historical_getter=self._get_source_analysis,
-    year_month="2026-02",
-    metrics=['checkins', 'unique_places']
-)
-
-# In markdown_generator.py — format suffix
-suffix = format_comparison_suffix(comparisons.get('checkins'))  # " (-46% MoM, +367% YoY)"
-```
-
-**Key functions:**
-- `compute_percentage_change(current, previous)` → percentage or None
-- `get_comparison_periods(year_month)` → `{'mom': '2026-01', 'yoy': '2025-02'}`
-- `format_change(value)` → `"+15%"`, `"-10%"`, or `"N/A"`
-- `format_comparison_suffix(changes)` → `" (+15% MoM, -5% YoY)"` or `""`
-- `format_value_with_changes(value, changes, value_format)` → `"42 (+15% MoM, -5% YoY)"`
-- `compute_comparisons(...)` → dict of metrics with MoM/YoY values
-
-**Derived metrics:** Readwise average reading speed is derived from words/time in `_compute_speed_comparison()`.
-
-### Hugo Data Files
-
-The `publish/data_generator.py` module generates Hugo-compatible YAML data files from all analysis tables. `backfill` first refreshes source analysis tables by running the per-source analyze commands (which themselves invoke sync first), then commits the resulting files to `data/activity/` in the blog repo.
+Current activity files:
 
 | File | Source | Fields |
 |------|--------|--------|
@@ -287,113 +132,336 @@ The `publish/data_generator.py` module generates Hugo-compatible YAML data files
 | `travel.yaml` | Foursquare | `checkins`, `unique_places` |
 | `movies.yaml` | Letterboxd | `movies_watched`, `minutes_watched`, `avg_rating` |
 | `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played`, `minutes_listened` |
-| `workouts.yaml` | Apple Health | `workouts`, `total_minutes` (derived from analysis seconds), `total_calories` |
+| `workouts.yaml` | Apple Health | `workouts`, `total_minutes`, `total_calories` |
 | `writing.yaml` | Blog | `posts`, `total_words`, `unique_tags` |
 | `books.yaml` | Hardcover | `books_finished`, `avg_rating` |
 | `code.yaml` | GitHub | `commits`, `repos_touched` |
 
-### Database Connections
+Published workout metrics come from Apple Health monthly analysis. Strong is still importable and analyzable, but it is not the published workout source.
 
-All database managers inherit from `src/database.py:BaseDatabase` and use a context manager pattern:
+## Source-Specific Technical Notes
+
+### Readwise
+
+- Syncs Reader documents plus associated metadata into `readwise.db`
+- Analysis computes article counts, total words, reading time, and article-length stats
+- Reading speed comparison in the published report is derived rather than stored directly in the analysis table
+
+### Foursquare
+
+- Uses the Foursquare v2 API for core checkin/user data
+- Can optionally enrich venue details through the Places API when `FOURSQUARE_API_KEY` is configured
+
+### Letterboxd
+
+Letterboxd uses a hybrid ingestion model:
+
+- historical seed from CSV export in `files/letterboxd-*`
+- incremental updates from public RSS via `LETTERBOXD_RSS_URL`
+
+Important implementation details:
+
+- CSV and RSS data are deduplicated by checking whether the same movie name already exists within a `+/- 2 day` watch-date window
+- RSS entries are normalized from user-specific film links to canonical film URLs when possible
+- `watched` stores enriched metadata fields:
+  - `tmdb_id`
+  - `runtime_minutes`
+  - `metadata_updated_at`
+- If `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY` is configured, `letterboxd-sync` performs a TMDB enrichment pass after import/sync
+- The TMDB enrichment path prefers exact title plus exact year, then falls back to exact title with a `+/- 1` year window
+- If runtime enrichment still fails, sync prints the unmatched movie titles
+
+Letterboxd analysis writes:
+
+- `movies_watched`
+- `minutes_watched`
+- `avg_rating`
+- `min_rating`
+- `max_rating`
+- `avg_years_since_release`
+
+`minutes_watched` is computed from the summed `watched.runtime_minutes` values available for that month.
+
+### Overcast
+
+- Supports direct OPML export fetch when `OVERCAST_COOKIE` or `OVERCAST_EMAIL` plus `OVERCAST_PASSWORD` are configured
+- Falls back to `files/overcast*.opml` import otherwise
+- `overcast-sync` also fetches missing episode durations from live RSS feeds using title matching
+- Those duration lookups populate `episodes.duration_seconds`, which enables monthly `minutes_listened`
+
+### Strong
+
+- Imports Strong CSV workout exports into `strong.db`
+- Still has its own analysis path for workout/exercise/set metrics
+- No longer drives the published workout section
+
+### Apple Health
+
+- Imports workouts from `export.xml`
+- Monthly analysis is the source of truth for the published workout section and `workouts.yaml`
+
+### Blog
+
+- Syncs from a public Hugo JSON index rather than writing to the blog repo directly
+- The `Writing` report section and `writing.yaml` come from blog analysis
+
+### Hardcover
+
+- Uses the Hardcover GraphQL API
+- Tracks finished books and monthly average rating
+
+### GitHub
+
+- Syncs commit history from owned public repositories
+- Uses an inclusive timestamp cursor plus SHA deduplication so same-second commits are not skipped
+- Publishing uses PyGithub and retries branch update races when necessary
+
+## Database Schemas
+
+Each source has a separate SQLite database under `<storage-root>/data/`.
+
+### Common Analysis Table Shape
+
+Every source's `analysis` table has:
+
+- `year_month` as a `YYYY-MM` primary key
+- `year`
+- `month`
+- source-specific metrics
+- `updated_at`
+
+### Per-Source Databases
+
+#### Readwise (`readwise.db`)
+
+Data tables:
+
+- `books`
+- `highlights`
+- `highlight_tags`
+- `book_tags`
+- `documents`
+- `document_tags`
+- `sync_state`
+
+Analysis fields:
+
+- `articles`
+- `words`
+- `reading_time_mins`
+- `max_words_per_article`
+- `median_words_per_article`
+- `min_words_per_article`
+
+#### Foursquare (`foursquare.db`)
+
+Data tables:
+
+- `users`
+- `places`
+- `checkins`
+- `sync_state`
+
+Views:
+
+- `checkins_with_places`
+- `user_stats`
+
+Analysis fields:
+
+- `checkins`
+- `unique_places`
+
+#### Letterboxd (`letterboxd.db`)
+
+Data tables:
+
+- `users`
+- `watched`
+- `ratings`
+
+`watched` also stores:
+
+- `tmdb_id`
+- `runtime_minutes`
+- `metadata_updated_at`
+
+Analysis fields:
+
+- `movies_watched`
+- `minutes_watched`
+- `avg_rating`
+- `min_rating`
+- `max_rating`
+- `avg_years_since_release`
+
+#### Overcast (`overcast.db`)
+
+Primary tables are created by `overcast-to-sqlite`:
+
+- `feeds`
+- `episodes`
+- `playlists`
+
+Analysis fields:
+
+- `feeds_added`
+- `feeds_removed`
+- `episodes_played`
+- `minutes_listened`
+
+#### Strong (`strong.db`)
+
+Data tables:
+
+- `workouts`
+- `exercises`
+
+Analysis fields:
+
+- `workouts`
+- `total_duration_seconds`
+- `unique_exercises`
+- `total_sets`
+
+#### Apple Health (`apple_health.db`)
+
+Data tables:
+
+- `workouts`
+
+Analysis fields:
+
+- `workouts`
+- `total_duration_seconds`
+- `total_calories`
+
+#### Blog (`blog.db`)
+
+Data tables:
+
+- `posts`
+- `post_tags`
+
+Analysis fields:
+
+- `posts`
+- `total_words`
+- `unique_tags`
+
+#### Hardcover (`hardcover.db`)
+
+Data tables:
+
+- `books`
+
+Analysis fields:
+
+- `books_finished`
+- `avg_rating`
+
+#### GitHub (`github.db`)
+
+Data tables:
+
+- `commits`
+
+Analysis fields:
+
+- `commits`
+- `repos_touched`
+
+## Comparisons
+
+`src/comparison.py` contains the shared MoM and YoY comparison helpers used by publish.
+
+Sources currently surfaced in the published report use comparisons for these metrics:
+
+| Source | Metrics |
+|--------|---------|
+| Readwise | articles, words, reading time, derived reading speed |
+| Foursquare | checkins, unique places |
+| Letterboxd | movies watched, average rating |
+| Overcast | episodes played, minutes listened |
+| Apple Health | workouts, total duration, total calories |
+| Blog | posts, total words, unique tags |
+| Hardcover | books finished, average rating |
+| GitHub | commits, repos touched |
+
+## Database Access Pattern
+
+All DB managers inherit from `BaseDatabase` in [`src/database.py`](/Users/yulong/Documents%20(local)/coding/digital-footprint-dump/src/database.py).
+
+Typical usage:
 
 ```python
 with self.db.get_connection() as conn:
     cursor = conn.cursor()
     cursor.execute("SELECT ...")
     rows = cursor.fetchall()
-    # rows are sqlite3.Row objects — access like dicts: row['column']
 ```
 
-### Timestamp Helpers
+Connections use `sqlite3.Row`, so rows are accessed by column name.
 
-Timezone-aware UTC timestamps are generated via `src/time_utils.py:utc_now_iso()`, which returns ISO 8601 strings ending in `Z`. This avoids the Python 3.12 `datetime.utcnow()` deprecation warnings while keeping the stored format unchanged.
+## Time and Timestamps
 
-### Configuration
+`src/time_utils.py` provides UTC timestamp helpers, including `utc_now_iso()`, which is used for `updated_at` values in analysis tables.
 
-`src/config.py` loads environment variables from `.env` and provides validation methods:
+## Configuration
 
-| Config Section | Key Variables | Validation |
-|----------------|---------------|------------|
-| Readwise | `READWISE_ACCESS_TOKEN` | `validate_readwise()` |
-| Foursquare | `FOURSQUARE_ACCESS_TOKEN` | `validate_foursquare()` |
-| Hardcover | `HARDCOVER_ACCESS_TOKEN` | `validate_hardcover()` |
-| GitHub Activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` | `validate_github_activity()` |
-| GitHub Publishing | `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME` | `validate_github()` |
+`src/config.py` loads `.env`, resolves the storage root, and exposes validation methods.
 
-File-based sources (Letterboxd, Overcast, Strong, Apple Health) require no API tokens — they read from `<storage-root>/files/`. Blog tracking also requires no token by default and reads from the public `BLOG_POSTS_INDEX_URL`.
+Key config areas:
+
+| Area | Variables |
+|------|-----------|
+| Readwise | `READWISE_ACCESS_TOKEN` |
+| Foursquare | `FOURSQUARE_ACCESS_TOKEN`, `FOURSQUARE_CLIENT_ID`, `FOURSQUARE_CLIENT_SECRET`, `FOURSQUARE_API_KEY` |
+| Letterboxd | `LETTERBOXD_RSS_URL`, `TMDB_ACCESS_TOKEN`, `TMDB_API_KEY` |
+| Overcast | `OVERCAST_COOKIE`, `OVERCAST_EMAIL`, `OVERCAST_PASSWORD` |
+| Blog tracking | `BLOG_POSTS_INDEX_URL` |
+| Hardcover | `HARDCOVER_ACCESS_TOKEN` |
+| GitHub activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` |
+| GitHub publishing | `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME`, `BLOG_GITHUB_TARGET_BRANCH` |
+| Storage override | `DATA_REPO_LOCAL_PATH` |
 
 ## Testing
 
+Useful commands:
+
 ```bash
-# Run all tests
 uv run pytest
-
-# Run the CI-like local test flow
 make test-ci
-
-# Run specific test file
-uv run pytest tests/test_comparison.py -v
+uv run main.py publish --dry-run
 ```
 
-Test files cover: comparison utilities, data generator, cloud config, Foursquare client + security, GitHub client + sync, Hardcover sync/timeout, main refactor, Overcast importer security, Readwise client security + database.
+When docs or behavior change around the monthly report or activity files, `publish --dry-run` is the most useful end-to-end validation step.
 
-## Cloud Deployment (GitHub Actions)
+## Cloud Deployment
 
-Automate the pipeline to run monthly using GitHub Actions with a private data repository.
+This repo includes GitHub Actions for tests and monthly pipeline automation.
 
-### Setup
+For the monthly pipeline, the common deployment model is:
 
-1. **Create a private data repository** (e.g., `digital-footprint-data`):
-   ```
-   digital-footprint-data/
-   ├── data/           # Empty initially, DBs auto-created
-   └── files/          # Manual exports (Letterboxd, Strong, Apple Health, optional Overcast fallback)
-       ├── letterboxd-export/
-       ├── strong_workouts.csv
-       └── export.xml
-   ```
+1. public repo for this code
+2. private repo for `data/` and `files/`
+3. PAT/secrets for the source APIs and the target blog repo
 
-   If you configure direct Overcast export auth in Actions secrets, the workflow does not need a checked-in `overcast.opml`. You can still keep `files/overcast*.opml` as a fallback.
+Common Actions secrets include:
 
-2. **Create two fine-grained Personal Access Tokens** at [github.com/settings/tokens](https://github.com/settings/tokens):
-
-   | Token | Repo scope | Permissions needed |
-   |-------|-----------|--------------------|
-   | `DATA_REPO_PAT` | Private data repo | **Contents: Read and write** |
-   | `BLOG_GITHUB_TOKEN` | Blog repo | **Contents: Read and write** |
-
-   > These can be the same token if it has access to both repos.
-
-3. **Add secrets** to your public repo (Settings → Secrets → Actions):
-
-   | Secret | Description |
-   |--------|-------------|
-   | `DATA_REPO_OWNER` | Your GitHub username |
-   | `DATA_REPO_NAME` | Private data repo name |
-   | `DATA_REPO_PAT` | PAT with Contents read/write on data repo |
-   | `READWISE_ACCESS_TOKEN` | Readwise API token |
-   | `FOURSQUARE_ACCESS_TOKEN` | Foursquare OAuth token — required for all API calls |
-   | `FOURSQUARE_API_KEY` | *(optional)* Foursquare Places API for venue details |
-   | `OVERCAST_COOKIE` | *(optional)* Overcast authenticated `o` cookie for direct OPML export |
-   | `OVERCAST_EMAIL` | *(optional)* Overcast login email for direct OPML export |
-   | `OVERCAST_PASSWORD` | *(optional)* Overcast login password for direct OPML export |
-   | `HARDCOVER_ACCESS_TOKEN` | Hardcover API token |
-   | `CODEBASE_USERNAME` | Your GitHub username (for activity tracking) |
-   | `BLOG_GITHUB_TOKEN` | PAT with Contents read/write on blog repo |
-   | `BLOG_REPO_OWNER` | Blog repo owner |
-   | `BLOG_REPO_NAME` | Blog repo name |
-   | `BLOG_GITHUB_TARGET_BRANCH` | *(optional)* Branch to commit to, defaults to `main` |
-
-   Prefer `OVERCAST_COOKIE` if you already have a working authenticated cookie. Otherwise set both `OVERCAST_EMAIL` and `OVERCAST_PASSWORD`. If none of those are present, the workflow falls back to `files/overcast*.opml`.
-
-### Schedule
-
-The workflow runs automatically on the **last day of each month at 11:00 AM UTC**.
-
-### Manual Trigger
-
-1. Go to **Actions** tab in your repository
-2. Select **"Monthly Pipeline"** workflow
-3. Click **"Run workflow"**
-4. Optionally check **"Publish for the last month"** to run the report for the previous month
-5. Optionally select **dry-run mode** from the command dropdown to validate without publishing
+- `DATA_REPO_OWNER`
+- `DATA_REPO_NAME`
+- `DATA_REPO_PAT`
+- `READWISE_ACCESS_TOKEN`
+- `FOURSQUARE_ACCESS_TOKEN`
+- `FOURSQUARE_API_KEY`
+- `OVERCAST_COOKIE`
+- `OVERCAST_EMAIL`
+- `OVERCAST_PASSWORD`
+- `HARDCOVER_ACCESS_TOKEN`
+- `CODEBASE_USERNAME`
+- `BLOG_GITHUB_TOKEN`
+- `BLOG_REPO_OWNER`
+- `BLOG_REPO_NAME`
+- `BLOG_GITHUB_TARGET_BRANCH`
+- `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY` if you want Letterboxd runtime enrichment in Actions too

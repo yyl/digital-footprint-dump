@@ -2,7 +2,20 @@
 
 [![Tests](https://github.com/yyl/digital-footprint-dump/actions/workflows/tests.yml/badge.svg)](https://github.com/yyl/digital-footprint-dump/actions/workflows/tests.yml)
 
-A pipeline to fetch data from digital sources, analyze them, and publish a monthly draft report to a markdown blog site.
+`digital-footprint-dump` collects data from personal services, analyzes it by month, and generates a draft markdown wrap-up post plus activity data files for a blog.
+
+## What This Repo Does
+
+- Syncs data from supported sources into local SQLite databases
+- Computes monthly metrics for each source
+- Generates a draft monthly report post
+- Regenerates monthly activity YAML files used by the blog
+
+If you want source-by-source setup details, see [docs/SOURCES.md](docs/SOURCES.md).
+
+If you want the report format and layout, see [docs/SUMMARY.md](docs/SUMMARY.md).
+
+If you want developer and implementation details, see [src/README.md](src/README.md).
 
 ## Setup
 
@@ -10,65 +23,89 @@ A pipeline to fetch data from digital sources, analyze them, and publish a month
 uv python install $(cat .python-version)
 uv sync
 cp .env.example .env
-# Edit .env with your credentials
 ```
 
-The repo pins its expected Python version in `.python-version`. CI and the recommended local test flow both use that exact version for consistency.
+Then edit `.env` with the credentials you need for the sources you want to use.
 
-## Usage
+## Basic Usage
+
+Run commands with:
+
+```bash
+uv run main.py <command>
+```
 
 ### Commands
 
 | Command | Description |
 |---------|-------------|
 | `init` | Initialize all databases |
-| `sync` | Sync all services |
-| `analyze` | Analyze all sources |
-| `publish` | Generate and commit a monthly draft report blog post |
-| `backfill` | Refresh analysis data and commit Hugo activity YAML files to the blog repo |
-| `status` | Show sync status |
-| `{source}-sync` | Sync a specific source |
-| `{source}-analyze` | Analyze a specific source |
+| `sync` | Sync all supported sources |
+| `analyze` | Recompute monthly analysis for all supported sources |
+| `publish` | Generate and publish a draft monthly report |
+| `backfill` | Refresh analysis and regenerate blog activity YAML files |
+| `status` | Show current sync status |
+| `{source}-sync` | Sync one source |
+| `{source}-analyze` | Analyze one source |
 
-Run with: `uv run main.py <command>`
+## Common Workflows
 
-See [docs/SOURCES.md](docs/SOURCES.md) for details on supported sources (`readwise`, `foursquare`, `letterboxd`, `overcast`, `strong`, `apple-health`, `blog`, `hardcover`, `github`).
+### Sync Everything
 
-`sync`/`{source}-sync` create or refresh raw source data only. Monthly `analysis` tables are created when you run `analyze`, `{source}-analyze`, or `publish`. (Note: `overcast-sync` also performs an active network fetch to pull missing episode durations from live RSS feeds).
+```bash
+uv run main.py sync
+```
 
-`overcast-sync` can now fetch the OPML export directly when `OVERCAST_COOKIE` or `OVERCAST_EMAIL` + `OVERCAST_PASSWORD` are configured; otherwise it still falls back to a manual `files/overcast*.opml` import.
+### Recompute Monthly Analysis
 
-For specific details on tests, database definitions, module structure, storage and cloud deployment, see [src/README.md](src/README.md).
+```bash
+uv run main.py analyze
+```
 
-### Publishing
+### Preview the Monthly Report Locally
 
-The pipeline generates a markdown report from the local SQLite databases. See [docs/SUMMARY.md](docs/SUMMARY.md) for full details on the report format and logic.
+```bash
+uv run main.py publish --dry-run
+```
 
-**Commands:**
-- `publish`: Syncs latest data, runs analysis, generates markdown, and commits the draft report post to GitHub.
-- `publish --skip-sync-analysis`: Generates and commits the draft report post using the current analysis data without rerunning sync or analysis.
-- `publish --dry-run`: Generates the markdown locally from the current analysis data without syncing or publishing anything.
-- `publish --last-month`: Generates and commits the report for the previous month instead of the latest month.
-- `backfill`: Runs the per-source analyze commands for Readwise, Letterboxd, Foursquare, Overcast, Strong, Apple Health, Blog, Hardcover, and GitHub, then commits regenerated `data/activity/*.yaml` monthly stats files to the blog repo. Those analyze commands refresh raw source data first as part of their normal flow.
+### Publish the Monthly Report
 
-**Required in .env:**
-- `BLOG_GITHUB_TOKEN` - Fine-grained PAT scoped to blog repo with **Contents: Read and write** permission
-- `BLOG_REPO_OWNER` - Repository owner username
-- `BLOG_REPO_NAME` - Repository name
-- `BLOG_GITHUB_TARGET_BRANCH` - (optional) Branch to commit to, defaults to `main`
+```bash
+uv run main.py publish
+```
 
-**Optional blog tracking config:**
-- `BLOG_POSTS_INDEX_URL` - Public Hugo JSON export for published posts, defaults to `https://www.mildlyjournaling.com/posts/index.json`
+Useful publish flags:
 
-### GitHub Actions Workflow
+- `--dry-run`: render the report locally without publishing
+- `--skip-sync-analysis`: publish from existing analysis data
+- `--last-month`: publish the previous month instead of the latest available one
 
-This project includes a GitHub Action (`monthly-pipeline.yml`) to automatically or manually run the pipeline. For detailed setup instructions (secrets, private repo definitions), see [src/README.md](src/README.md).
+### Regenerate Activity Data Files
 
-**Schedule:**
-The workflow runs automatically on the **last day of each month at 11:00 AM UTC**.
+```bash
+uv run main.py backfill
+```
 
-**Manual Trigger:**
-1. Go to **Actions** tab in your repository
-2. Select **"Monthly Pipeline"** workflow
-3. Click **"Run workflow"**
-4. Optional flags like `Publish for the last month` or `dry-run` are available in the prompt.
+`backfill` refreshes source analysis and writes the monthly activity YAML files used by the blog.
+
+## Required Publishing Config
+
+To publish the markdown report to GitHub, set:
+
+- `BLOG_GITHUB_TOKEN`
+- `BLOG_REPO_OWNER`
+- `BLOG_REPO_NAME`
+- `BLOG_GITHUB_TARGET_BRANCH` (optional, defaults to `main`)
+
+Optional:
+
+- `BLOG_POSTS_INDEX_URL` for blog post tracking
+
+## GitHub Actions
+
+This repo includes a monthly GitHub Actions workflow so the pipeline can run automatically or on demand.
+
+- Scheduled run: last day of each month at `11:00 AM UTC`
+- Manual run: open the workflow in the Actions tab and use the workflow inputs
+
+For source secrets and developer-oriented deployment details, see [src/README.md](src/README.md).

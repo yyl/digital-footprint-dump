@@ -1,168 +1,142 @@
 # Supported Sources
 
-This repository syncs data from various digital platforms. Below are the details for each supported source.
+This project supports the following sources for sync and monthly analysis.
+
+All source data is stored in local SQLite databases under `<storage-root>/data/`. File-based imports are read from `<storage-root>/files/`.
 
 ## Readwise
 
-Exports books, highlights, and Reader documents to `<storage-root>/data/readwise.db`.
+Tracks books, highlights, and Reader documents.
 
-**Commands:**
-- `readwise-sync`: Syncs data from Readwise API to the local database.
-- `readwise-analyze`: Generates monthly reading stats (archived articles, total words, reading time, max/median/min words per article) and writes to the `analysis` table in `data/readwise.db`.
+**Commands**
+- `readwise-sync`
+- `readwise-analyze`
 
-**Required in .env:**
-- `READWISE_ACCESS_TOKEN` - Get from [readwise.io/access_token](https://readwise.io/access_token)
-
----
+**Required in `.env`**
+- `READWISE_ACCESS_TOKEN`
 
 ## Foursquare
 
-Exports checkins and places to `<storage-root>/data/foursquare.db`.
+Tracks Swarm/Foursquare checkins and place visits.
 
-**Commands:**
-- `foursquare-sync`: Syncs checkin history from Foursquare API.
-- `foursquare-analyze`: Generates monthly stats (checkins, unique places) and writes to the `analysis` table.
+**Commands**
+- `foursquare-sync`
+- `foursquare-analyze`
 
-**Required in .env:**
-- `FOURSQUARE_ACCESS_TOKEN` - OAuth token used for all v2 API calls (checkins, user info)
-- `FOURSQUARE_CLIENT_ID` - Only needed for initial OAuth flow / re-auth. From your [Foursquare app](https://foursquare.com/developers/apps)
-- `FOURSQUARE_CLIENT_SECRET` - Only needed for initial OAuth flow / re-auth
-- `FOURSQUARE_API_KEY` - *(optional)* Service key for Places API; enriches venue details but falls back to checkin data if absent
+**Required in `.env`**
+- `FOURSQUARE_ACCESS_TOKEN`
 
----
+**Optional in `.env`**
+- `FOURSQUARE_CLIENT_ID`
+- `FOURSQUARE_CLIENT_SECRET`
+- `FOURSQUARE_API_KEY`
+
+Use the client ID and secret when you need to run the OAuth flow again. The API key is optional and is used to enrich venue details.
 
 ## Letterboxd
 
-Imports watched movies and ratings. 
+Tracks watched movies and ratings.
 
-**Commands:**
-- `letterboxd-sync`: Automatically synchronizes Letterboxd data via RSS. If the database is empty, it automatically parses CSV exports from the `files/` folder first for historical seeding.
-- `letterboxd-analyze`: Generates monthly movie stats (count, avg/min/max rating, avg years since release) and writes to the `analysis` table.
+**Commands**
+- `letterboxd-sync`
+- `letterboxd-analyze`
 
-**Required in .env:**
-- `LETTERBOXD_RSS_URL` - Your public RSS feed URL
+**Required in `.env`**
+- `LETTERBOXD_RSS_URL`
 
-**Optional in .env:**
-- `TMDB_ACCESS_TOKEN` - Preferred TMDB read token used to backfill movie runtimes
-- `TMDB_API_KEY` - Legacy alternative if you do not want to use a bearer token
+**Optional in `.env`**
+- `TMDB_ACCESS_TOKEN`
+- `TMDB_API_KEY`
 
-**Optional Setup (Historical CSV Seeding):**
-To load history older than the ~50 items provided by RSS:
-1. Export your data from [letterboxd.com/settings/data](https://letterboxd.com/settings/data/)
-2. Unzip and place folder in `<storage-root>/files/` (e.g., `files/letterboxd-username-2025-...`)
-3. Ensure you're starting from an empty/non-existent `letterboxd.db`
-4. Run `uv run main.py letterboxd-sync`
+`letterboxd-sync` can seed history from a Letterboxd export folder in `<storage-root>/files/` when the database is empty, then continue with RSS updates. If TMDB credentials are configured, it also backfills movie runtimes.
 
-See `src/README.md` for technical details on how deduplication and CSV/RSS overlaps are handled.
-
----
+**Optional historical export setup**
+1. Export your Letterboxd data from [letterboxd.com/settings/data](https://letterboxd.com/settings/data/)
+2. Unzip the folder into `<storage-root>/files/`
+3. Run `uv run main.py letterboxd-sync`
 
 ## Overcast
 
-Imports podcast feeds and episodes from Overcast OPML export to `<storage-root>/data/overcast.db`.
+Tracks podcast subscriptions and played episodes.
 
-**Commands:**
-- `overcast-sync`: Imports data from Overcast OPML export and automatically fetches missing episode durations from live RSS feeds using title-matching.
-- `overcast-analyze`: Generates monthly podcast stats (feeds added, feeds removed, episodes played, minutes listened) and writes to the `analysis` table.
+**Commands**
+- `overcast-sync`
+- `overcast-analyze`
 
-**Optional in .env for direct export:**
-- `OVERCAST_COOKIE` - Existing authenticated Overcast `o` cookie
-- `OVERCAST_EMAIL` and `OVERCAST_PASSWORD` - Used to log in and fetch the export automatically
+**Optional in `.env` for direct export**
+- `OVERCAST_COOKIE`
+- `OVERCAST_EMAIL`
+- `OVERCAST_PASSWORD`
 
-**Setup:**
-1. Preferred: set `OVERCAST_COOKIE`, or set `OVERCAST_EMAIL` and `OVERCAST_PASSWORD`
-2. Fallback: export from [overcast.fm/account](https://overcast.fm/account) → "All data" OPML and place it in `<storage-root>/files/` (e.g., `files/overcast.opml`)
-3. Run `uv run main.py overcast-sync`
-
----
+Without direct auth, you can place an Overcast OPML export in `<storage-root>/files/`.
 
 ## Strong
 
-Imports workout data from Strong app CSV export to `<storage-root>/data/strong.db`.
+Imports workouts from Strong CSV export.
 
-**Commands:**
-- `strong-sync`: Imports workout and exercise data from CSV export.
-- `strong-analyze`: Generates monthly stats (workouts, total minutes, unique exercises, total sets) and writes to the `analysis` table.
+**Commands**
+- `strong-sync`
+- `strong-analyze`
 
-**Required in .env:**
-- None (File-based export)
+**Required in `.env`**
+- None
 
-**Setup:**
-1. Export from [Strong app](https://www.strong.app/) → Settings → Export Data
-2. Place CSV in `<storage-root>/files/` (e.g., `files/strong_workouts.csv`)
-3. Run `uv run main.py strong-sync`
+Place the Strong CSV export in `<storage-root>/files/`.
 
-Strong remains available as a standalone import and analysis source. Published workout metrics and `workouts.yaml` now come from Apple Health instead.
-
----
+Strong remains available as a standalone source, but published workout output now comes from Apple Health instead.
 
 ## Apple Health
 
-Imports workouts from Apple Health `export.xml` into `<storage-root>/data/apple_health.db`.
+Imports workouts from Apple Health `export.xml`.
 
-**Commands:**
-- `apple-health-sync`: Imports per-workout activity, timing, calories, and heart-rate data from Apple Health XML.
-- `apple-health-analyze`: Generates monthly workout stats (workouts, total duration in seconds, total calories) and writes to the `analysis` table.
+**Commands**
+- `apple-health-sync`
+- `apple-health-analyze`
 
-**Required in .env:**
-- None (File-based export)
+**Required in `.env`**
+- None
 
-**Setup:**
-1. Export your Apple Health data and extract `export.xml`
-2. Place `export.xml` in `<storage-root>/files/` or a child export folder under `<storage-root>/files/`
-3. Run `uv run main.py apple-health-sync`
+Place `export.xml` in `<storage-root>/files/` or in an extracted Apple Health export folder under it.
 
-**Publishing notes:**
-- Apple Health is the published workout source for the monthly summary.
-- `data/activity/workouts.yaml` is generated from Apple Health analysis and includes `workouts`, derived `total_minutes`, and `total_calories`.
-
----
+Apple Health is the source used for published workout metrics and `workouts.yaml`.
 
 ## Blog
 
-Tracks published blog posts from a public Hugo JSON export into `<storage-root>/data/blog.db`.
+Tracks published blog posts from a public Hugo JSON index.
 
-**Commands:**
-- `blog-sync`: Fetches the public `posts/index.json` export and stores raw posts + tags locally.
-- `blog-analyze`: Generates monthly stats (posts, total words, unique tags) and writes to the `analysis` table.
+**Commands**
+- `blog-sync`
+- `blog-analyze`
 
-**Required in .env:**
+**Required in `.env`**
 - None
 
-**Optional in .env:**
-- `BLOG_POSTS_INDEX_URL` - Override the default public JSON source URL (`https://www.mildlyjournaling.com/posts/index.json`)
+**Optional in `.env`**
+- `BLOG_POSTS_INDEX_URL`
 
-**Publishing notes:**
-- The monthly summary includes a `Writing` section sourced from blog analysis.
-- `data/activity/writing.yaml` is generated from blog analysis and includes `posts`, `total_words`, and `unique_tags`.
-
----
+Blog analysis powers the published `Writing` section and `writing.yaml`.
 
 ## Hardcover
 
-Syncs finished books from [Hardcover](https://hardcover.app/) via their GraphQL API to `<storage-root>/data/hardcover.db`.
+Tracks finished books from Hardcover.
 
-**Commands:**
-- `hardcover-sync`: Fetches all books marked as "read" from Hardcover API.
-- `hardcover-analyze`: Generates monthly stats (books finished, average rating) and writes to the `analysis` table.
+**Commands**
+- `hardcover-sync`
+- `hardcover-analyze`
 
-**Required in .env:**
-- `HARDCOVER_ACCESS_TOKEN` - Get from [hardcover.app/account/api](https://hardcover.app/account/api)
-
-**Setup:**
-1. Get your API token and add `HARDCOVER_ACCESS_TOKEN` to your `.env`
-2. Run `uv run main.py hardcover-sync`
-
----
+**Required in `.env`**
+- `HARDCOVER_ACCESS_TOKEN`
 
 ## GitHub
 
-Syncs commit history from your public repositories via the GitHub REST API to `<storage-root>/data/github.db`.
+Tracks commit activity from your public repositories.
 
-**Commands:**
-- `github-sync`: Fetches commits from all owned public repos (non-fork).
-- `github-analyze`: Generates monthly stats (commits, repos touched) and writes to the `analysis` table.
+**Commands**
+- `github-sync`
+- `github-analyze`
 
-**Required in .env:**
-- `CODEBASE_USERNAME` - Your GitHub username
-- `BLOG_GITHUB_TOKEN` - Reused for authenticated API access (5000 req/hr)
+**Required in `.env`**
+- `CODEBASE_USERNAME`
+- `BLOG_GITHUB_TOKEN`
+
+The GitHub token is reused for authenticated API access.
