@@ -101,6 +101,7 @@ The `publish` command supports several flags to customize its execution path:
 - `publish --skip-sync-analysis`: skips both sync and analysis, and publishes directly from the current analysis data in the local databases.
 - `publish --dry-run`: skips sync and publish, and only renders markdown from the current analysis data already present in the local databases.
 - `publish --last-month`: generates and publishes the report for the previous month instead of the latest available month.
+- `backfill`: runs the analyze commands for Readwise, Letterboxd, Foursquare, Overcast, Strong, Apple Health, Blog, Hardcover, and GitHub, then commits regenerated Hugo data files under `data/activity/`. Each analyze command refreshes its raw source data first via its paired sync step.
 
 Published workout metrics now come from Apple Health monthly analysis. Strong remains importable and analyzable directly, but its exercise/set metrics are no longer used in the report or `workouts.yaml`.
 
@@ -275,7 +276,7 @@ suffix = format_comparison_suffix(comparisons.get('checkins'))  # " (-46% MoM, +
 
 ### Hugo Data Files
 
-The `publish/data_generator.py` module generates Hugo-compatible YAML data files from all analysis tables. These are committed to `data/activity/` in the blog repo via the `backfill` command:
+The `publish/data_generator.py` module generates Hugo-compatible YAML data files from all analysis tables. `backfill` first refreshes source analysis tables by running the per-source analyze commands (which themselves invoke sync first), then commits the resulting files to `data/activity/` in the blog repo.
 
 | File | Source | Fields |
 |------|--------|--------|

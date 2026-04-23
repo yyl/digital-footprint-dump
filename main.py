@@ -265,6 +265,9 @@ def cmd_backfill():
     print("\n--- Apple Health ---")
     cmd_apple_health_analyze()
 
+    print("\n--- Blog ---")
+    cmd_blog_analyze()
+
     print("\n--- Hardcover ---")
     cmd_hardcover_analyze()
     

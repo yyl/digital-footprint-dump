@@ -25,7 +25,7 @@ The repo pins its expected Python version in `.python-version`. CI and the recom
 | `sync` | Sync all services |
 | `analyze` | Analyze all sources |
 | `publish` | Generate and commit a monthly draft report blog post |
-| `backfill` | Commit activity data files to blog repo |
+| `backfill` | Refresh analysis data and commit Hugo activity YAML files to the blog repo |
 | `status` | Show sync status |
 | `{source}-sync` | Sync a specific source |
 | `{source}-analyze` | Analyze a specific source |
@@ -49,6 +49,7 @@ The pipeline generates a markdown report from the local SQLite databases. See [d
 - `publish --skip-sync-analysis`: Generates and commits the draft report post using the current analysis data without rerunning sync or analysis.
 - `publish --dry-run`: Generates the markdown locally from the current analysis data without syncing or publishing anything.
 - `publish --last-month`: Generates and commits the report for the previous month instead of the latest month.
+- `backfill`: Runs the per-source analyze commands for Readwise, Letterboxd, Foursquare, Overcast, Strong, Apple Health, Blog, Hardcover, and GitHub, then commits regenerated `data/activity/*.yaml` monthly stats files to the blog repo. Those analyze commands refresh raw source data first as part of their normal flow.
 
 **Required in .env:**
 - `BLOG_GITHUB_TOKEN` - Fine-grained PAT scoped to blog repo with **Contents: Read and write** permission
