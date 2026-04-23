@@ -22,5 +22,5 @@ It chooses the latest available `YYYY-MM` across all analysis databases that are
 - **Readwise (Newsletters):** Skips broken Readwise newsletter-style `mailto:` links and renders those titles as plain text.
 - **Readwise (Highlights):** Adds Readwise highlights as grouped quote-style entries with date and note metadata.
 - **Movies (Letterboxd):** Adds movie tables with watch date and rating.
-- **Podcasts (Overcast):** Adds podcast summaries ranked by episode count, followed by grouped episode tables using the same `Other` bucketing rule for one-off podcasts. Newly subscribed feeds are highlighted with a 🆕 emoji and get their own standalone row in the summary table.
+- **Podcasts (Overcast):** Includes monthly feed adds, feed removals, episodes played, and minutes played with MoM/YoY comparisons when available. It also adds podcast summaries ranked by episode count, followed by grouped episode tables using the same `Other` bucketing rule for one-off podcasts. Newly subscribed feeds are highlighted with a 🆕 emoji and get their own standalone row in the summary table.
 - **GitHub Commits:** Adds GitHub repo summaries ranked by commit count, followed by grouped commit tables using the same `Other` bucketing rule for one-off repos, with merge PR commits (`Merge pull request #`) excluded.

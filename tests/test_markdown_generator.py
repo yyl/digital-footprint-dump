@@ -214,6 +214,23 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertIn("| New Show 1 🆕 |", result)
         self.assertIn("| Old Show |", result)
 
+    def test_generate_overcast_section_includes_minutes_played(self):
+        result = self.generator._generate_overcast_section({
+            "feeds_added": 2,
+            "feeds_removed": 1,
+            "episodes_played": 8,
+            "minutes_listened": 245,
+            "comparisons": {
+                "episodes_played": {"mom": 14.0, "yoy": None},
+                "minutes_listened": {"mom": -5.0, "yoy": 20.0},
+            },
+            "episodes": [],
+            "new_feeds": [],
+        })
+
+        self.assertIn("- **Episodes Played**: 8 (+14% MoM, N/A YoY)", result)
+        self.assertIn("- **Minutes Played**: 245 (-5% MoM, +20% YoY)", result)
+
     def test_generate_commit_groups_block_adds_ranked_summary_and_groups_other(self):
         result = self.generator._generate_commit_groups_block([
             {

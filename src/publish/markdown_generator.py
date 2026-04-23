@@ -292,9 +292,11 @@ categories: ["Summary"]
         feeds_added = int(overcast_data.get('feeds_added', 0))
         feeds_removed = int(overcast_data.get('feeds_removed', 0))
         episodes_played = int(overcast_data.get('episodes_played', 0))
+        minutes_listened = int(overcast_data.get('minutes_listened', 0))
         comparisons = overcast_data.get('comparisons', {})
         
         played_cmp = format_comparison_suffix(comparisons.get('episodes_played'))
+        minutes_cmp = format_comparison_suffix(comparisons.get('minutes_listened'))
         
         return f"""
 ## Podcasts
@@ -302,6 +304,7 @@ categories: ["Summary"]
 - **New Feeds Subscribed**: {feeds_added}
 - **Feeds Removed**: {feeds_removed}
 - **Episodes Played**: {episodes_played}{played_cmp}
+- **Minutes Played**: {minutes_listened}{minutes_cmp}
 {self._generate_podcasts_block(overcast_data.get('episodes', []), overcast_data.get('new_feeds', []))}
 """
     
