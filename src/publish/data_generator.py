@@ -149,7 +149,7 @@ class DataGenerator:
     def _get_all_letterboxd(self) -> List[Dict[str, Any]]:
         """Get all Letterboxd analysis records, oldest first."""
         query = """
-        SELECT year_month, movies_watched, avg_rating
+        SELECT year_month, movies_watched, minutes_watched, avg_rating
         FROM analysis
         ORDER BY year_month ASC
         """
@@ -162,6 +162,7 @@ class DataGenerator:
             {
                 'month': dict(row)['year_month'],
                 'movies_watched': dict(row)['movies_watched'],
+                'minutes_watched': dict(row)['minutes_watched'],
                 'avg_rating': dict(row)['avg_rating'],
             }
             for row in rows

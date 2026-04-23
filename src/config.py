@@ -61,6 +61,8 @@ class Config:
         "LETTERBOXD_RSS_URL",
         "https://letterboxd.com/longyu/rss/"
     )
+    TMDB_ACCESS_TOKEN: str = os.getenv("TMDB_ACCESS_TOKEN", "").strip()
+    TMDB_API_KEY: str = os.getenv("TMDB_API_KEY", "").strip()
     
     # ==========================================================================
     # Overcast Configuration

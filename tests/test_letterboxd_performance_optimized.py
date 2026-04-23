@@ -44,6 +44,11 @@ class TestLetterboxdDatabase:
             assert "watched" in tables
             assert "ratings" in tables
 
+            cursor.execute("PRAGMA table_info(watched)")
+            watched_columns = {row[1] for row in cursor.fetchall()}
+            assert "tmdb_id" in watched_columns
+            assert "runtime_minutes" in watched_columns
+
     def test_upsert_watched_batch(self, mock_db_path):
         """Test batch upsert of watched movies."""
         db = LetterboxdDatabase(db_path=mock_db_path)

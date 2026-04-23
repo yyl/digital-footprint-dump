@@ -45,3 +45,39 @@ def test_letterboxd_database_init_tables(mock_db_path):
         assert "users" in tables
         assert "watched" in tables
         assert "ratings" in tables
+
+        cursor.execute("PRAGMA table_info(watched)")
+        watched_columns = {row[1] for row in cursor.fetchall()}
+        assert "tmdb_id" in watched_columns
+        assert "runtime_minutes" in watched_columns
+        assert "metadata_updated_at" in watched_columns
+
+
+def test_update_movie_metadata_persists_runtime(mock_db_path):
+    """Test runtime metadata updates on watched movies."""
+    db = LetterboxdDatabase(db_path=mock_db_path)
+    db.init_tables()
+    db.upsert_user({"Username": "testuser"})
+    db.upsert_watched(
+        {
+            "Letterboxd URI": "uri1",
+            "Name": "Movie 1",
+            "Year": "2021",
+            "Date": "2021-01-01",
+        },
+        "testuser",
+    )
+
+    updated = db.update_movie_metadata("uri1", tmdb_id=101, runtime_minutes=123)
+
+    assert updated is True
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT tmdb_id, runtime_minutes, metadata_updated_at FROM watched WHERE letterboxd_uri = ?",
+            ("uri1",),
+        )
+        row = cursor.fetchone()
+        assert row[0] == 101
+        assert row[1] == 123
+        assert row[2] is not None

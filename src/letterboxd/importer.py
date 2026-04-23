@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any
 
 from ..config import Config
 from .database import LetterboxdDatabase
+from .tmdb_client import TMDBClient
 
 
 class LetterboxdImporter:
@@ -90,6 +91,9 @@ class LetterboxdImporter:
             reader = csv.DictReader(f)
             batch = []
             for row in reader:
+                tmdb_id = self._extract_tmdb_id(row)
+                if tmdb_id is not None:
+                    row["TMDB ID"] = tmdb_id
                 batch.append(row)
                 if len(batch) >= batch_size:
                     count += self.db.upsert_watched_batch(batch, username)
@@ -97,6 +101,19 @@ class LetterboxdImporter:
             if batch:
                 count += self.db.upsert_watched_batch(batch, username)
         return count
+
+    @staticmethod
+    def _extract_tmdb_id(row: Dict[str, Any]) -> Optional[int]:
+        """Normalize any TMDB identifier provided by Letterboxd exports."""
+        for key in ("tmdbID", "tmdbId", "TMDB ID"):
+            value = row.get(key)
+            if value in (None, ""):
+                continue
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return None
+        return None
 
     def _import_ratings(self, csv_path: Path, username: str, batch_size: int = 100) -> int:
         """Import ratings.csv."""
@@ -112,6 +129,46 @@ class LetterboxdImporter:
             if batch:
                 count += self.db.upsert_ratings_batch(batch, username)
         return count
+
+    def enrich_missing_runtime(self, client: Optional[TMDBClient] = None) -> int:
+        """Backfill runtime data for watched movies using TMDB."""
+        client = client or TMDBClient()
+        if not client.is_configured():
+            print("TMDB credentials not configured; skipping Letterboxd runtime enrichment")
+            return 0
+
+        missing_before = self.db.get_movies_missing_runtime()
+        count = 0
+        for movie in missing_before:
+            match = client.get_runtime(
+                title=movie["movie_name"],
+                year=movie.get("year"),
+                tmdb_id=movie.get("tmdb_id"),
+            )
+            if not match:
+                continue
+
+            matched_tmdb_id, runtime_minutes = match
+            if self.db.update_movie_metadata(
+                letterboxd_uri=movie["letterboxd_uri"],
+                tmdb_id=matched_tmdb_id,
+                runtime_minutes=runtime_minutes,
+            ):
+                count += 1
+
+        if count:
+            print(f"Enriched runtime metadata for {count} watched movies")
+
+        remaining = self.db.get_movies_missing_runtime()
+        if remaining:
+            missing_titles = ", ".join(
+                f"{movie['movie_name']} ({movie['year']})" if movie.get("year") else movie["movie_name"]
+                for movie in remaining
+            )
+            print(
+                f"Could not find TMDB runtime for {len(remaining)} watched movies: {missing_titles}"
+            )
+        return count
     
     def sync(self) -> Dict[str, int]:
         """Auto-discover latest export and import it.
@@ -122,7 +179,7 @@ class LetterboxdImporter:
         Returns:
             Dictionary with combined import counts
         """
-        stats = {"users": 0, "watched": 0, "ratings": 0}
+        stats = {"users": 0, "watched": 0, "ratings": 0, "runtime_enriched": 0}
 
         # 1. Fallback / Historical CSV import (Only if database is empty)
         try:
@@ -154,6 +211,8 @@ class LetterboxdImporter:
             stats["ratings"] += rss_stats.get("ratings", 0)
         else:
             print("No Letterboxd RSS URL configured (skipping RSS sync)")
+
+        stats["runtime_enriched"] = self.enrich_missing_runtime()
         
         return stats
     

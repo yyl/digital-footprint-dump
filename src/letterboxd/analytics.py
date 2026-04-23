@@ -26,6 +26,10 @@ class LetterboxdAnalytics:
             conn.execute(CREATE_ANALYSIS_TABLE)
             for index_sql in ANALYSIS_INDEXES:
                 conn.execute(index_sql)
+            try:
+                conn.execute("ALTER TABLE analysis ADD COLUMN minutes_watched INTEGER DEFAULT 0;")
+            except Exception:
+                pass
 
     def analyze_watched(self) -> int:
         """Analyze watched movies by month.
@@ -44,6 +48,7 @@ class LetterboxdAnalytics:
             strftime('%m', w.watched_at) as month,
             strftime('%Y', w.watched_at) as year,
             w.year as release_year,
+            w.runtime_minutes,
             r.rating
         FROM watched w
         LEFT JOIN ratings r ON w.letterboxd_uri = r.letterboxd_uri
@@ -59,6 +64,7 @@ class LetterboxdAnalytics:
         # Aggregation
         stats: Dict[tuple, Dict[str, Any]] = defaultdict(lambda: {
             'count': 0,
+            'minutes_watched': 0,
             'ratings': [],
             'years_since_release': []
         })
@@ -68,6 +74,9 @@ class LetterboxdAnalytics:
         for row in rows:
             key = (row['year'], row['month'])
             stats[key]['count'] += 1
+
+            if row['runtime_minutes'] is not None:
+                stats[key]['minutes_watched'] += int(row['runtime_minutes'])
             
             if row['rating'] is not None:
                 stats[key]['ratings'].append(row['rating'])
@@ -86,6 +95,7 @@ class LetterboxdAnalytics:
                 
                 # Calculate stats
                 movies_watched = round(float(data['count']), 2)
+                minutes_watched = int(data['minutes_watched'])
                 
                 ratings = data['ratings']
                 if ratings:
@@ -102,10 +112,11 @@ class LetterboxdAnalytics:
                     avg_years_since = 0.0
 
                 cursor.execute("""
-                    INSERT INTO analysis (year_month, year, month, movies_watched, avg_rating, min_rating, max_rating, avg_years_since_release, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO analysis (year_month, year, month, movies_watched, minutes_watched, avg_rating, min_rating, max_rating, avg_years_since_release, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(year_month) DO UPDATE SET
                         movies_watched = excluded.movies_watched,
+                        minutes_watched = excluded.minutes_watched,
                         avg_rating = excluded.avg_rating,
                         min_rating = excluded.min_rating,
                         max_rating = excluded.max_rating,
@@ -116,6 +127,7 @@ class LetterboxdAnalytics:
                     year,
                     month,
                     movies_watched,
+                    minutes_watched,
                     avg_rating,
                     min_rating,
                     max_rating,

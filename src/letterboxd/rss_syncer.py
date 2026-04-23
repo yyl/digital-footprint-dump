@@ -102,6 +102,7 @@ class LetterboxdRSSSyncer:
                 "Letterboxd URI": item["letterboxd_uri"],
                 "Name": item["movie_name"],
                 "Year": item["year"],
+                "TMDB ID": item.get("tmdb_id"),
                 "Date": item["watched_at"]
             }
             if self.db.upsert_watched(watched_data, username):
@@ -134,6 +135,12 @@ class LetterboxdRSSSyncer:
             rating_el = item_el.find("letterboxd:memberRating", NS)
             link_el = item_el.find("link")
             creator_el = item_el.find("dc:creator", NS)
+            tmdb_id_el = None
+            for tag in ("tmdb:movieId", "tmdb:filmId", "tmdb:id"):
+                candidate = item_el.find(tag, NS)
+                if candidate is not None:
+                    tmdb_id_el = candidate
+                    break
 
             if title_el is None or title_el.text is None:
                 continue
@@ -170,11 +177,19 @@ class LetterboxdRSSSyncer:
             if creator_el is not None and creator_el.text:
                 username = creator_el.text.strip()
 
+            tmdb_id = None
+            if tmdb_id_el is not None and tmdb_id_el.text:
+                try:
+                    tmdb_id = int(tmdb_id_el.text.strip())
+                except ValueError:
+                    pass
+
             items.append({
                 "movie_name": movie_name,
                 "year": year,
                 "watched_at": watched_at,
                 "rating": rating,
+                "tmdb_id": tmdb_id,
                 "letterboxd_uri": canonical_uri,
                 "username": username
             })

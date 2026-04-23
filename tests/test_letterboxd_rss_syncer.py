@@ -17,6 +17,7 @@ RSS_XML_SAMPLE = b"""<?xml version='1.0' encoding='utf-8'?>
             <letterboxd:watchedDate>2026-03-19</letterboxd:watchedDate> 
             <letterboxd:filmTitle>The Substance</letterboxd:filmTitle> 
             <letterboxd:filmYear>2024</letterboxd:filmYear> 
+            <tmdb:movieId>933260</tmdb:movieId>
             <letterboxd:memberRating>2.0</letterboxd:memberRating> 
             <dc:creator>longyu</dc:creator> 
         </item>
@@ -57,6 +58,7 @@ def test_parse_items(mock_db):
     assert items[0]["year"] == 2024
     assert items[0]["watched_at"] == "2026-03-19"
     assert items[0]["rating"] == 2.0
+    assert items[0]["tmdb_id"] == 933260
     assert items[0]["letterboxd_uri"] == "https://letterboxd.com/film/the-substance/"
     assert items[0]["username"] == "longyu"
 
@@ -74,6 +76,8 @@ def test_process_rss_data(mock_db):
     assert mock_db.ensure_user.call_count == 2
     assert mock_db.upsert_watched.call_count == 2
     assert mock_db.upsert_rating.call_count == 1
+    first_watched_payload = mock_db.upsert_watched.call_args_list[0].args[0]
+    assert first_watched_payload["TMDB ID"] == 933260
 
 def test_malformed_xml(mock_db):
     syncer = LetterboxdRSSSyncer(db=mock_db, rss_url="http://fake")

@@ -42,6 +42,10 @@ Imports watched movies and ratings.
 **Required in .env:**
 - `LETTERBOXD_RSS_URL` - Your public RSS feed URL
 
+**Optional in .env:**
+- `TMDB_ACCESS_TOKEN` - Preferred TMDB read token used to backfill movie runtimes
+- `TMDB_API_KEY` - Legacy alternative if you do not want to use a bearer token
+
 **Optional Setup (Historical CSV Seeding):**
 To load history older than the ~50 items provided by RSS:
 1. Export your data from [letterboxd.com/settings/data](https://letterboxd.com/settings/data/)

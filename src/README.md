@@ -158,15 +158,18 @@ Every source has an `analysis` table with this common structure:
 
 **Data tables:** `users`, `watched`, `ratings`
 
+`watched` also stores per-film enrichment fields: `tmdb_id`, `runtime_minutes`, `metadata_updated_at`
+
 | Analysis Column | Type |
 |-----------------|------|
 | `movies_watched` | REAL |
+| `minutes_watched` | INTEGER |
 | `avg_rating` | REAL |
 | `min_rating` | REAL |
 | `max_rating` | REAL |
 | `avg_years_since_release` | REAL |
 
-*Technical Note (Letterboxd Hybrid Syncing): Letterboxd uses a hybrid integration architecture. It fetches incremental updates via the public RSS feed (`LETTERBOXD_RSS_URL`), but automatically falls back to manual CSV directory parsing (`files/letterboxd-*`) if the database is entirely empty (for historical backfill seeding) or if the RSS config is absent. Because the CSV export and RSS feed use varying canonical ID formats (short URLs vs canonical slugs) and boundary timezone definitions for dates, the importer automatically deduplicates overlapping movie watches across these two ingestion methods by checking if the movie name matches any existing watch record within a +/- 2 day window.*
+*Technical Note (Letterboxd Hybrid Syncing): Letterboxd uses a hybrid integration architecture. It fetches incremental updates via the public RSS feed (`LETTERBOXD_RSS_URL`), but automatically falls back to manual CSV directory parsing (`files/letterboxd-*`) if the database is entirely empty (for historical backfill seeding) or if the RSS config is absent. Because the CSV export and RSS feed use varying canonical ID formats (short URLs vs canonical slugs) and boundary timezone definitions for dates, the importer automatically deduplicates overlapping movie watches across these two ingestion methods by checking if the movie name matches any existing watch record within a +/- 2 day window. After sync, it can also enrich missing film runtimes from TMDB when `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY` is configured.*
 
 #### Overcast (`overcast.db`)
 
@@ -282,7 +285,7 @@ The `publish/data_generator.py` module generates Hugo-compatible YAML data files
 |------|--------|--------|
 | `reading.yaml` | Readwise | `articles_archived`, `total_words`, `time_spent_minutes`, `avg_reading_speed`, `max_words_per_article`, `median_words_per_article`, `min_words_per_article` |
 | `travel.yaml` | Foursquare | `checkins`, `unique_places` |
-| `movies.yaml` | Letterboxd | `movies_watched`, `avg_rating` |
+| `movies.yaml` | Letterboxd | `movies_watched`, `minutes_watched`, `avg_rating` |
 | `podcasts.yaml` | Overcast | `feeds_added`, `feeds_removed`, `episodes_played`, `minutes_listened` |
 | `workouts.yaml` | Apple Health | `workouts`, `total_minutes` (derived from analysis seconds), `total_calories` |
 | `writing.yaml` | Blog | `posts`, `total_words`, `unique_tags` |

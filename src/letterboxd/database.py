@@ -24,11 +24,25 @@ class LetterboxdDatabase(BaseDatabase):
             cursor = conn.cursor()
             for table_sql in RAW_TABLES:
                 cursor.execute(table_sql)
+            self._migrate_watched_table(cursor)
             for index_sql in RAW_INDEXES:
                 cursor.execute(index_sql)
         
         if is_new:
             print(f"Letterboxd database initialized at: {self.db_path}")
+
+    @staticmethod
+    def _migrate_watched_table(cursor) -> None:
+        """Add metadata columns to older watched tables in-place."""
+        cursor.execute("PRAGMA table_info(watched)")
+        columns = {row[1] for row in cursor.fetchall()}
+
+        if "tmdb_id" not in columns:
+            cursor.execute("ALTER TABLE watched ADD COLUMN tmdb_id INTEGER")
+        if "runtime_minutes" not in columns:
+            cursor.execute("ALTER TABLE watched ADD COLUMN runtime_minutes INTEGER")
+        if "metadata_updated_at" not in columns:
+            cursor.execute("ALTER TABLE watched ADD COLUMN metadata_updated_at INTEGER")
     
     def upsert_user(self, user_data: Dict[str, Any]) -> bool:
         """Insert or update a user."""
@@ -107,10 +121,16 @@ class LetterboxdDatabase(BaseDatabase):
             uri = row.get("Letterboxd URI")
             if not uri:
                 continue
+            tmdb_id = row.get("TMDB ID")
+            try:
+                tmdb_id = int(tmdb_id) if tmdb_id not in (None, "") else None
+            except (TypeError, ValueError):
+                tmdb_id = None
             data.append((
                 uri,
                 row.get("Name"),
                 int(row.get("Year")) if row.get("Year") else None,
+                tmdb_id,
                 row.get("Date"),
                 username
             ))
@@ -122,11 +142,12 @@ class LetterboxdDatabase(BaseDatabase):
             cursor = conn.cursor()
             cursor.executemany("""
                 INSERT INTO watched (
-                    letterboxd_uri, movie_name, year, watched_at, username
-                ) VALUES (?, ?, ?, ?, ?)
+                    letterboxd_uri, movie_name, year, tmdb_id, watched_at, username
+                ) VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(letterboxd_uri) DO UPDATE SET
                     movie_name = excluded.movie_name,
                     year = excluded.year,
+                    tmdb_id = COALESCE(excluded.tmdb_id, watched.tmdb_id),
                     watched_at = excluded.watched_at
             """, data)
             return len(data)
@@ -183,3 +204,45 @@ class LetterboxdDatabase(BaseDatabase):
                 cursor.execute(f"SELECT COUNT(*) FROM {table}")
                 stats[table] = cursor.fetchone()[0]
         return stats
+
+    def get_movies_missing_runtime(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Return watched movies that still need runtime enrichment."""
+        query = """
+            SELECT letterboxd_uri, movie_name, year, tmdb_id
+            FROM watched
+            WHERE runtime_minutes IS NULL OR runtime_minutes <= 0
+            ORDER BY date(watched_at) DESC, movie_name ASC
+        """
+        params: tuple[Any, ...] = ()
+        if limit is not None:
+            query += " LIMIT ?"
+            params = (limit,)
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+
+    def update_movie_metadata(
+        self,
+        letterboxd_uri: str,
+        tmdb_id: Optional[int] = None,
+        runtime_minutes: Optional[int] = None,
+    ) -> bool:
+        """Persist runtime metadata back onto the watched table."""
+        if runtime_minutes is None:
+            return False
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE watched
+                SET tmdb_id = COALESCE(?, tmdb_id),
+                    runtime_minutes = ?,
+                    metadata_updated_at = ?
+                WHERE letterboxd_uri = ?
+                """,
+                (tmdb_id, runtime_minutes, int(time.time()), letterboxd_uri),
+            )
+            return cursor.rowcount > 0
