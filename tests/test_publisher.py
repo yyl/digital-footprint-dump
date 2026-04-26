@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from src.publish.publisher import Publisher
 from src.database import BaseDatabase
 
@@ -212,3 +212,63 @@ class TestPublisher(unittest.TestCase):
 
         result = self.publisher._get_new_github_repos('2025-04')
         self.assertEqual(result, [])
+
+    @patch.object(Publisher, "_one_year_lookback_year_month", return_value="2027-04")
+    @patch("src.publish.publisher.Config")
+    def test_backfill_commits_full_history_to_data_repo_and_lookback_history_to_blog_repo(
+        self,
+        mock_config,
+        mock_cutoff,
+    ):
+        self.publisher.data_generator = MagicMock()
+        full_history_files = {"data/activity/reading.yaml": "# full\n- month: \"2028-01\"\n"}
+        capped_files = {"data/activity/reading.yaml": "# capped\n- month: \"2027-04\"\n"}
+        self.publisher.data_generator.generate_data_files.side_effect = [
+            full_history_files,
+            capped_files,
+        ]
+
+        data_repo_client = MagicMock()
+        data_repo_client.create_or_update_files.return_value = {
+            "sha": "data-sha",
+            "url": "https://example.com/data",
+            "message": "data: Update activity data files",
+            "file_paths": list(full_history_files.keys()),
+        }
+        blog_repo_client = MagicMock()
+        blog_repo_client.create_or_update_files.return_value = {
+            "sha": "blog-sha",
+            "url": "https://example.com/blog",
+            "message": "data: Update activity data files since 2027-04",
+            "file_paths": list(capped_files.keys()),
+        }
+        self.publisher.github_client = blog_repo_client
+        self.publisher._build_github_client = MagicMock(return_value=data_repo_client)
+
+        mock_config.DATA_REPO_OWNER = "yyl"
+        mock_config.DATA_REPO_NAME = "digital-footprint-data"
+        mock_config.DATA_GITHUB_TARGET_BRANCH = "main"
+        mock_config.validate_data_repo_github = MagicMock()
+
+        result = self.publisher.backfill()
+
+        self.assertEqual(
+            self.publisher.data_generator.generate_data_files.call_args_list,
+            [unittest.mock.call(), unittest.mock.call(min_year_month="2027-04")],
+        )
+        self.publisher._build_github_client.assert_called_once_with(
+            repo_owner="yyl",
+            repo_name="digital-footprint-data",
+            target_branch="main",
+        )
+        data_repo_client.create_or_update_files.assert_called_once_with(
+            files=full_history_files,
+            commit_message="data: Update activity data files",
+        )
+        blog_repo_client.create_or_update_files.assert_called_once_with(
+            files=capped_files,
+            commit_message="data: Update activity data files since 2027-04",
+        )
+        self.assertEqual(result["data_repo"]["url"], "https://example.com/data")
+        self.assertEqual(result["blog_repo"]["url"], "https://example.com/blog")
+        self.assertEqual(result["blog_start_year_month"], "2027-04")

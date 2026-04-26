@@ -120,7 +120,7 @@ The publish flow scans the available analysis DBs and chooses the latest availab
 
 ### Backfill
 
-`backfill` regenerates blog activity data files under `data/activity/`.
+`backfill` regenerates activity data files twice: the full-history set goes to the data repo, and a second set limited to the rolling one-year lookback window goes to the blog repo under `data/activity/`.
 
 It does that by running each source's analyze command, and those analyze commands in turn refresh raw source data first through their paired sync path.
 
@@ -422,7 +422,7 @@ Key config areas:
 | Blog tracking | `BLOG_POSTS_INDEX_URL` |
 | Hardcover | `HARDCOVER_ACCESS_TOKEN` |
 | GitHub activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` |
-| GitHub publishing | `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME`, `BLOG_GITHUB_TARGET_BRANCH` |
+| GitHub publishing | `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME`, `BLOG_GITHUB_TARGET_BRANCH`, `DATA_REPO_OWNER`, `DATA_REPO_NAME`, `DATA_GITHUB_TARGET_BRANCH` |
 | Storage override | `DATA_REPO_LOCAL_PATH` |
 
 ## Testing

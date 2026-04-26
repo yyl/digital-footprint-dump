@@ -1,5 +1,7 @@
 """Tests for the DataGenerator module."""
 
+from unittest.mock import MagicMock
+
 import pytest
 from src.publish.data_generator import DataGenerator, _to_yaml
 
@@ -164,3 +166,39 @@ class TestDataGeneratorOutput:
         pos_10 = yaml.index('2025-10')
         
         assert pos_08 < pos_09 < pos_10
+
+
+class TestDataGeneratorFiltering:
+    """Tests for optional month window handling."""
+
+    def test_generate_data_files_filters_records_before_cutoff(self):
+        generator = DataGenerator(
+            readwise_db=MagicMock(),
+            foursquare_db=MagicMock(),
+            letterboxd_db=MagicMock(),
+            overcast_db=MagicMock(),
+            strong_db=MagicMock(),
+            apple_health_db=MagicMock(),
+            blog_db=MagicMock(),
+            hardcover_db=MagicMock(),
+            github_activity_db=MagicMock(),
+        )
+        generator._get_all_readwise = MagicMock(return_value=[
+            {"month": "2027-03", "articles_archived": 4, "total_words": 2000, "time_spent_minutes": 40, "avg_reading_speed": 50, "max_words_per_article": 900, "median_words_per_article": 500, "min_words_per_article": 200},
+            {"month": "2027-04", "articles_archived": 2, "total_words": 1000, "time_spent_minutes": 20, "avg_reading_speed": 50, "max_words_per_article": 700, "median_words_per_article": 500, "min_words_per_article": 300},
+            {"month": "2027-05", "articles_archived": 1, "total_words": 500, "time_spent_minutes": 10, "avg_reading_speed": 50, "max_words_per_article": 500, "median_words_per_article": 500, "min_words_per_article": 500},
+        ])
+        generator._get_all_foursquare = MagicMock(return_value=[])
+        generator._get_all_letterboxd = MagicMock(return_value=[])
+        generator._get_all_overcast = MagicMock(return_value=[])
+        generator._get_all_apple_health = MagicMock(return_value=[])
+        generator._get_all_blog = MagicMock(return_value=[])
+        generator._get_all_hardcover = MagicMock(return_value=[])
+        generator._get_all_github = MagicMock(return_value=[])
+
+        files = generator.generate_data_files(min_year_month="2027-04")
+
+        assert 'data/activity/reading.yaml' in files
+        assert '2027-03' not in files['data/activity/reading.yaml']
+        assert '2027-04' in files['data/activity/reading.yaml']
+        assert '2027-05' in files['data/activity/reading.yaml']

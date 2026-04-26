@@ -283,8 +283,16 @@ def cmd_backfill():
         publisher = Publisher()
         result = publisher.backfill()
         print(f"\nBackfill complete!")
-        print(f"Commit: {result['url']}")
-        print(f"Files: {', '.join(result['file_paths'])}")
+        print(
+            "Full-history data repo commit "
+            f"({result['data_repo']['message']}): {result['data_repo']['url']}"
+        )
+        print(f"Files: {', '.join(result['data_repo']['file_paths'])}")
+        print(
+            "Blog repo commit "
+            f"(since {result['blog_start_year_month']}): {result['blog_repo']['url']}"
+        )
+        print(f"Files: {', '.join(result['blog_repo']['file_paths'])}")
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)

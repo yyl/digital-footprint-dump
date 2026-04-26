@@ -1,5 +1,6 @@
 """Generator for Hugo-compatible YAML data files from analysis databases."""
 
+from datetime import date
 import logging
 from typing import Dict, List, Optional, Any
 
@@ -14,6 +15,12 @@ from ..hardcover.database import HardcoverDatabase
 from ..github.database import GitHubDatabase
 
 logger = logging.getLogger(__name__)
+
+
+def _year_month_to_date(year_month: str) -> date:
+    """Convert a YYYY-MM string to the first day of that month."""
+    year, month = year_month.split("-")
+    return date(int(year), int(month), 1)
 
 
 def _to_yaml(records: List[Dict[str, Any]], comment: str) -> str:
@@ -90,6 +97,27 @@ class DataGenerator:
         self.blog_db = blog_db or BlogDatabase()
         self.hardcover_db = hardcover_db or HardcoverDatabase()
         self.github_activity_db = github_activity_db or GitHubDatabase()
+
+    def _limit_records_by_month(
+        self,
+        records: List[Dict[str, Any]],
+        min_year_month: Optional[str] = None,
+        max_year_month: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Filter records to an optional inclusive year-month window."""
+        min_cutoff = _year_month_to_date(min_year_month) if min_year_month else None
+        max_cutoff = _year_month_to_date(max_year_month) if max_year_month else None
+
+        filtered_records = []
+        for record in records:
+            month = _year_month_to_date(record["month"])
+            if min_cutoff and month < min_cutoff:
+                continue
+            if max_cutoff and month > max_cutoff:
+                continue
+            filtered_records.append(record)
+
+        return filtered_records
     
     def _get_all_readwise(self) -> List[Dict[str, Any]]:
         """Get all Readwise analysis records, oldest first."""
@@ -336,9 +364,17 @@ class DataGenerator:
         except Exception:
             return []
     
-    def generate_data_files(self) -> Dict[str, str]:
+    def generate_data_files(
+        self,
+        min_year_month: Optional[str] = None,
+        max_year_month: Optional[str] = None,
+    ) -> Dict[str, str]:
         """Generate all Hugo data files.
         
+        Args:
+            min_year_month: Optional inclusive YYYY-MM lower bound for generated records.
+            max_year_month: Optional inclusive YYYY-MM cutoff for generated records.
+
         Returns:
             Dictionary mapping repo file paths to YAML content strings.
             Example: {"data/activity/reading.yaml": "# Monthly reading..."}
@@ -346,7 +382,11 @@ class DataGenerator:
         files = {}
         
         # Reading (Readwise)
-        reading_records = self._get_all_readwise()
+        reading_records = self._limit_records_by_month(
+            self._get_all_readwise(),
+            min_year_month=min_year_month,
+            max_year_month=max_year_month,
+        )
         if reading_records:
             files["data/activity/reading.yaml"] = _to_yaml(
                 reading_records, "Monthly reading activity data"
@@ -354,7 +394,11 @@ class DataGenerator:
             logger.info(f"Generated reading.yaml with {len(reading_records)} records")
         
         # Travel (Foursquare)
-        travel_records = self._get_all_foursquare()
+        travel_records = self._limit_records_by_month(
+            self._get_all_foursquare(),
+            min_year_month=min_year_month,
+            max_year_month=max_year_month,
+        )
         if travel_records:
             files["data/activity/travel.yaml"] = _to_yaml(
                 travel_records, "Monthly travel activity data"
@@ -362,7 +406,11 @@ class DataGenerator:
             logger.info(f"Generated travel.yaml with {len(travel_records)} records")
         
         # Movies (Letterboxd)
-        movies_records = self._get_all_letterboxd()
+        movies_records = self._limit_records_by_month(
+            self._get_all_letterboxd(),
+            min_year_month=min_year_month,
+            max_year_month=max_year_month,
+        )
         if movies_records:
             files["data/activity/movies.yaml"] = _to_yaml(
                 movies_records, "Monthly movies activity data"
@@ -370,7 +418,11 @@ class DataGenerator:
             logger.info(f"Generated movies.yaml with {len(movies_records)} records")
         
         # Podcasts (Overcast)
-        podcasts_records = self._get_all_overcast()
+        podcasts_records = self._limit_records_by_month(
+            self._get_all_overcast(),
+            min_year_month=min_year_month,
+            max_year_month=max_year_month,
+        )
         if podcasts_records:
             files["data/activity/podcasts.yaml"] = _to_yaml(
                 podcasts_records, "Monthly podcasts activity data"
@@ -378,7 +430,11 @@ class DataGenerator:
             logger.info(f"Generated podcasts.yaml with {len(podcasts_records)} records")
         
         # Workouts (Apple Health)
-        workouts_records = self._get_all_apple_health()
+        workouts_records = self._limit_records_by_month(
+            self._get_all_apple_health(),
+            min_year_month=min_year_month,
+            max_year_month=max_year_month,
+        )
         if workouts_records:
             files["data/activity/workouts.yaml"] = _to_yaml(
                 workouts_records, "Monthly workout activity data"
@@ -386,7 +442,11 @@ class DataGenerator:
             logger.info(f"Generated workouts.yaml with {len(workouts_records)} records")
 
         # Writing (Blog)
-        writing_records = self._get_all_blog()
+        writing_records = self._limit_records_by_month(
+            self._get_all_blog(),
+            min_year_month=min_year_month,
+            max_year_month=max_year_month,
+        )
         if writing_records:
             files["data/activity/writing.yaml"] = _to_yaml(
                 writing_records, "Monthly writing activity data"
@@ -394,7 +454,11 @@ class DataGenerator:
             logger.info(f"Generated writing.yaml with {len(writing_records)} records")
         
         # Books (Hardcover)
-        books_records = self._get_all_hardcover()
+        books_records = self._limit_records_by_month(
+            self._get_all_hardcover(),
+            min_year_month=min_year_month,
+            max_year_month=max_year_month,
+        )
         if books_records:
             files["data/activity/books.yaml"] = _to_yaml(
                 books_records, "Monthly books activity data"
@@ -402,7 +466,11 @@ class DataGenerator:
             logger.info(f"Generated books.yaml with {len(books_records)} records")
         
         # Code (GitHub)
-        code_records = self._get_all_github()
+        code_records = self._limit_records_by_month(
+            self._get_all_github(),
+            min_year_month=min_year_month,
+            max_year_month=max_year_month,
+        )
         if code_records:
             files["data/activity/code.yaml"] = _to_yaml(
                 code_records, "Monthly code activity data"

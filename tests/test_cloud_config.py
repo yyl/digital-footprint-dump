@@ -72,6 +72,15 @@ class TestConfigValidation:
                 with patch.object(Config, 'BLOG_REPO_NAME', 'repo'):
                     assert Config.validate_github() is True
 
+    def test_validate_data_repo_github_with_defaults(self):
+        """Test that data repo validation passes with the default repo slug."""
+        from src.config import Config
+
+        with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'test_token'):
+            with patch.object(Config, 'DATA_REPO_OWNER', 'yyl'):
+                with patch.object(Config, 'DATA_REPO_NAME', 'digital-footprint-data'):
+                    assert Config.validate_data_repo_github() is True
+
     def test_validate_github_activity_missing_config(self):
         """Test that missing GitHub activity config raises ValueError."""
         from src.config import Config

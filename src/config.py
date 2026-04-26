@@ -112,6 +112,9 @@ class Config:
     BLOG_REPO_OWNER: str = os.getenv("BLOG_REPO_OWNER", "")
     BLOG_REPO_NAME: str = os.getenv("BLOG_REPO_NAME", "")
     BLOG_GITHUB_TARGET_BRANCH: str = os.getenv("BLOG_GITHUB_TARGET_BRANCH", "main")
+    DATA_REPO_OWNER: str = os.getenv("DATA_REPO_OWNER", "yyl")
+    DATA_REPO_NAME: str = os.getenv("DATA_REPO_NAME", "digital-footprint-data")
+    DATA_GITHUB_TARGET_BRANCH: str = os.getenv("DATA_GITHUB_TARGET_BRANCH", "main")
     
     @classmethod
     def validate_readwise(cls) -> bool:
@@ -173,6 +176,23 @@ class Config:
         if missing:
             raise ValueError(
                 f"Missing GitHub configuration: {', '.join(missing)}. "
+                "Please add them to your .env file."
+            )
+        return True
+
+    @classmethod
+    def validate_data_repo_github(cls) -> bool:
+        """Validate GitHub publishing configuration for the data repository."""
+        missing = []
+        if not cls.BLOG_GITHUB_TOKEN:
+            missing.append("BLOG_GITHUB_TOKEN")
+        if not cls.DATA_REPO_OWNER:
+            missing.append("DATA_REPO_OWNER")
+        if not cls.DATA_REPO_NAME:
+            missing.append("DATA_REPO_NAME")
+        if missing:
+            raise ValueError(
+                f"Missing data repo GitHub configuration: {', '.join(missing)}. "
                 "Please add them to your .env file."
             )
         return True

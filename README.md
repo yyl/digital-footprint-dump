@@ -86,7 +86,7 @@ Useful publish flags:
 uv run main.py backfill
 ```
 
-`backfill` refreshes source analysis and writes the monthly activity YAML files used by the blog.
+`backfill` refreshes source analysis, and commits a blog copy limited to the rolling one-year lookback window to the configured blog repo.
 
 ## Required Publishing Config
 
@@ -96,6 +96,9 @@ To publish the markdown report to GitHub, set:
 - `BLOG_REPO_OWNER`
 - `BLOG_REPO_NAME`
 - `BLOG_GITHUB_TARGET_BRANCH` (optional, defaults to `main`)
+- `DATA_REPO_OWNER`
+- `DATA_REPO_NAME`
+- `DATA_GITHUB_TARGET_BRANCH` (optional, defaults to `main`)
 
 Optional:
 

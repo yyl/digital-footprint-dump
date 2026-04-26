@@ -1,5 +1,6 @@
 """Publisher module for generating and committing monthly summaries."""
 
+from datetime import date
 import logging
 import re
 from typing import Dict, Any, Optional, List
@@ -517,6 +518,20 @@ class Publisher:
                 repo_name=Config.BLOG_REPO_NAME,
                 target_branch=Config.BLOG_GITHUB_TARGET_BRANCH
             )
+
+    def _build_github_client(self, repo_owner: str, repo_name: str, target_branch: str) -> GitHubClient:
+        """Build a GitHub client for a specific publishing target."""
+        return GitHubClient(
+            token=Config.BLOG_GITHUB_TOKEN,
+            repo_owner=repo_owner,
+            repo_name=repo_name,
+            target_branch=target_branch,
+        )
+
+    def _one_year_lookback_year_month(self, today: Optional[date] = None) -> str:
+        """Return the YYYY-MM corresponding to one year before today."""
+        today = today or date.today()
+        return f"{today.year - 1:04d}-{today.month:02d}"
     
     def publish(self, last_month: bool = False) -> Dict[str, Any]:
         """Generate and publish the monthly summary blog post.
@@ -556,28 +571,49 @@ class Publisher:
         """Generate and commit Hugo data files from all analysis data.
         
         Returns:
-            Dictionary with commit information.
+            Dictionary with commit information for both publishing targets.
         """
-        # Generate Hugo data files
-        data_files = self.data_generator.generate_data_files()
-        
-        if not data_files:
+        full_history_files = self.data_generator.generate_data_files()
+
+        if not full_history_files:
             raise ValueError("No analysis data found. Run 'analyze' first.")
-        
-        logger.info(f"Generated {len(data_files)} data files")
-        
-        self._ensure_github_client()
-        
-        # Commit data files
-        commit_message = "data: Update activity data files"
-        
-        result = self.github_client.create_or_update_files(
-            files=data_files,
-            commit_message=commit_message
+
+        logger.info(f"Generated {len(full_history_files)} full-history data files")
+
+        Config.validate_data_repo_github()
+        data_repo_client = self._build_github_client(
+            repo_owner=Config.DATA_REPO_OWNER,
+            repo_name=Config.DATA_REPO_NAME,
+            target_branch=Config.DATA_GITHUB_TARGET_BRANCH,
         )
-        
-        logger.info(f"Backfilled data to {result['url']}")
-        return result
+        data_repo_result = data_repo_client.create_or_update_files(
+            files=full_history_files,
+            commit_message="data: Update activity data files",
+        )
+
+        blog_start_year_month = self._one_year_lookback_year_month()
+        blog_data_files = self.data_generator.generate_data_files(
+            min_year_month=blog_start_year_month,
+        )
+        logger.info(
+            "Generated %s blog data files starting at %s",
+            len(blog_data_files),
+            blog_start_year_month,
+        )
+
+        self._ensure_github_client()
+        blog_result = self.github_client.create_or_update_files(
+            files=blog_data_files,
+            commit_message=f"data: Update activity data files since {blog_start_year_month}",
+        )
+
+        logger.info(f"Backfilled full-history data to {data_repo_result['url']}")
+        logger.info(f"Backfilled blog data to {blog_result['url']}")
+        return {
+            "data_repo": data_repo_result,
+            "blog_repo": blog_result,
+            "blog_start_year_month": blog_start_year_month,
+        }
     
     def generate_markdown(self, year_month: Optional[str] = None, last_month: bool = False) -> str:
         """Generate markdown content for a monthly summary.
