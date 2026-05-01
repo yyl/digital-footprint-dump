@@ -28,6 +28,10 @@ env:
   DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER }}
   DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME }}
 
+concurrency:
+  group: monthly-pipeline-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   check-date:
     runs-on: ubuntu-latest
@@ -144,6 +148,10 @@ jobs:
             echo "No database changes to commit"
           else
             git commit -m "Update databases [automated]"
-            git push
+            git push || {
+              echo "Push failed, rebasing onto latest remote data repo changes and retrying..."
+              git pull --rebase --autostash
+              git push
+            }
             echo "Databases updated successfully"
           fi
