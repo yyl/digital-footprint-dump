@@ -42,13 +42,18 @@ Tracks watched movies and ratings.
 - `letterboxd-analyze`
 
 **Required in `.env`**
-- `LETTERBOXD_RSS_URL`
+- None
 
 **Optional in `.env`**
+- `LETTERBOXD_RSS_URL`
 - `TMDB_ACCESS_TOKEN`
 - `TMDB_API_KEY`
 
-`letterboxd-sync` can seed history from a Letterboxd export folder in `<storage-root>/files/` when the database is empty, then continue with RSS updates. If TMDB credentials are configured, it also backfills movie runtimes.
+`LETTERBOXD_RSS_URL` defaults to the configured user feed in `src/config.py`. Override it when running this project for a different Letterboxd account.
+
+`letterboxd-sync` can seed history from a Letterboxd export folder in `<storage-root>/files/` when the database is empty, then continue with RSS updates. RSS entries are normalized from user-specific film URLs to canonical film URLs and deduplicated against CSV history by movie name and watched date.
+
+If TMDB credentials are configured, `letterboxd-sync` also backfills movie runtimes. TMDB access-token auth is preferred when both token and API key are present. The runtime enrichment uses TMDB IDs from CSV/RSS when available, otherwise it falls back to conservative title/year matching. Monthly analysis uses available runtimes to populate `minutes_watched` for `movies.yaml`.
 
 **Optional historical export setup**
 1. Export your Letterboxd data from [letterboxd.com/settings/data](https://letterboxd.com/settings/data/)
@@ -68,7 +73,9 @@ Tracks podcast subscriptions and played episodes.
 - `OVERCAST_EMAIL`
 - `OVERCAST_PASSWORD`
 
-Without direct auth, you can place an Overcast OPML export in `<storage-root>/files/`.
+`overcast-sync` prefers direct export when either `OVERCAST_COOKIE` or `OVERCAST_EMAIL` plus `OVERCAST_PASSWORD` is configured. If neither direct auth option is available, place an Overcast OPML export matching `overcast*.opml` in `<storage-root>/files/`.
+
+After importing the OPML, `overcast-sync` fetches podcast RSS feeds and fills missing episode durations when RSS duration metadata is available. Monthly analysis uses those durations to populate `minutes_listened` for `podcasts.yaml`.
 
 ## Strong
 
