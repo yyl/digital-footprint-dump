@@ -15,6 +15,22 @@ class TestMarkdownGenerator(unittest.TestCase):
 
         self.assertEqual(result, "Newsletter edition")
 
+    def test_generate_monthly_summary_adds_next_month_signoff(self):
+        result = self.generator.generate_monthly_summary({
+            "year": "2026",
+            "month": "04",
+        })
+
+        self.assertTrue(result.endswith("That's it. See you in May!\n"))
+
+    def test_generate_monthly_summary_signoff_rolls_december_to_january(self):
+        result = self.generator.generate_monthly_summary({
+            "year": "2026",
+            "month": "12",
+        })
+
+        self.assertTrue(result.endswith("That's it. See you in January!\n"))
+
     def test_generate_readwise_articles_block_skips_mailto_links(self):
         result = self.generator._generate_readwise_articles_block([
             {

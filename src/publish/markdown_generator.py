@@ -56,8 +56,20 @@ class MarkdownGenerator:
         # GitHub section
         if data.get('github'):
             parts.append(self._generate_github_section(data['github']))
+
+        parts.append(self._generate_signoff(data))
         
         return "\n".join(parts)
+
+    def _generate_signoff(self, data: Dict[str, Any]) -> str:
+        """Generate the closing sign-off."""
+        year = int(data['year'])
+        month = int(data['month'])
+        next_month = 1 if month == 12 else month + 1
+        next_month_year = year + 1 if month == 12 else year
+        next_month_name = datetime(next_month_year, next_month, 1).strftime('%B')
+
+        return f"\nThat's it. See you in {next_month_name}!\n"
     
     def _generate_front_matter(self, data: Dict[str, Any]) -> str:
         """Generate YAML front matter for the markdown file."""
