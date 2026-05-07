@@ -12,7 +12,7 @@ The report is built from each source's monthly analysis data and includes the la
 
 - Title format: `Wrap up {month_name} {year}`
 - Slug format: `wrap-up-{month}-{year}`
-- Output path: `content/posts/wrap-up-{month}-{year}.md`
+- Output path: `posts/wrap-up-{month}-{year}.md` in the data repository
 - Draft status: `draft: true`
 
 ## High-Level Layout
@@ -20,21 +20,20 @@ The report is built from each source's monthly analysis data and includes the la
 The report contains:
 
 1. Hugo front matter
-2. `What's new`
-3. `Reading`
-4. `Travel`
-5. `Movies`
-6. `Podcasts`
-7. `Workout`
-8. `Writing`
-9. `Books`
-10. `Code`
+2. `Reading`
+3. `Travel`
+4. `Movies`
+5. `Podcasts`
+6. `Workout`
+7. `Writing`
+8. `Books`
+9. `Code`
 
 Only sections with available data are included.
 
 ## What's New
 
-The `What's new` section appears near the top of the report and highlights newly seen items for the month, such as:
+`What's new` blocks appear inside the section they belong to and highlight newly seen items for the month, such as:
 
 - new reading sources
 - new podcast feeds

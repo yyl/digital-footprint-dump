@@ -76,10 +76,42 @@ class TestConfigValidation:
         """Test that data repo validation passes with the default repo slug."""
         from src.config import Config
 
-        with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'test_token'):
+        with patch.object(Config, 'DATA_REPO_GITHUB_TOKEN', 'test_token'):
+            with patch.object(Config, 'BLOG_GITHUB_TOKEN', ''):
+                with patch.object(Config, 'DATA_REPO_OWNER', 'yyl'):
+                    with patch.object(Config, 'DATA_REPO_NAME', 'digital-footprint-data'):
+                        assert Config.validate_data_repo_github() is True
+
+    def test_validate_data_repo_github_accepts_legacy_blog_token(self):
+        """Test that data repo validation keeps the previous token name working."""
+        from src.config import Config
+
+        with patch.object(Config, 'DATA_REPO_GITHUB_TOKEN', ''):
+            with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'test_token'):
+                with patch.object(Config, 'DATA_REPO_OWNER', 'yyl'):
+                    with patch.object(Config, 'DATA_REPO_NAME', 'digital-footprint-data'):
+                        assert Config.validate_data_repo_github() is True
+
+    def test_validate_data_repo_github_missing_token(self):
+        """Test that missing data repo token raises ValueError."""
+        from src.config import Config
+
+        with patch.object(Config, 'DATA_REPO_GITHUB_TOKEN', ''):
+            with patch.object(Config, 'BLOG_GITHUB_TOKEN', ''):
+                with patch.object(Config, 'DATA_REPO_OWNER', 'yyl'):
+                    with patch.object(Config, 'DATA_REPO_NAME', 'digital-footprint-data'):
+                        with pytest.raises(ValueError, match="DATA_REPO_GITHUB_TOKEN"):
+                            Config.validate_data_repo_github()
+
+    def test_validate_data_repo_github_with_blog_fallback(self):
+        """Test that data repo validation passes with the backward-compatible blog token."""
+        from src.config import Config
+
+        with patch.object(Config, 'DATA_REPO_GITHUB_TOKEN', ''):
             with patch.object(Config, 'DATA_REPO_OWNER', 'yyl'):
                 with patch.object(Config, 'DATA_REPO_NAME', 'digital-footprint-data'):
-                    assert Config.validate_data_repo_github() is True
+                    with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'test_token'):
+                        assert Config.validate_data_repo_github() is True
 
     def test_validate_github_activity_missing_config(self):
         """Test that missing GitHub activity config raises ValueError."""

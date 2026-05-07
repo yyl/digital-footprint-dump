@@ -213,6 +213,40 @@ class TestPublisher(unittest.TestCase):
         result = self.publisher._get_new_github_repos('2025-04')
         self.assertEqual(result, [])
 
+    @patch("src.publish.publisher.Config")
+    def test_publish_commits_report_post_to_data_repo(self, mock_config):
+        self.publisher._get_target_year_month = MagicMock(return_value="2026-04")
+        self.publisher.generate_markdown = MagicMock(return_value="# Report\n")
+
+        data_repo_client = MagicMock()
+        data_repo_client.create_or_update_files.return_value = {
+            "sha": "data-sha",
+            "url": "https://example.com/data-post",
+            "message": "feat: Add monthly report draft for 04/2026",
+            "file_paths": ["posts/wrap-up-04-2026.md"],
+        }
+        self.publisher._build_github_client = MagicMock(return_value=data_repo_client)
+
+        mock_config.DATA_REPO_OWNER = "yyl"
+        mock_config.DATA_REPO_NAME = "digital-footprint-data"
+        mock_config.DATA_GITHUB_TARGET_BRANCH = "main"
+        mock_config.DATA_REPO_POSTS_DIR = "posts"
+        mock_config.validate_data_repo_github = MagicMock()
+
+        result = self.publisher.publish()
+
+        mock_config.validate_data_repo_github.assert_called_once_with()
+        self.publisher._build_github_client.assert_called_once_with(
+            repo_owner="yyl",
+            repo_name="digital-footprint-data",
+            target_branch="main",
+        )
+        data_repo_client.create_or_update_files.assert_called_once_with(
+            files={"posts/wrap-up-04-2026.md": "# Report\n"},
+            commit_message="feat: Add monthly report draft for 04/2026",
+        )
+        self.assertEqual(result["url"], "https://example.com/data-post")
+
     @patch.object(Publisher, "_one_year_lookback_year_month", return_value="2027-04")
     @patch("src.publish.publisher.Config")
     def test_backfill_commits_full_history_to_data_repo_and_lookback_history_to_blog_repo(

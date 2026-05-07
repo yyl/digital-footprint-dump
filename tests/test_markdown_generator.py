@@ -332,53 +332,41 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertIn("*2026-04-04*", result)
         self.assertNotIn("| Date | Highlight | Note |", result)
 
-    def test_generate_whats_new_section_includes_new_repos(self):
-        result = self.generator._generate_whats_new_section({
-            'github': {
-                'new_repos': ['user/new-project', 'user/another-new'],
-            }
+    def test_generate_monthly_summary_moves_whats_new_into_source_sections(self):
+        result = self.generator.generate_monthly_summary({
+            "year": "2026",
+            "month": "04",
+            "readwise": {
+                "new_sources": ["Example Blog"],
+            },
+            "foursquare": {
+                "new_places": ["Neighborhood Cafe"],
+            },
+            "overcast": {
+                "new_feeds": ["Tech Podcast"],
+            },
+            "github": {
+                "new_repos": ["user/new-project"],
+            },
         })
 
-        self.assertIn("## What's new", result)
+        self.assertNotIn("\n## What's new\n", result)
+        self.assertIn("## Reading", result)
+        self.assertIn("1 new article source:\n- Example Blog", result)
+        self.assertIn("## Travel", result)
+        self.assertIn("1 new place visited:\n- Neighborhood Cafe", result)
+        self.assertIn("## Podcasts", result)
+        self.assertIn("1 new podcast channel:\n- Tech Podcast", result)
+        self.assertIn("## Code", result)
+        self.assertIn("1 new repo:\n- user/new-project", result)
+
+    def test_generate_whats_new_items_handles_plural_labels(self):
+        result = self.generator._generate_whats_new_items(
+            ["user/new-project", "user/another-new"],
+            "new repo",
+        )
+
+        self.assertIn("### What's new", result)
         self.assertIn("2 new repos:", result)
         self.assertIn("- user/new-project", result)
         self.assertIn("- user/another-new", result)
-
-    def test_generate_whats_new_section_single_new_repo(self):
-        result = self.generator._generate_whats_new_section({
-            'github': {
-                'new_repos': ['user/solo-project'],
-            }
-        })
-
-        self.assertIn("1 new repo:", result)
-        self.assertNotIn("1 new repos:", result)
-
-    def test_generate_whats_new_section_new_repos_combined_with_sources_and_feeds(self):
-        result = self.generator._generate_whats_new_section({
-            'readwise': {'new_sources': ['Example Blog']},
-            'overcast': {'new_feeds': ['Tech Podcast']},
-            'github': {'new_repos': ['user/new-project']},
-        })
-
-        self.assertIn("## What's new", result)
-        self.assertIn("1 new article source:", result)
-        self.assertIn("- Example Blog", result)
-        self.assertIn("1 new podcast channel:", result)
-        self.assertIn("- Tech Podcast", result)
-        self.assertIn("1 new repo:", result)
-        self.assertIn("- user/new-project", result)
-
-    def test_generate_whats_new_section_empty_when_no_new_repos_or_sources(self):
-        result = self.generator._generate_whats_new_section({
-            'github': {'new_repos': []},
-        })
-
-        self.assertIn("## What's new", result)
-        self.assertIn("everything feels so old this month.", result)
-
-    def test_generate_whats_new_section_fallback_message_when_no_data_at_all(self):
-        result = self.generator._generate_whats_new_section({})
-
-        self.assertIn("## What's new", result)
-        self.assertIn("everything feels so old this month.", result)

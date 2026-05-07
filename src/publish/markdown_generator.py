@@ -25,9 +25,6 @@ class MarkdownGenerator:
         # Front matter
         parts.append(self._generate_front_matter(data))
         
-        # What's new section
-        parts.append(self._generate_whats_new_section(data))
-        
         # Readwise section
         if data.get('readwise'):
             parts.append(self._generate_readwise_section(data['readwise']))
@@ -62,70 +59,6 @@ class MarkdownGenerator:
         
         return "\n".join(parts)
     
-    def _generate_whats_new_section(self, data: Dict[str, Any]) -> str:
-        """Generate the What's new section."""
-        new_sources = []
-        if data.get('readwise') and data['readwise'].get('new_sources'):
-            new_sources = data['readwise']['new_sources']
-            
-        new_feeds = []
-        if data.get('overcast') and data['overcast'].get('new_feeds'):
-            new_feeds = data['overcast']['new_feeds']
-
-        new_repos = []
-        if data.get('github') and data['github'].get('new_repos'):
-            new_repos = data['github']['new_repos']
-            
-        new_places = []
-        if data.get('foursquare') and data['foursquare'].get('new_places'):
-            new_places = data['foursquare']['new_places']
-
-        lines = [
-            "## What's new",
-        ]
-
-        if not new_sources and not new_feeds and not new_repos and not new_places:
-            lines.extend(["", "everything feels so old this month."])
-            return "\n".join(lines) + "\n"
-        
-        if new_sources:
-            plural = "s" if len(new_sources) > 1 else ""
-            lines.extend([
-                "",
-                f"{len(new_sources)} new article source{plural}:",
-            ])
-            for source in new_sources:
-                lines.append(f"- {self._clean_text(source)}")
-                
-        if new_feeds:
-            plural = "s" if len(new_feeds) > 1 else ""
-            lines.extend([
-                "",
-                f"{len(new_feeds)} new podcast channel{plural}:",
-            ])
-            for feed in new_feeds:
-                lines.append(f"- {self._clean_text(feed)}")
-
-        if new_repos:
-            plural = "s" if len(new_repos) > 1 else ""
-            lines.extend([
-                "",
-                f"{len(new_repos)} new repo{plural}:",
-            ])
-            for repo in new_repos:
-                lines.append(f"- {self._clean_text(repo)}")
-                
-        if new_places:
-            plural = "s" if len(new_places) > 1 else ""
-            lines.extend([
-                "",
-                f"{len(new_places)} new place{plural} visited:",
-            ])
-            for place in new_places:
-                lines.append(f"- {self._clean_text(place)}")
-                
-        return "\n".join(lines) + "\n"
-
     def _generate_front_matter(self, data: Dict[str, Any]) -> str:
         """Generate YAML front matter for the markdown file."""
         month_str = data['month']
@@ -216,6 +149,7 @@ categories: ["Summary"]
 - **Max Words (single article)**: {max_wpa:,}
 - **Median Words (per article)**: {median_wpa:,}
 - **Min Words (single article)**: {min_wpa:,}
+{self._generate_whats_new_items(readwise_data.get('new_sources', []), 'new article source')}
 {self._generate_readwise_articles_block(readwise_data.get('article_list', []), readwise_data.get('new_sources', []))}
 {self._generate_readwise_highlights_block(readwise_data.get('highlight_groups', []))}
 """
@@ -262,6 +196,7 @@ categories: ["Summary"]
 
 - **Checkins**: {checkins}{checkins_cmp}
 - **Unique Places Visited**: {unique_places}{places_cmp}
+{self._generate_whats_new_items(foursquare_data.get('new_places', []), 'new place visited', 'new places visited')}
 """
     
     def _generate_letterboxd_section(self, letterboxd_data: Dict[str, Any]) -> str:
@@ -305,6 +240,7 @@ categories: ["Summary"]
 - **Feeds Removed**: {feeds_removed}
 - **Episodes Played**: {episodes_played}{played_cmp}
 - **Minutes Played**: {minutes_listened}{minutes_cmp}
+{self._generate_whats_new_items(overcast_data.get('new_feeds', []), 'new podcast channel')}
 {self._generate_podcasts_block(overcast_data.get('episodes', []), overcast_data.get('new_feeds', []))}
 """
     
@@ -423,8 +359,30 @@ categories: ["Summary"]
 
 - **Commits**: {commits}{commits_cmp}
 - **Repos Touched**: {repos_touched}{repos_cmp}
+{self._generate_whats_new_items(github_data.get('new_repos', []), 'new repo')}
 {self._generate_commit_groups_block(github_data.get('commit_groups', []))}
 """
+
+    def _generate_whats_new_items(
+        self,
+        items: list[str],
+        singular_label: str,
+        plural_label: Optional[str] = None,
+    ) -> str:
+        """Generate a section-local What's new list."""
+        if not items:
+            return ""
+
+        label = singular_label if len(items) == 1 else (plural_label or f"{singular_label}s")
+        lines = [
+            "",
+            "### What's new",
+            "",
+            f"{len(items)} {label}:",
+        ]
+        for item in items:
+            lines.append(f"- {self._clean_text(item)}")
+        return "\n".join(lines)
 
     def _generate_readwise_articles_block(self, articles: list[Dict[str, Any]], new_sources: list[str] = None) -> str:
         """Generate the archived article list block."""

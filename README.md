@@ -86,19 +86,24 @@ Useful publish flags:
 uv run main.py backfill
 ```
 
-`backfill` refreshes source analysis, and commits a blog copy limited to the rolling one-year lookback window to the configured blog repo.
+`backfill` refreshes source analysis, commits full-history activity files to the data repo, and commits a blog copy limited to the rolling one-year lookback window to the configured blog repo.
 
 ## Required Publishing Config
 
-To publish the markdown report to GitHub, set:
+To publish the markdown report to the data repo, set:
+
+- `DATA_REPO_GITHUB_TOKEN` (preferred), `DATA_REPO_PAT`, or `BLOG_GITHUB_TOKEN` (legacy fallback)
+- `DATA_REPO_OWNER`
+- `DATA_REPO_NAME`
+- `DATA_GITHUB_TARGET_BRANCH` (optional, defaults to `main`)
+- `DATA_REPO_POSTS_DIR` (optional, defaults to `posts`)
+
+To also publish the rolling one-year activity files to the blog repo during `backfill`, set:
 
 - `BLOG_GITHUB_TOKEN`
 - `BLOG_REPO_OWNER`
 - `BLOG_REPO_NAME`
 - `BLOG_GITHUB_TARGET_BRANCH` (optional, defaults to `main`)
-- `DATA_REPO_OWNER`
-- `DATA_REPO_NAME`
-- `DATA_GITHUB_TARGET_BRANCH` (optional, defaults to `main`)
 
 Optional:
 

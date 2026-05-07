@@ -111,12 +111,12 @@ The `src/publish/` package contains the publishing layer.
 
 Supported paths:
 
-- `publish`: sync all sources, analyze all sources, generate the report, commit the draft post
+- `publish`: sync all sources, analyze all sources, generate the report, commit the draft post to the data repo under `posts/`
 - `publish --skip-sync-analysis`: generate the report from existing analysis data
 - `publish --dry-run`: render the report locally only
 - `publish --last-month`: publish the previous month instead of the latest available month
 
-The publish flow scans the available analysis DBs and chooses the latest available `YYYY-MM`, while tolerating optional sources that may be missing.
+The publish flow scans the available analysis DBs and chooses the latest available `YYYY-MM`, while tolerating optional sources that may be missing. Report drafts are written to `DATA_REPO_POSTS_DIR` in the data repo, which defaults to `posts`.
 
 ### Backfill
 
@@ -422,7 +422,7 @@ Key config areas:
 | Blog tracking | `BLOG_POSTS_INDEX_URL` |
 | Hardcover | `HARDCOVER_ACCESS_TOKEN` |
 | GitHub activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` |
-| GitHub publishing | `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME`, `BLOG_GITHUB_TARGET_BRANCH`, `DATA_REPO_OWNER`, `DATA_REPO_NAME`, `DATA_GITHUB_TARGET_BRANCH` |
+| GitHub publishing | `DATA_REPO_GITHUB_TOKEN`, `DATA_REPO_OWNER`, `DATA_REPO_NAME`, `DATA_GITHUB_TARGET_BRANCH`, `DATA_REPO_POSTS_DIR`, `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME`, `BLOG_GITHUB_TARGET_BRANCH` |
 | Storage override | `DATA_REPO_LOCAL_PATH` |
 
 ## Testing
@@ -445,13 +445,15 @@ For the monthly pipeline, the common deployment model is:
 
 1. public repo for this code
 2. private repo for `data/` and `files/`
-3. PAT/secrets for the source APIs and the target blog repo
+3. PAT/secrets for the source APIs, private data repo, and optional target blog repo
 
 Common Actions secrets include:
 
 - `DATA_REPO_OWNER`
 - `DATA_REPO_NAME`
-- `DATA_REPO_PAT`
+- `DATA_REPO_GITHUB_TOKEN` (preferred) or `DATA_REPO_PAT`
+- `DATA_GITHUB_TARGET_BRANCH`
+- `DATA_REPO_POSTS_DIR`
 - `READWISE_ACCESS_TOKEN`
 - `FOURSQUARE_ACCESS_TOKEN`
 - `FOURSQUARE_API_KEY`

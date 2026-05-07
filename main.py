@@ -25,10 +25,10 @@ Usage:
     python main.py hardcover-analyze # Analyze Hardcover books
     python main.py github-sync       # Sync GitHub commits
     python main.py github-analyze    # Analyze GitHub activity
-    python main.py publish           # Publish monthly report to blog
+    python main.py publish           # Publish monthly report to data repo
     python main.py publish --dry-run # Validate config without publishing
     python main.py publish --skip-sync-analysis # Publish from current analysis data
-    python main.py backfill          # Commit activity data files to blog repo
+    python main.py backfill          # Commit activity data files to configured repos
     python main.py status            # Show sync status
 """
 
@@ -166,7 +166,7 @@ def cmd_readwise_analyze():
 
 
 def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False, last_month: bool = False):
-    """Publish monthly summary to blog repository.
+    """Publish monthly summary to the data repository.
     
     Args:
         dry_run: If True, validate config and sync data but skip actual publish.
@@ -243,7 +243,7 @@ def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False, last_mo
 
 
 def cmd_backfill():
-    """Generate and commit Hugo data files to blog repository."""
+    """Generate and commit Hugo data files to configured repositories."""
     # First ensure we have the latest analysis from all sources
     print("=== Updating Analysis ===\n")
     
@@ -1090,10 +1090,10 @@ def main():
     subparsers.add_parser("github-sync", help="Sync GitHub commits")
     subparsers.add_parser("github-analyze", help="Analyze GitHub activity")
     subparsers.add_parser("status", help="Show sync status")
-    subparsers.add_parser("backfill", help="Commit activity data files to blog repo")
+    subparsers.add_parser("backfill", help="Commit activity data files to configured repos")
     
     # Publish command with --dry-run flag
-    publish_parser = subparsers.add_parser("publish", help="Publish monthly summary to blog")
+    publish_parser = subparsers.add_parser("publish", help="Publish monthly summary to data repo")
     publish_parser.add_argument(
         "--dry-run",
         action="store_true",

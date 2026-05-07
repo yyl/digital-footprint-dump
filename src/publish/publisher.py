@@ -521,8 +521,12 @@ class Publisher:
 
     def _build_github_client(self, repo_owner: str, repo_name: str, target_branch: str) -> GitHubClient:
         """Build a GitHub client for a specific publishing target."""
+        token = Config.BLOG_GITHUB_TOKEN
+        if repo_owner == Config.DATA_REPO_OWNER and repo_name == Config.DATA_REPO_NAME:
+            token = Config.DATA_REPO_GITHUB_TOKEN or Config.BLOG_GITHUB_TOKEN
+
         return GitHubClient(
-            token=Config.BLOG_GITHUB_TOKEN,
+            token=token,
             repo_owner=repo_owner,
             repo_name=repo_name,
             target_branch=target_branch,
@@ -553,18 +557,23 @@ class Publisher:
         # Generate markdown using shared method
         markdown_content = self.generate_markdown(year_month)
         
-        self._ensure_github_client()
-        
-        # Commit blog post
-        file_path = f"content/posts/wrap-up-{month}-{year}.md"
+        Config.validate_data_repo_github()
+        data_repo_client = self._build_github_client(
+            repo_owner=Config.DATA_REPO_OWNER,
+            repo_name=Config.DATA_REPO_NAME,
+            target_branch=Config.DATA_GITHUB_TARGET_BRANCH,
+        )
+
+        # Commit report post to the private data repo.
+        file_path = f"{Config.DATA_REPO_POSTS_DIR}/wrap-up-{month}-{year}.md"
         commit_message = f"feat: Add monthly report draft for {month}/{year}"
         
-        result = self.github_client.create_or_update_files(
+        result = data_repo_client.create_or_update_files(
             files={file_path: markdown_content},
             commit_message=commit_message
         )
         
-        logger.info(f"Published to {result['url']}")
+        logger.info(f"Published report post to data repo at {result['url']}")
         return result
     
     def backfill(self) -> Dict[str, Any]:

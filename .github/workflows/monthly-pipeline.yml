@@ -25,8 +25,9 @@ on:
         type: boolean
 
 env:
-  DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER }}
-  DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME }}
+  DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER || 'yyl' }}
+  DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME || 'digital-footprint-data' }}
+  DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_GITHUB_TOKEN || secrets.DATA_REPO_PAT || secrets.BLOG_GITHUB_TOKEN }}
 
 concurrency:
   group: monthly-pipeline-${{ github.ref }}
@@ -70,7 +71,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ env.DATA_REPO_OWNER }}/${{ env.DATA_REPO_NAME }}
-          token: ${{ secrets.DATA_REPO_PAT }}
+          token: ${{ env.DATA_REPO_TOKEN }}
           path: _data_repo
           lfs: true
 
@@ -103,6 +104,11 @@ jobs:
           BLOG_REPO_OWNER: ${{ secrets.BLOG_REPO_OWNER }}
           BLOG_REPO_NAME: ${{ secrets.BLOG_REPO_NAME }}
           BLOG_GITHUB_TARGET_BRANCH: ${{ secrets.BLOG_GITHUB_TARGET_BRANCH }}
+          DATA_REPO_GITHUB_TOKEN: ${{ env.DATA_REPO_TOKEN }}
+          DATA_REPO_OWNER: ${{ env.DATA_REPO_OWNER }}
+          DATA_REPO_NAME: ${{ env.DATA_REPO_NAME }}
+          DATA_GITHUB_TARGET_BRANCH: ${{ secrets.DATA_GITHUB_TARGET_BRANCH }}
+          DATA_REPO_POSTS_DIR: ${{ secrets.DATA_REPO_POSTS_DIR }}
           CODEBASE_USERNAME: ${{ secrets.CODEBASE_USERNAME }}
         run: |
           COMMAND="${{ inputs.command }}"
