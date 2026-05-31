@@ -103,3 +103,20 @@ class TestPublishGitHubClient(unittest.TestCase):
                     client.create_or_update_files({"file.md": "content"}, "msg")
 
         self.assertEqual(mock_once.call_count, 1)
+
+    @patch("src.publish.github_client.Github")
+    @patch("src.publish.github_client.Auth")
+    def test_missing_target_branch_error_names_branch_and_repo(self, mock_auth, mock_github):
+        mock_auth.Token.return_value = "auth-token"
+        mock_repo = MagicMock()
+        mock_repo.get_git_ref.side_effect = FakeGithubException(404, "Not Found")
+        mock_github.return_value.get_repo.return_value = mock_repo
+
+        client = GitHubClient("token", "owner", "repo", target_branch="missing")
+
+        with patch("src.publish.github_client.GithubException", FakeGithubException):
+            with self.assertRaisesRegex(
+                GitHubClientError,
+                "Target branch 'missing' was not found in owner/repo",
+            ):
+                client.create_or_update_files({"file.md": "content"}, "msg")

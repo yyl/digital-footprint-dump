@@ -8,6 +8,16 @@ from unittest.mock import patch
 class TestConfigValidation:
     """Test configuration validation logic."""
 
+    def test_env_or_default_treats_blank_values_as_unset(self):
+        """Test blank optional env vars fall back to their defaults."""
+        from src.config import _env_or_default
+
+        with patch.dict(os.environ, {"EMPTY_BRANCH": "   "}, clear=False):
+            assert _env_or_default("EMPTY_BRANCH", "main") == "main"
+
+        with patch.dict(os.environ, {"SET_BRANCH": " release "}, clear=False):
+            assert _env_or_default("SET_BRANCH", "main") == "release"
+
     def test_validate_readwise_missing_token(self):
         """Test that missing Readwise token raises ValueError."""
         from src.config import Config

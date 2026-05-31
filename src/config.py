@@ -22,6 +22,14 @@ def _resolve_storage_root(project_root: Path) -> Path:
     return project_root
 
 
+def _env_or_default(name: str, default: str = "") -> str:
+    """Read an environment variable, treating blank values as unset."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip() or default
+
+
 class Config:
     """Application configuration."""
     
@@ -111,15 +119,15 @@ class Config:
     BLOG_GITHUB_TOKEN: str = os.getenv("BLOG_GITHUB_TOKEN", "")
     BLOG_REPO_OWNER: str = os.getenv("BLOG_REPO_OWNER", "")
     BLOG_REPO_NAME: str = os.getenv("BLOG_REPO_NAME", "")
-    BLOG_GITHUB_TARGET_BRANCH: str = os.getenv("BLOG_GITHUB_TARGET_BRANCH", "main")
-    DATA_REPO_GITHUB_TOKEN: str = os.getenv(
+    BLOG_GITHUB_TARGET_BRANCH: str = _env_or_default("BLOG_GITHUB_TARGET_BRANCH", "main")
+    DATA_REPO_GITHUB_TOKEN: str = _env_or_default(
         "DATA_REPO_GITHUB_TOKEN",
-        os.getenv("DATA_REPO_PAT", BLOG_GITHUB_TOKEN),
+        _env_or_default("DATA_REPO_PAT", BLOG_GITHUB_TOKEN),
     )
-    DATA_REPO_OWNER: str = os.getenv("DATA_REPO_OWNER", "yyl")
-    DATA_REPO_NAME: str = os.getenv("DATA_REPO_NAME", "digital-footprint-data")
-    DATA_GITHUB_TARGET_BRANCH: str = os.getenv("DATA_GITHUB_TARGET_BRANCH", "main")
-    DATA_REPO_POSTS_DIR: str = os.getenv("DATA_REPO_POSTS_DIR", "posts").strip().strip("/") or "posts"
+    DATA_REPO_OWNER: str = _env_or_default("DATA_REPO_OWNER", "yyl")
+    DATA_REPO_NAME: str = _env_or_default("DATA_REPO_NAME", "digital-footprint-data")
+    DATA_GITHUB_TARGET_BRANCH: str = _env_or_default("DATA_GITHUB_TARGET_BRANCH", "main")
+    DATA_REPO_POSTS_DIR: str = _env_or_default("DATA_REPO_POSTS_DIR", "posts").strip("/") or "posts"
     
     @classmethod
     def validate_readwise(cls) -> bool:

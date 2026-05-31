@@ -425,6 +425,8 @@ Key config areas:
 | GitHub publishing | `DATA_REPO_GITHUB_TOKEN`, `DATA_REPO_OWNER`, `DATA_REPO_NAME`, `DATA_GITHUB_TARGET_BRANCH`, `DATA_REPO_POSTS_DIR`, `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME`, `BLOG_GITHUB_TARGET_BRANCH` |
 | Storage override | `DATA_REPO_LOCAL_PATH` |
 
+Optional publishing variables that have defaults treat blank strings as unset. This matters in GitHub Actions, where an absent secret can be passed through as an empty environment variable; blank `DATA_GITHUB_TARGET_BRANCH` and `BLOG_GITHUB_TARGET_BRANCH` values fall back to `main`.
+
 ## Testing
 
 Useful commands:

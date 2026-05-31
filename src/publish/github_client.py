@@ -88,7 +88,17 @@ class GitHubClient:
     ) -> Dict[str, Any]:
         """Create or update multiple files in a single attempt."""
         # Get current HEAD commit and its tree
-        ref = self.repo.get_git_ref(f"heads/{self.target_branch}")
+        try:
+            ref = self.repo.get_git_ref(f"heads/{self.target_branch}")
+        except GithubException as e:
+            if getattr(e, "status", None) == 404:
+                raise GitHubClientError(
+                    f"Target branch '{self.target_branch}' was not found in "
+                    f"{self.repo_owner}/{self.repo_name}. Check the configured target branch "
+                    "or token access to the repository."
+                ) from e
+            raise
+
         head_sha = ref.object.sha
         base_tree = self.repo.get_git_tree(head_sha)
 
