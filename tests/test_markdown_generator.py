@@ -326,6 +326,19 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertIn("| python | 2 |", result)
         self.assertIn("| hugo | 1 |", result)
 
+    def test_generate_hardcover_section_handles_unrated_books(self):
+        result = self.generator._generate_hardcover_section({
+            "books_finished": 2,
+            "avg_rating": None,
+            "comparisons": {
+                "books_finished": {"mom": 100.0, "yoy": None},
+                "avg_rating": {"mom": None, "yoy": None},
+            },
+        })
+
+        self.assertIn("- **Books Finished**: 2 (+100% MoM, N/A YoY)", result)
+        self.assertIn("- **Average Rating**: N/A", result)
+
     def test_generate_readwise_highlights_block_uses_quote_format(self):
         result = self.generator._generate_readwise_highlights_block([
             {

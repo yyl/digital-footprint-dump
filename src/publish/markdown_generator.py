@@ -344,17 +344,21 @@ categories: ["Summary"]
     def _generate_hardcover_section(self, hardcover_data: Dict[str, Any]) -> str:
         """Generate the Hardcover/Books statistics section."""
         books = int(hardcover_data.get('books_finished', 0))
-        avg_rating = hardcover_data.get('avg_rating', 0)
+        avg_rating = hardcover_data.get('avg_rating')
         comparisons = hardcover_data.get('comparisons', {})
         
         books_cmp = format_comparison_suffix(comparisons.get('books_finished'))
-        rating_cmp = format_comparison_suffix(comparisons.get('avg_rating'))
+        if avg_rating is None:
+            rating_display = "N/A"
+        else:
+            rating_cmp = format_comparison_suffix(comparisons.get('avg_rating'))
+            rating_display = f"{avg_rating:.2f} ⭐{rating_cmp}"
         
         return f"""
 ## Books
 
 - **Books Finished**: {books}{books_cmp}
-- **Average Rating**: {avg_rating:.2f} ⭐{rating_cmp}
+- **Average Rating**: {rating_display}
 """
     
     def _generate_github_section(self, github_data: Dict[str, Any]) -> str:
