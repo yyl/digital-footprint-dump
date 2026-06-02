@@ -116,4 +116,20 @@ This repo includes a monthly GitHub Actions workflow so the pipeline can run aut
 - Scheduled run: last day of each month at `11:00 AM UTC`
 - Manual run: open the workflow in the Actions tab and use the workflow inputs
 
+### Overcast Secret
+
+The monthly workflow can fetch the latest Overcast OPML export directly when you add either `OVERCAST_COOKIE` or `OVERCAST_EMAIL` plus `OVERCAST_PASSWORD` as GitHub Actions secrets.
+
+To get `OVERCAST_COOKIE` from Chrome:
+
+1. Open `https://overcast.fm` and log in.
+2. Open DevTools with `Cmd+Option+I`.
+3. Go to **Application**.
+4. In the left sidebar, expand **Storage** and then **Cookies**.
+5. Select `https://overcast.fm`.
+6. Find the cookie named `o` and copy its **Value**.
+7. Add that value as a repository Actions secret named `OVERCAST_COOKIE`.
+
+If the cookie expires or Overcast sync stops, repeat those steps and update the secret.
+
 For source secrets and developer-oriented deployment details, see [src/README.md](src/README.md).
