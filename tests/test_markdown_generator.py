@@ -138,11 +138,12 @@ class TestMarkdownGenerator(unittest.TestCase):
         self.assertIn("| New Source 1 🆕 | 1 |", result)
         self.assertIn("| Other | 1 |", result)  # Old Source is count=1, it goes to Other
         
-        # Breakdown section: New Source 2 has its own section
+        # Breakdown sections: all new sources are promoted, even with one article
         self.assertIn("#### 🆕 New Source 2", result)
-        # Breakdown section: New Source 1 and Old Source are in Other
+        self.assertIn("#### 🆕 New Source 1", result)
+        self.assertIn("| 2026-04-03 | [Essay B](https://example.com/b) | 260 wpm |", result)
+        # Breakdown section: Old Source is in Other
         self.assertIn("#### Other", result)
-        self.assertIn("| New Source 1 🆕 |", result)
         self.assertIn("| Old Source |", result)
 
     def test_generate_podcasts_block_adds_ranked_summary_and_groups_other(self):

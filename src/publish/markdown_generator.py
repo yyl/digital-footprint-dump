@@ -423,8 +423,8 @@ categories: ["Summary"]
             summary_group = source_name if (source_counts.get(source_name, 0) > 1 or is_new) else "Other"
             summary_counts[summary_group] = summary_counts.get(summary_group, 0) + 1
             
-            # Breakdown table grouping (keep original logic)
-            group_name = source_name if source_counts.get(source_name, 0) > 1 else "Other"
+            # Breakdown table grouping mirrors the summary so new sources are visible.
+            group_name = source_name if (source_counts.get(source_name, 0) > 1 or is_new) else "Other"
             grouped_counts[group_name] = grouped_counts.get(group_name, 0) + 1
             grouped.setdefault(group_name, []).append(article)
 
