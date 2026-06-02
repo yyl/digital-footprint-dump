@@ -185,6 +185,7 @@ Letterboxd analysis writes:
 ### Overcast
 
 - Supports direct OPML export fetch when `OVERCAST_COOKIE` or `OVERCAST_EMAIL` plus `OVERCAST_PASSWORD` are configured
+- `OVERCAST_COOKIE` is the `o` cookie from an authenticated Overcast browser session; alternatively, `OVERCAST_EMAIL` and `OVERCAST_PASSWORD` let the importer log in and obtain that cookie
 - Falls back to `files/overcast*.opml` import otherwise
 - `overcast-sync` also fetches missing episode durations from live RSS feeds using title matching
 - Those duration lookups populate `episodes.duration_seconds`, which enables monthly `minutes_listened`
