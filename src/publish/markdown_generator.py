@@ -29,33 +29,33 @@ class MarkdownGenerator:
         if data.get('readwise'):
             parts.append(self._generate_readwise_section(data['readwise']))
         
-        # Foursquare section
-        if data.get('foursquare'):
-            parts.append(self._generate_foursquare_section(data['foursquare']))
-        
-        # Letterboxd section
-        if data.get('letterboxd'):
-            parts.append(self._generate_letterboxd_section(data['letterboxd']))
-        
+        # Hardcover section
+        if data.get('hardcover'):
+            parts.append(self._generate_hardcover_section(data['hardcover']))
+
         # Overcast section
         if data.get('overcast'):
             parts.append(self._generate_overcast_section(data['overcast']))
-        
-        # Apple Health workout section
-        if data.get('apple_health'):
-            parts.append(self._generate_apple_health_section(data['apple_health']))
 
         # Blog writing section
         if data.get('blog'):
             parts.append(self._generate_blog_section(data['blog']))
-        
-        # Hardcover section
-        if data.get('hardcover'):
-            parts.append(self._generate_hardcover_section(data['hardcover']))
-        
+
         # GitHub section
         if data.get('github'):
             parts.append(self._generate_github_section(data['github']))
+
+        # Apple Health workout section
+        if data.get('apple_health'):
+            parts.append(self._generate_apple_health_section(data['apple_health']))
+
+        # Foursquare section
+        if data.get('foursquare'):
+            parts.append(self._generate_foursquare_section(data['foursquare']))
+
+        # Letterboxd section
+        if data.get('letterboxd'):
+            parts.append(self._generate_letterboxd_section(data['letterboxd']))
 
         parts.append(self._generate_signoff(data))
         

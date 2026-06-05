@@ -31,6 +31,34 @@ class TestMarkdownGenerator(unittest.TestCase):
 
         self.assertTrue(result.endswith("That's it. See you in January!\n"))
 
+    def test_generate_monthly_summary_orders_sections(self):
+        result = self.generator.generate_monthly_summary({
+            "year": "2026",
+            "month": "04",
+            "readwise": {"articles": 0},
+            "hardcover": {"books_finished": 0},
+            "overcast": {"episodes_played": 0},
+            "blog": {"posts": 0},
+            "github": {"commits": 0},
+            "apple_health": {"workouts": 0},
+            "foursquare": {"checkins": 0},
+            "letterboxd": {"movies_watched": 0},
+        })
+
+        headings = [
+            "## Reading",
+            "## Books",
+            "## Podcasts",
+            "## Writing",
+            "## Code",
+            "## Workout",
+            "## Travel",
+            "## Movies",
+        ]
+        positions = [result.index(heading) for heading in headings]
+
+        self.assertEqual(positions, sorted(positions))
+
     def test_generate_readwise_articles_block_skips_mailto_links(self):
         result = self.generator._generate_readwise_articles_block([
             {
