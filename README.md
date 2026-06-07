@@ -45,6 +45,7 @@ uv run main.py <command>
 | `publish` | Generate and publish a draft monthly report |
 | `backfill` | Refresh analysis and regenerate blog activity YAML files |
 | `status` | Show current sync status |
+| `oura-sync` | Sync Oura Ring daily summaries |
 | `{source}-sync` | Sync one source |
 | `{source}-analyze` | Analyze one source |
 

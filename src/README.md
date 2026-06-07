@@ -24,6 +24,7 @@ Note: the tree below is shown from the repository root.
 │   ├── blog/
 │   ├── hardcover/
 │   ├── github/
+│   ├── oura/
 │   └── publish/
 ├── docs/
 ├── tests/
@@ -89,7 +90,7 @@ Raw data tables are created during sync/import setup. Derived monthly `analysis`
 
 | Type | Sources | Ingestion Path |
 |------|---------|----------------|
-| API-backed | Readwise, Foursquare, Blog, Hardcover, GitHub | `api_client.py` + `sync.py` |
+| API-backed | Readwise, Foursquare, Blog, Hardcover, GitHub, Oura | `api_client.py` + `sync.py` |
 | File-backed | Letterboxd, Overcast, Strong, Apple Health | `importer.py` |
 
 Letterboxd is hybrid in practice: it uses RSS for incremental sync, plus CSV export seeding when the DB is empty.
@@ -216,6 +217,17 @@ Letterboxd analysis writes:
 - Syncs commit history from owned public repositories
 - Uses an inclusive timestamp cursor plus SHA deduplication so same-second commits are not skipped
 - Publishing uses PyGithub and retries branch update races when necessary
+
+### Oura Ring
+
+- Syncs daily health summaries from the Oura v2 REST API into `oura.db`
+- Uses OAuth2 authorization code flow; tokens are persisted to `.env` and refreshed automatically on 401
+- Fetches seven daily summary types: activity, sleep, readiness, stress, resilience, SpO2, cardiovascular age
+- Nested `contributors` objects in the API response are flattened into columns (e.g., `contributors.deep_sleep` → `contributor_deep_sleep`)
+- Incremental sync uses a `sync_state` table tracking the last synced date per data type
+- **Gen 2 vs Gen 3 hardware limitation**: Resilience, SpO2, and cardiovascular age endpoints return 401 on Gen 2 rings or accounts without an active Oura membership. These are detected after one token-refresh attempt and skipped gracefully with a user-facing message instead of retrying
+- Cursor-based pagination via `next_token` query parameter handles large historical fetches
+- No analysis or publishing integration yet; sync-only for now
 
 ## Database Schemas
 
@@ -372,6 +384,25 @@ Analysis fields:
 - `commits`
 - `repos_touched`
 
+#### Oura Ring (`oura.db`)
+
+Data tables:
+
+- `daily_activity`
+- `daily_sleep`
+- `daily_readiness`
+- `daily_stress`
+- `daily_resilience`
+- `daily_spo2`
+- `daily_cardiovascular_age`
+- `sync_state`
+
+`daily_activity`, `daily_sleep`, `daily_readiness`, and `daily_resilience` flatten nested `contributors` objects into `contributor_*` columns.
+
+`daily_resilience`, `daily_spo2`, and `daily_cardiovascular_age` may remain empty on Gen 2 hardware or accounts without an active Oura membership.
+
+No analysis table yet.
+
 ## Comparisons
 
 `src/comparison.py` contains the shared MoM and YoY comparison helpers used by publish.
@@ -423,6 +454,7 @@ Key config areas:
 | Blog tracking | `BLOG_POSTS_INDEX_URL` |
 | Hardcover | `HARDCOVER_ACCESS_TOKEN` |
 | GitHub activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` |
+| Oura Ring | `OURA_CLIENT_ID`, `OURA_CLIENT_SECRET`, `OURA_REDIRECT_URI`, `OURA_ACCESS_TOKEN`, `OURA_REFRESH_TOKEN` |
 | GitHub publishing | `DATA_REPO_GITHUB_TOKEN`, `DATA_REPO_OWNER`, `DATA_REPO_NAME`, `DATA_GITHUB_TARGET_BRANCH`, `DATA_REPO_POSTS_DIR`, `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME`, `BLOG_GITHUB_TARGET_BRANCH` |
 | Storage override | `DATA_REPO_LOCAL_PATH` |
 
@@ -466,6 +498,10 @@ Common Actions secrets include:
 - `HARDCOVER_ACCESS_TOKEN`
 - `CODEBASE_USERNAME`
 - `BLOG_GITHUB_TOKEN`
+- `OURA_CLIENT_ID`
+- `OURA_CLIENT_SECRET`
+- `OURA_ACCESS_TOKEN`
+- `OURA_REFRESH_TOKEN`
 - `BLOG_REPO_OWNER`
 - `BLOG_REPO_NAME`
 - `BLOG_GITHUB_TARGET_BRANCH`

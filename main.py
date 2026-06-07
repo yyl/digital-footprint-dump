@@ -119,6 +119,11 @@ def cmd_init():
     gh_db = GitHubDatabase()
     gh_db.init_tables()
     
+    # Oura
+    from src.oura.database import OuraDatabase
+    oura_db = OuraDatabase()
+    oura_db.init_tables()
+    
     print("\nDone!")
 
 
@@ -646,6 +651,20 @@ def cmd_github_sync():
     sync_manager.sync()
 
 
+def cmd_oura_sync():
+    """Sync Oura Ring data."""
+    try:
+        Config.validate_oura()
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    
+    from src.oura.sync import OuraSyncManager
+    
+    sync_manager = OuraSyncManager()
+    sync_manager.sync()
+
+
 def cmd_github_analyze():
     """Analyze GitHub commit data."""
     from src.github.database import GitHubDatabase
@@ -728,6 +747,16 @@ def cmd_sync():
         cmd_github_sync()
     except ValueError as e:
         print(f"Skipping GitHub: {e}\n")
+    
+    print()
+    
+    # Oura
+    print("--- Oura ---")
+    try:
+        Config.validate_oura()
+        cmd_oura_sync()
+    except ValueError as e:
+        print(f"Skipping Oura: {e}\n")
 
 
 def cmd_status():
@@ -1055,6 +1084,29 @@ def cmd_status():
             print("  not initialized")
     except Exception as e:
         print(f"  Error: {e}")
+    
+    print()
+    
+    # Oura
+    print("--- Oura ---")
+    try:
+        from src.oura.sync import OuraSyncManager
+        
+        sync_manager = OuraSyncManager()
+        status = sync_manager.get_status()
+        
+        if "error" in status:
+            print(f"  Error: {status['error']}")
+        else:
+            for entity, count in status.get("database_stats", {}).items():
+                print(f"  {entity}: {count}")
+            print(f"  has_token: {status.get('has_token', False)}")
+            sync_dates = status.get("sync_dates", {})
+            if sync_dates:
+                for dtype, last_date in sync_dates.items():
+                    print(f"  {dtype} last synced: {last_date}")
+    except Exception as e:
+        print(f"  Error: {e}")
 
 
 def main():
@@ -1089,6 +1141,7 @@ def main():
     subparsers.add_parser("hardcover-analyze", help="Analyze Hardcover books")
     subparsers.add_parser("github-sync", help="Sync GitHub commits")
     subparsers.add_parser("github-analyze", help="Analyze GitHub activity")
+    subparsers.add_parser("oura-sync", help="Sync Oura Ring data")
     subparsers.add_parser("status", help="Show sync status")
     subparsers.add_parser("backfill", help="Commit activity data files to configured repos")
     
@@ -1138,6 +1191,7 @@ def main():
         "hardcover-analyze": cmd_hardcover_analyze,
         "github-sync": cmd_github_sync,
         "github-analyze": cmd_github_analyze,
+        "oura-sync": cmd_oura_sync,
         "status": cmd_status,
     }
     

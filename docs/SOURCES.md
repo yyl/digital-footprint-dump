@@ -147,3 +147,23 @@ Tracks commit activity from your public repositories.
 - `BLOG_GITHUB_TOKEN`
 
 The GitHub token is reused for authenticated API access.
+
+## Oura Ring
+
+Syncs daily health summaries from Oura Ring via the v2 API.
+
+**Commands**
+- `oura-sync`
+
+**Required in `.env`**
+- `OURA_CLIENT_ID`
+- `OURA_CLIENT_SECRET`
+
+**Optional in `.env`**
+- `OURA_REDIRECT_URI` (defaults to `https://localhost:8888/callback`)
+- `OURA_ACCESS_TOKEN` (auto-populated after first auth)
+- `OURA_REFRESH_TOKEN` (auto-populated after first auth)
+
+Register an application at [cloud.ouraring.com/oauth/applications](https://cloud.ouraring.com/oauth/applications), add your client ID and secret to `.env`, then run `oura-sync`. The CLI will open your browser for authorization and save the tokens automatically.
+
+Oura syncs seven daily summary types: activity, sleep, readiness, stress, resilience, SpO2, and cardiovascular age. Resilience, SpO2, and cardiovascular age require a Gen 3+ ring and may require an active Oura membership; they are skipped gracefully on older hardware.

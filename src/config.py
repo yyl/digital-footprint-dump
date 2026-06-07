@@ -91,6 +91,18 @@ class Config:
     APPLE_HEALTH_DATABASE_PATH = DATA_DIR / "apple_health.db"
 
     # ==========================================================================
+    # Oura Ring Configuration
+    # ==========================================================================
+    OURA_CLIENT_ID: str = os.getenv("OURA_CLIENT_ID", "")
+    OURA_CLIENT_SECRET: str = os.getenv("OURA_CLIENT_SECRET", "")
+    OURA_ACCESS_TOKEN: str = os.getenv("OURA_ACCESS_TOKEN", "")
+    OURA_REFRESH_TOKEN: str = os.getenv("OURA_REFRESH_TOKEN", "")
+    OURA_REDIRECT_URI: str = os.getenv(
+        "OURA_REDIRECT_URI", "https://localhost:8888/callback"
+    )
+    OURA_DATABASE_PATH = DATA_DIR / "oura.db"
+
+    # ==========================================================================
     # Blog Tracking Configuration
     # ==========================================================================
     BLOG_DATABASE_PATH = DATA_DIR / "blog.db"
@@ -158,6 +170,22 @@ class Config:
                 "HARDCOVER_ACCESS_TOKEN is not set. "
                 "Get your token from https://hardcover.app/account/api "
                 "and add it to your .env file."
+            )
+        return True
+    
+    @classmethod
+    def validate_oura(cls) -> bool:
+        """Validate Oura Ring configuration."""
+        missing = []
+        if not cls.OURA_CLIENT_ID:
+            missing.append("OURA_CLIENT_ID")
+        if not cls.OURA_CLIENT_SECRET:
+            missing.append("OURA_CLIENT_SECRET")
+        if missing:
+            raise ValueError(
+                f"Missing Oura configuration: {', '.join(missing)}. "
+                "Register an app at https://cloud.ouraring.com/oauth/applications "
+                "and add the credentials to your .env file."
             )
         return True
     
