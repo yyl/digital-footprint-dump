@@ -137,6 +137,7 @@ Current activity files:
 | `writing.yaml` | Blog | `posts`, `total_words`, `unique_tags` |
 | `books.yaml` | Hardcover | `books_finished`, `avg_rating` |
 | `code.yaml` | GitHub | `commits`, `repos_touched` |
+| `sleep.yaml` | Oura Ring | `median_sleep_score`, `avg_sleep_score`, `median_readiness_score`, `avg_readiness_score` |
 
 Published workout metrics come from Apple Health monthly analysis. Strong is still importable and analyzable, but it is not the published workout source.
 
@@ -227,7 +228,9 @@ Letterboxd analysis writes:
 - Incremental sync uses a `sync_state` table tracking the last synced date per data type
 - **Gen 2 vs Gen 3 hardware limitation**: Resilience, SpO2, and cardiovascular age endpoints return 401 on Gen 2 rings or accounts without an active Oura membership. These are detected after one token-refresh attempt and skipped gracefully with a user-facing message instead of retrying
 - Cursor-based pagination via `next_token` query parameter handles large historical fetches
-- No analysis or publishing integration yet; sync-only for now
+- Analysis aggregates daily sleep and readiness scores into monthly medians and averages
+- `publish` includes a "Sleep & Readiness" section with MoM/YoY comparisons
+- `backfill` generates `sleep.yaml` activity files
 
 ## Database Schemas
 
@@ -401,7 +404,14 @@ Data tables:
 
 `daily_resilience`, `daily_spo2`, and `daily_cardiovascular_age` may remain empty on Gen 2 hardware or accounts without an active Oura membership.
 
-No analysis table yet.
+Analysis fields:
+
+- `median_sleep_score`
+- `avg_sleep_score`
+- `median_readiness_score`
+- `avg_readiness_score`
+
+(Uses a normalized schema with `year_month`, `source_table`, `metric` as composite primary key, pivoted into these columns during publish/backfill.)
 
 ## Comparisons
 
@@ -419,6 +429,7 @@ Sources currently surfaced in the published report use comparisons for these met
 | Blog | posts, total words, unique tags |
 | Hardcover | books finished, average rating |
 | GitHub | commits, repos touched |
+| Oura Ring | median/avg sleep score, median/avg readiness score |
 
 ## Database Access Pattern
 

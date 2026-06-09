@@ -28,6 +28,7 @@ The report contains:
 7. `Writing`
 8. `Books`
 9. `Code`
+10. `Sleep & Readiness`
 
 Only sections with available data are included.
 
@@ -137,6 +138,15 @@ It also includes:
 - grouped commit tables
 
 Merge commits of the form `Merge pull request #...` are excluded.
+
+### Sleep & Readiness
+
+Shows Oura Ring monthly aggregates:
+
+- median sleep score
+- average sleep score
+- median readiness score
+- average readiness score
 
 ## Comparisons
 
