@@ -15,6 +15,7 @@ class TestPublisher(unittest.TestCase):
         self.mock_blog_db = MagicMock(spec=BaseDatabase)
         self.mock_hardcover_db = MagicMock(spec=BaseDatabase)
         self.mock_github_activity_db = MagicMock(spec=BaseDatabase)
+        self.mock_oura_db = MagicMock(spec=BaseDatabase)
 
         # Initialize publisher with mocks
         self.publisher = Publisher(
@@ -26,7 +27,8 @@ class TestPublisher(unittest.TestCase):
             apple_health_db=self.mock_apple_health_db,
             blog_db=self.mock_blog_db,
             hardcover_db=self.mock_hardcover_db,
-            github_activity_db=self.mock_github_activity_db
+            github_activity_db=self.mock_github_activity_db,
+            oura_db=self.mock_oura_db
         )
 
     # Test 1: No exists check, No suppression (Readwise style)
@@ -155,6 +157,7 @@ class TestPublisher(unittest.TestCase):
         self.mock_blog_db.exists.return_value = True
         self.mock_hardcover_db.exists.return_value = True
         self.mock_github_activity_db.exists.return_value = True
+        self.mock_oura_db.exists.return_value = True
 
         self.mock_readwise_db.get_connection.side_effect = Exception("readwise missing")
         self.mock_foursquare_db.get_connection.side_effect = Exception("foursquare missing")
@@ -176,6 +179,7 @@ class TestPublisher(unittest.TestCase):
         self.mock_blog_db.get_connection.return_value = make_conn("2025-04")
         self.mock_hardcover_db.get_connection.return_value = make_conn("2025-03")
         self.mock_github_activity_db.get_connection.return_value = make_conn("2025-01")
+        self.mock_oura_db.get_connection.return_value = make_conn("2025-01")
 
         result = self.publisher._get_target_year_month()
 
