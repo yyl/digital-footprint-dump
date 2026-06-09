@@ -230,9 +230,6 @@ def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False, last_mo
 
         print("\n--- GitHub ---")
         cmd_github_analyze()
-
-        print("\n--- Oura ---")
-        cmd_oura_analyze()
     else:
         print("=== Skipping Sync And Analysis ===")
         print("Publishing from current analysis data...\n")
