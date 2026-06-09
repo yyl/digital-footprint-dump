@@ -198,3 +198,27 @@ RAW_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_daily_spo2_day ON daily_spo2(day);",
     "CREATE INDEX IF NOT EXISTS idx_daily_cardiovascular_age_day ON daily_cardiovascular_age(day);",
 ]
+
+# ==========================================================================
+# Analysis Table
+# ==========================================================================
+
+CREATE_ANALYSIS_TABLE = """
+CREATE TABLE IF NOT EXISTS analysis (
+    year_month TEXT NOT NULL,
+    source_table TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    min_value REAL,
+    median_value REAL,
+    avg_value REAL,
+    max_value REAL,
+    sample_count INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT,
+    PRIMARY KEY (year_month, source_table, metric)
+);
+"""
+
+ANALYSIS_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_analysis_year_month ON analysis(year_month);",
+    "CREATE INDEX IF NOT EXISTS idx_analysis_source ON analysis(source_table);",
+]

@@ -25,6 +25,8 @@ Usage:
     python main.py hardcover-analyze # Analyze Hardcover books
     python main.py github-sync       # Sync GitHub commits
     python main.py github-analyze    # Analyze GitHub activity
+    python main.py oura-sync         # Sync Oura Ring data
+    python main.py oura-analyze      # Analyze Oura Ring daily summaries
     python main.py publish           # Publish monthly report to data repo
     python main.py publish --dry-run # Validate config without publishing
     python main.py publish --skip-sync-analysis # Publish from current analysis data
@@ -228,6 +230,9 @@ def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False, last_mo
 
         print("\n--- GitHub ---")
         cmd_github_analyze()
+
+        print("\n--- Oura ---")
+        cmd_oura_analyze()
     else:
         print("=== Skipping Sync And Analysis ===")
         print("Publishing from current analysis data...\n")
@@ -514,6 +519,25 @@ def cmd_analyze():
     except Exception as e:
         print(f"  Error: {e}")
     
+    print()
+    
+    # Oura
+    print("--- Oura ---")
+    try:
+        from src.oura.database import OuraDatabase
+        from src.oura.analytics import OuraAnalytics
+        
+        # Sync first
+        Config.validate_oura()
+        cmd_oura_sync()
+        
+        oura_db = OuraDatabase()
+        oura_analytics = OuraAnalytics(db=oura_db)
+        count = oura_analytics.analyze_daily_summaries()
+        print(f"  {count} monthly records written")
+    except Exception as e:
+        print(f"  Error/skip: {e}")
+    
     print("\nAnalysis complete!")
 
 
@@ -663,6 +687,21 @@ def cmd_oura_sync():
     
     sync_manager = OuraSyncManager()
     sync_manager.sync()
+
+
+def cmd_oura_analyze():
+    """Analyze Oura Ring daily summaries."""
+    from src.oura.database import OuraDatabase
+    from src.oura.analytics import OuraAnalytics
+
+    run_analysis(
+        sync_func=cmd_oura_sync,
+        db_cls=OuraDatabase,
+        analytics_cls=OuraAnalytics,
+        service_name="Oura Ring daily summaries",
+        analysis_method="analyze_daily_summaries",
+        db_filename="oura.db"
+    )
 
 
 def cmd_github_analyze():
@@ -1142,6 +1181,7 @@ def main():
     subparsers.add_parser("github-sync", help="Sync GitHub commits")
     subparsers.add_parser("github-analyze", help="Analyze GitHub activity")
     subparsers.add_parser("oura-sync", help="Sync Oura Ring data")
+    subparsers.add_parser("oura-analyze", help="Analyze Oura Ring daily summaries")
     subparsers.add_parser("status", help="Show sync status")
     subparsers.add_parser("backfill", help="Commit activity data files to configured repos")
     
@@ -1192,6 +1232,7 @@ def main():
         "github-sync": cmd_github_sync,
         "github-analyze": cmd_github_analyze,
         "oura-sync": cmd_oura_sync,
+        "oura-analyze": cmd_oura_analyze,
         "status": cmd_status,
     }
     
