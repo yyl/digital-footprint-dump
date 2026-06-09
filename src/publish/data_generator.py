@@ -13,6 +13,7 @@ from ..apple_health.database import AppleHealthDatabase
 from ..blog.database import BlogDatabase
 from ..hardcover.database import HardcoverDatabase
 from ..github.database import GitHubDatabase
+from ..oura.database import OuraDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,7 @@ class DataGenerator:
         blog_db: Optional[BlogDatabase] = None,
         hardcover_db: Optional[HardcoverDatabase] = None,
         github_activity_db: Optional[GitHubDatabase] = None,
+        oura_db: Optional[OuraDatabase] = None,
     ):
         """Initialize data generator.
         
@@ -87,6 +89,7 @@ class DataGenerator:
             blog_db: Blog database manager.
             hardcover_db: Hardcover database manager.
             github_activity_db: GitHub activity database manager.
+            oura_db: Oura Ring database manager.
         """
         self.readwise_db = readwise_db or ReadwiseDatabase()
         self.foursquare_db = foursquare_db or FoursquareDatabase()
@@ -97,6 +100,7 @@ class DataGenerator:
         self.blog_db = blog_db or BlogDatabase()
         self.hardcover_db = hardcover_db or HardcoverDatabase()
         self.github_activity_db = github_activity_db or GitHubDatabase()
+        self.oura_db = oura_db or OuraDatabase()
 
     def _limit_records_by_month(
         self,
@@ -364,6 +368,43 @@ class DataGenerator:
         except Exception:
             return []
     
+    def _get_all_oura(self) -> List[Dict[str, Any]]:
+        """Get all Oura analysis records pivoted to one row per month."""
+        if not self.oura_db.exists():
+            return []
+
+        query = """
+        SELECT year_month, source_table, metric, median_value, avg_value
+        FROM analysis
+        WHERE source_table IN ('daily_sleep', 'daily_readiness')
+          AND metric = 'score'
+        ORDER BY year_month ASC, source_table ASC
+        """
+        try:
+            with self.oura_db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                rows = cursor.fetchall()
+
+            # Pivot rows into one record per year_month
+            monthly: dict = {}
+            for row in rows:
+                row = dict(row)
+                ym = row['year_month']
+                if ym not in monthly:
+                    monthly[ym] = {'month': ym}
+                table = row['source_table']
+                if table == 'daily_sleep':
+                    monthly[ym]['median_sleep_score'] = row['median_value']
+                    monthly[ym]['avg_sleep_score'] = round(row['avg_value'], 2) if row['avg_value'] is not None else None
+                elif table == 'daily_readiness':
+                    monthly[ym]['median_readiness_score'] = row['median_value']
+                    monthly[ym]['avg_readiness_score'] = round(row['avg_value'], 2) if row['avg_value'] is not None else None
+
+            return list(monthly.values())
+        except Exception:
+            return []
+
     def generate_data_files(
         self,
         min_year_month: Optional[str] = None,
@@ -476,6 +517,18 @@ class DataGenerator:
                 code_records, "Monthly code activity data"
             )
             logger.info(f"Generated code.yaml with {len(code_records)} records")
+        
+        # Sleep & Readiness (Oura)
+        sleep_records = self._limit_records_by_month(
+            self._get_all_oura(),
+            min_year_month=min_year_month,
+            max_year_month=max_year_month,
+        )
+        if sleep_records:
+            files["data/activity/sleep.yaml"] = _to_yaml(
+                sleep_records, "Monthly sleep and readiness data"
+            )
+            logger.info(f"Generated sleep.yaml with {len(sleep_records)} records")
         
         logger.info(f"Generated {len(files)} data files total")
         return files

@@ -16,6 +16,7 @@ from ..apple_health.database import AppleHealthDatabase
 from ..blog.database import BlogDatabase
 from ..hardcover.database import HardcoverDatabase
 from ..github.database import GitHubDatabase
+from ..oura.database import OuraDatabase
 from .github_client import GitHubClient
 from .markdown_generator import MarkdownGenerator
 from .data_generator import DataGenerator
@@ -37,6 +38,7 @@ class Publisher:
         blog_db: Optional[BlogDatabase] = None,
         hardcover_db: Optional[HardcoverDatabase] = None,
         github_activity_db: Optional[GitHubDatabase] = None,
+        oura_db: Optional[OuraDatabase] = None,
         github_client: Optional[GitHubClient] = None
     ):
         """Initialize publisher.
@@ -51,6 +53,7 @@ class Publisher:
             blog_db: Blog database manager.
             hardcover_db: Hardcover database manager.
             github_activity_db: GitHub activity database manager.
+            oura_db: Oura Ring database manager.
             github_client: GitHub client for committing files.
         """
         self.readwise_db = readwise_db or ReadwiseDatabase()
@@ -62,6 +65,7 @@ class Publisher:
         self.blog_db = blog_db or BlogDatabase()
         self.hardcover_db = hardcover_db or HardcoverDatabase()
         self.github_activity_db = github_activity_db or GitHubDatabase()
+        self.oura_db = oura_db or OuraDatabase()
         self.github_client = github_client
         self.markdown_generator = MarkdownGenerator()
         self.data_generator = DataGenerator(
@@ -74,6 +78,7 @@ class Publisher:
             blog_db=self.blog_db,
             hardcover_db=self.hardcover_db,
             github_activity_db=self.github_activity_db,
+            oura_db=self.oura_db,
         )
     
     def _fetch_analysis(
@@ -259,6 +264,40 @@ class Publisher:
             check_exists=True,
             suppress_errors=True
         )
+
+    def _get_oura_analysis(self, year_month: str) -> Optional[Dict[str, Any]]:
+        """Get Oura sleep & readiness analysis for a specific month.
+
+        Pivots the normalized (year_month, source_table, metric) rows into a
+        flat dict with keys: median_sleep_score, avg_sleep_score,
+        median_readiness_score, avg_readiness_score.
+        """
+        query = """
+        SELECT source_table, metric, median_value, avg_value
+        FROM analysis
+        WHERE year_month = ?
+          AND source_table IN ('daily_sleep', 'daily_readiness')
+          AND metric = 'score'
+        """
+        rows = self._fetch_rows(
+            self.oura_db,
+            query,
+            (year_month,),
+            check_exists=True,
+            suppress_errors=True,
+        )
+        if not rows:
+            return None
+
+        result: Dict[str, Any] = {'year_month': year_month}
+        for row in rows:
+            if row['source_table'] == 'daily_sleep':
+                result['median_sleep_score'] = row['median_value']
+                result['avg_sleep_score'] = round(row['avg_value'], 2) if row['avg_value'] is not None else None
+            elif row['source_table'] == 'daily_readiness':
+                result['median_readiness_score'] = row['median_value']
+                result['avg_readiness_score'] = round(row['avg_value'], 2) if row['avg_value'] is not None else None
+        return result if len(result) > 1 else None
 
     def _get_readwise_articles(self, year_month: str) -> List[Dict[str, Any]]:
         """Get archived Readwise articles for a specific month."""
@@ -488,6 +527,7 @@ class Publisher:
             self.blog_db,
             self.hardcover_db,
             self.github_activity_db,
+            self.oura_db,
         ]:
             rows = self._fetch_rows(
                 db,
@@ -791,6 +831,24 @@ class Publisher:
                 ),
                 'new_repos': self._get_new_github_repos(year_month),
                 'comparisons': github_comparisons
+            }
+
+        # Get Oura analysis
+        oura = self._get_oura_analysis(year_month)
+        if oura:
+            oura_comparisons = compute_comparisons(
+                current_stats=oura,
+                historical_getter=self._get_oura_analysis,
+                year_month=year_month,
+                metrics=['median_sleep_score', 'avg_sleep_score',
+                         'median_readiness_score', 'avg_readiness_score']
+            )
+            data['oura'] = {
+                'median_sleep_score': oura.get('median_sleep_score'),
+                'avg_sleep_score': oura.get('avg_sleep_score'),
+                'median_readiness_score': oura.get('median_readiness_score'),
+                'avg_readiness_score': oura.get('avg_readiness_score'),
+                'comparisons': oura_comparisons
             }
 
         return self.markdown_generator.generate_monthly_summary(data)

@@ -57,6 +57,10 @@ class MarkdownGenerator:
         if data.get('letterboxd'):
             parts.append(self._generate_letterboxd_section(data['letterboxd']))
 
+        # Oura Ring section
+        if data.get('oura'):
+            parts.append(self._generate_oura_section(data['oura']))
+
         parts.append(self._generate_signoff(data))
         
         return "\n".join(parts)
@@ -103,6 +107,8 @@ class MarkdownGenerator:
             tags.append("hardcover")
         if data.get('github'):
             tags.append("github")
+        if data.get('oura'):
+            tags.append("oura")
         
         tags_str = ", ".join(f'"{t}"' for t in tags)
         
@@ -377,6 +383,31 @@ categories: ["Summary"]
 - **Repos Touched**: {repos_touched}{repos_cmp}
 {self._generate_whats_new_items(github_data.get('new_repos', []), 'new repo')}
 {self._generate_commit_groups_block(github_data.get('commit_groups', []))}
+"""
+
+    def _generate_oura_section(self, oura_data: Dict[str, Any]) -> str:
+        """Generate the Oura Ring statistics section."""
+        median_sleep = oura_data.get('median_sleep_score')
+        avg_sleep = oura_data.get('avg_sleep_score')
+        median_readiness = oura_data.get('median_readiness_score')
+        avg_readiness = oura_data.get('avg_readiness_score')
+        comparisons = oura_data.get('comparisons', {})
+
+        median_sleep_cmp = format_comparison_suffix(comparisons.get('median_sleep_score'))
+        avg_sleep_cmp = format_comparison_suffix(comparisons.get('avg_sleep_score'))
+        median_readiness_cmp = format_comparison_suffix(comparisons.get('median_readiness_score'))
+        avg_readiness_cmp = format_comparison_suffix(comparisons.get('avg_readiness_score'))
+
+        def _fmt(v):
+            return f"{v:.1f}" if v is not None else "N/A"
+
+        return f"""
+## Sleep & Readiness
+
+- **Median Sleep Score**: {_fmt(median_sleep)}{median_sleep_cmp}
+- **Average Sleep Score**: {_fmt(avg_sleep)}{avg_sleep_cmp}
+- **Median Readiness Score**: {_fmt(median_readiness)}{median_readiness_cmp}
+- **Average Readiness Score**: {_fmt(avg_readiness)}{avg_readiness_cmp}
 """
 
     def _generate_whats_new_items(

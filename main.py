@@ -230,6 +230,13 @@ def cmd_publish(dry_run: bool = False, skip_sync_analysis: bool = False, last_mo
 
         print("\n--- GitHub ---")
         cmd_github_analyze()
+
+        print("\n--- Oura ---")
+        try:
+            Config.validate_oura()
+            cmd_oura_analyze()
+        except ValueError as e:
+            print(f"Skipping Oura: {e}\n")
     else:
         print("=== Skipping Sync And Analysis ===")
         print("Publishing from current analysis data...\n")
@@ -280,6 +287,13 @@ def cmd_backfill():
     
     print("\n--- GitHub ---")
     cmd_github_analyze()
+    
+    print("\n--- Oura ---")
+    try:
+        Config.validate_oura()
+        cmd_oura_analyze()
+    except ValueError as e:
+        print(f"Skipping Oura: {e}\n")
     
     print("\n=== Backfilling Data ===")
     print("Generating and committing data files...")
