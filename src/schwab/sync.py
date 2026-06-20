@@ -8,7 +8,7 @@ from .database import SchwabDatabase
 
 
 INITIAL_TRANSACTION_LOOKBACK_DAYS = 365
-INCREMENTAL_TRANSACTION_OVERLAP_DAYS = 1
+SNAPSHOT_MIN_INTERVAL_HOURS = 24
 
 
 def _schwab_datetime(dt: datetime) -> str:
@@ -73,7 +73,7 @@ class SchwabSyncManager:
         )
 
         if latest_transaction:
-            start = latest_transaction - timedelta(days=INCREMENTAL_TRANSACTION_OVERLAP_DAYS)
+            start = latest_transaction
         else:
             start = sync_start - timedelta(days=INITIAL_TRANSACTION_LOOKBACK_DAYS)
 
@@ -114,17 +114,29 @@ class SchwabSyncManager:
                     continue
                 synced_account_hashes.add(account_hash)
 
-                self.db.insert_account_snapshot(
-                    wrapper,
-                    account_hash=account_hash,
-                    snapshot_at=sync_start_iso,
-                    cursor=cursor,
+                # Skip snapshot if one was taken recently
+                snapshot_skipped = False
+                latest_snapshot = _parse_sync_datetime(
+                    self.db.get_latest_snapshot_time(account_hash)
                 )
-                stats["account_snapshots"] += 1
+                if latest_snapshot:
+                    hours_since = (sync_start - latest_snapshot).total_seconds() / 3600
+                    if hours_since < SNAPSHOT_MIN_INTERVAL_HOURS:
+                        snapshot_skipped = True
+
+                if not snapshot_skipped:
+                    self.db.insert_account_snapshot(
+                        wrapper,
+                        account_hash=account_hash,
+                        snapshot_at=sync_start_iso,
+                        cursor=cursor,
+                    )
+                    stats["account_snapshots"] += 1
 
                 start_date, end_date = self._transaction_window(account_hash, sync_start)
                 transactions = self.api.get_transactions(account_hash, start_date, end_date)
 
+                new_txn_count = 0
                 for transaction in transactions:
                     if self.db.upsert_transaction(
                         transaction,
@@ -133,10 +145,12 @@ class SchwabSyncManager:
                         cursor=cursor,
                     ):
                         stats["transactions"] += 1
+                        new_txn_count += 1
 
+                snapshot_msg = "snapshot saved" if not snapshot_skipped else "snapshot skipped (recent)"
                 print(
-                    f"  {account_hash[:8]}...: snapshot saved, "
-                    f"{len(transactions)} transactions fetched"
+                    f"  {account_hash[:8]}...: {snapshot_msg}, "
+                    f"{len(transactions)} transactions fetched, {new_txn_count} new"
                 )
 
         self.db.update_sync_state(self.ENTITY_ACCOUNT_SNAPSHOTS, sync_start_iso)

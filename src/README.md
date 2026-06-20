@@ -238,6 +238,7 @@ Letterboxd analysis writes:
 - Uses OAuth2 authorization code flow; tokens are persisted to `.env` and refreshed automatically on 401 when a refresh token is available
 - Calls `/accounts/accountNumbers` to map plain account numbers to Schwab account hashes, then uses those hashes for account-scoped transaction requests
 - Calls `/accounts` once per sync and inserts a new `account_snapshots` row for each returned account
+- **Snapshot dedup**: skips writing a new snapshot if the most recent one for that account is less than 24 hours old, so repeated same-day syncs don't create redundant rows (controlled by `SNAPSHOT_MIN_INTERVAL_HOURS`)
 - Calls `/accounts/{accountNumber}/transactions` per account hash and upserts transactions by account hash plus `activityId`
 - Fetches a one-year transaction window for a new account hash, then uses the latest stored transaction timestamp with a one-day overlap for later syncs
 - Stores common searchable transaction fields as columns and preserves the full transaction response as JSON for later analysis

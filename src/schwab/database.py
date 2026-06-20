@@ -102,6 +102,21 @@ class SchwabDatabase(BaseDatabase):
         with self.get_connection() as conn:
             self._insert_account_snapshot(conn.cursor(), params)
 
+    def get_latest_snapshot_time(self, account_hash: str) -> Optional[str]:
+        """Get the latest snapshot timestamp for an account hash."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT MAX(snapshot_at) AS latest_snapshot
+                FROM account_snapshots
+                WHERE account_hash = ?
+                """,
+                (account_hash,),
+            )
+            row = cursor.fetchone()
+            return row["latest_snapshot"] if row and row["latest_snapshot"] else None
+
     def _insert_account_snapshot(self, cursor: sqlite3.Cursor, params: tuple) -> None:
         """Insert an account snapshot using an existing cursor."""
         cursor.execute(
@@ -142,14 +157,16 @@ class SchwabDatabase(BaseDatabase):
         account_number: Optional[str],
         cursor: Optional[sqlite3.Cursor] = None,
     ) -> bool:
-        """Insert or update a Schwab transaction."""
+        """Insert or update a Schwab transaction. Returns True only for new inserts."""
         transaction_id = transaction.get("activityId")
         if transaction_id is None:
             return False
 
+        tid = str(transaction_id)
+
         params = (
             account_hash,
-            str(transaction_id),
+            tid,
             transaction.get("accountNumber") or account_number,
             transaction.get("time"),
             transaction.get("tradeDate"),
@@ -162,13 +179,20 @@ class SchwabDatabase(BaseDatabase):
             json.dumps(transaction, sort_keys=True),
         )
 
+        def _do(cur: sqlite3.Cursor) -> bool:
+            cur.execute(
+                "SELECT 1 FROM transactions WHERE account_hash = ? AND transaction_id = ?",
+                (account_hash, tid),
+            )
+            is_new = cur.fetchone() is None
+            self._upsert_transaction(cur, params)
+            return is_new
+
         if cursor:
-            self._upsert_transaction(cursor, params)
-            return True
+            return _do(cursor)
 
         with self.get_connection() as conn:
-            self._upsert_transaction(conn.cursor(), params)
-        return True
+            return _do(conn.cursor())
 
     def _upsert_transaction(self, cursor: sqlite3.Cursor, params: tuple) -> None:
         """Upsert a transaction using an existing cursor."""

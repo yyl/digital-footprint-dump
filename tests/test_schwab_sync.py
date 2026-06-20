@@ -41,7 +41,7 @@ def test_schwab_database_stores_snapshots_append_only_and_transactions_upsert(tm
 
     updated_transaction = dict(transaction)
     updated_transaction["status"] = "CANCELED"
-    assert db.upsert_transaction(updated_transaction, "HASH123", "20001000") is True
+    assert db.upsert_transaction(updated_transaction, "HASH123", "20001000") is False
 
     with db.get_connection() as conn:
         cursor = conn.cursor()
@@ -124,7 +124,7 @@ def test_schwab_transaction_window_uses_one_year_for_initial_sync(tmp_path):
     )
 
 
-def test_schwab_transaction_window_uses_latest_transaction_with_overlap(tmp_path):
+def test_schwab_transaction_window_uses_latest_transaction(tmp_path):
     db = SchwabDatabase(str(tmp_path / "schwab.db"))
     db.init_tables()
     db.upsert_transaction(
@@ -142,7 +142,7 @@ def test_schwab_transaction_window_uses_latest_transaction_with_overlap(tmp_path
     sync_start = datetime(2026, 6, 20, 12, 0, tzinfo=timezone.utc)
 
     assert manager._transaction_window("HASH123", sync_start) == (
-        "2026-06-14T14:36:16.000Z",
+        "2026-06-15T14:36:16.000Z",
         "2026-06-20T12:00:00.000Z",
     )
 
