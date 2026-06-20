@@ -75,6 +75,20 @@ Tracks podcast subscriptions and played episodes.
 
 `overcast-sync` prefers direct export when either `OVERCAST_COOKIE` or `OVERCAST_EMAIL` plus `OVERCAST_PASSWORD` is configured. You do not need all three values: either copy the `o` cookie from an authenticated Overcast browser session into `OVERCAST_COOKIE`, or use your Overcast account email and password. If neither direct auth option is available, place an Overcast OPML export matching `overcast*.opml` in `<storage-root>/files/`.
 
+The monthly GitHub Actions workflow can fetch the latest Overcast OPML export directly when you add either `OVERCAST_COOKIE` or `OVERCAST_EMAIL` plus `OVERCAST_PASSWORD` as repository Actions secrets.
+
+To get `OVERCAST_COOKIE` from Chrome:
+
+1. Open `https://overcast.fm` and log in.
+2. Open DevTools with `Cmd+Option+I`.
+3. Go to **Application**.
+4. In the left sidebar, expand **Storage** and then **Cookies**.
+5. Select `https://overcast.fm`.
+6. Find the cookie named `o` and copy its **Value**.
+7. Add that value as a repository Actions secret named `OVERCAST_COOKIE`.
+
+If the cookie expires or Overcast sync stops, repeat those steps and update the secret.
+
 After importing the OPML, `overcast-sync` fetches podcast RSS feeds and fills missing episode durations when RSS duration metadata is available. Monthly analysis uses those durations to populate `minutes_listened` for `podcasts.yaml`.
 
 ## Strong
@@ -167,3 +181,21 @@ Syncs daily health summaries from Oura Ring via the v2 API.
 Register an application at [cloud.ouraring.com/oauth/applications](https://cloud.ouraring.com/oauth/applications), add your client ID and secret to `.env`, then run `oura-sync`. The CLI will open your browser for authorization and save the tokens automatically.
 
 Oura syncs seven daily summary types: activity, sleep, readiness, stress, resilience, SpO2, and cardiovascular age. Resilience, SpO2, and cardiovascular age require a Gen 3+ ring and may require an active Oura membership; they are skipped gracefully on older hardware.
+
+## Charles Schwab
+
+Syncs account balance snapshots and recent trade transactions from the Charles Schwab Trader API.
+
+**Commands**
+- `schwab-sync`
+
+**Required in `.env`**
+- Either `SCHWAB_ACCESS_TOKEN`, or both `SCHWAB_CLIENT_ID` and `SCHWAB_CLIENT_SECRET`
+
+**Optional in `.env`**
+- `SCHWAB_CALLBACK_URL` (defaults to `https://127.0.0.1`)
+- `SCHWAB_REFRESH_TOKEN` (auto-populated after OAuth)
+
+Register an application at [developer.schwab.com](https://developer.schwab.com), add your credentials to `.env`, then run `schwab-sync`. If no access token is present, the CLI will start the OAuth flow and save the returned access and refresh tokens.
+
+Each sync stores a new row in `account_snapshots` per Schwab account, keyed with the Schwab account hash so multiple accounts under one client account remain distinguishable. Transactions are fetched per account hash and upserted into `transactions` by account hash plus `activityId`; the full Schwab transaction payload is preserved as JSON for future analysis. Initial transaction sync fetches the maximum supported one-year window, and later syncs start from the latest stored transaction with a one-day overlap.

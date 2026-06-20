@@ -103,6 +103,16 @@ class Config:
     OURA_DATABASE_PATH = DATA_DIR / "oura.db"
 
     # ==========================================================================
+    # Charles Schwab Configuration
+    # ==========================================================================
+    SCHWAB_CLIENT_ID: str = os.getenv("SCHWAB_CLIENT_ID", "")
+    SCHWAB_CLIENT_SECRET: str = os.getenv("SCHWAB_CLIENT_SECRET", "")
+    SCHWAB_CALLBACK_URL: str = os.getenv("SCHWAB_CALLBACK_URL", "https://127.0.0.1")
+    SCHWAB_ACCESS_TOKEN: str = os.getenv("SCHWAB_ACCESS_TOKEN", "")
+    SCHWAB_REFRESH_TOKEN: str = os.getenv("SCHWAB_REFRESH_TOKEN", "")
+    SCHWAB_DATABASE_PATH = DATA_DIR / "schwab.db"
+
+    # ==========================================================================
     # Blog Tracking Configuration
     # ==========================================================================
     BLOG_DATABASE_PATH = DATA_DIR / "blog.db"
@@ -186,6 +196,25 @@ class Config:
                 f"Missing Oura configuration: {', '.join(missing)}. "
                 "Register an app at https://cloud.ouraring.com/oauth/applications "
                 "and add the credentials to your .env file."
+            )
+        return True
+
+    @classmethod
+    def validate_schwab(cls) -> bool:
+        """Validate Charles Schwab sync configuration."""
+        if cls.SCHWAB_ACCESS_TOKEN:
+            return True
+
+        missing = []
+        if not cls.SCHWAB_CLIENT_ID:
+            missing.append("SCHWAB_CLIENT_ID")
+        if not cls.SCHWAB_CLIENT_SECRET:
+            missing.append("SCHWAB_CLIENT_SECRET")
+        if missing:
+            raise ValueError(
+                f"Missing Charles Schwab configuration: {', '.join(missing)}. "
+                "Add an access token, or add app credentials so the OAuth flow "
+                "can obtain one."
             )
         return True
     

@@ -14,6 +14,7 @@ from src.hardcover.database import HardcoverDatabase
 from src.hardcover.analytics import HardcoverAnalytics
 from src.github.database import GitHubDatabase
 from src.github.analytics import GitHubAnalytics
+from src.schwab.database import SchwabDatabase
 
 
 def _table_exists(db, table_name: str) -> bool:
@@ -35,6 +36,7 @@ def test_sync_side_init_only_creates_raw_tables(tmp_path):
         BlogDatabase(str(tmp_path / "blog.db")),
         HardcoverDatabase(str(tmp_path / "hardcover.db")),
         GitHubDatabase(str(tmp_path / "github.db")),
+        SchwabDatabase(str(tmp_path / "schwab.db")),
     ]
 
     for db in dbs:

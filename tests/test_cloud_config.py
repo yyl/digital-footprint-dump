@@ -147,6 +147,32 @@ class TestConfigValidation:
             with patch.object(Config, 'BLOG_GITHUB_TOKEN', 'test_token'):
                 assert Config.validate_github_activity() is True
 
+    def test_validate_schwab_with_access_token(self):
+        """Test that Schwab validation passes with a direct access token."""
+        from src.config import Config
+
+        with patch.object(Config, 'SCHWAB_ACCESS_TOKEN', 'test_token'):
+            assert Config.validate_schwab() is True
+
+    def test_validate_schwab_with_oauth_credentials(self):
+        """Test that Schwab validation passes with OAuth credentials."""
+        from src.config import Config
+
+        with patch.object(Config, 'SCHWAB_ACCESS_TOKEN', ''):
+            with patch.object(Config, 'SCHWAB_CLIENT_ID', 'client_id'):
+                with patch.object(Config, 'SCHWAB_CLIENT_SECRET', 'client_secret'):
+                    assert Config.validate_schwab() is True
+
+    def test_validate_schwab_missing_config(self):
+        """Test that missing Schwab configuration raises ValueError."""
+        from src.config import Config
+
+        with patch.object(Config, 'SCHWAB_ACCESS_TOKEN', ''):
+            with patch.object(Config, 'SCHWAB_CLIENT_ID', ''):
+                with patch.object(Config, 'SCHWAB_CLIENT_SECRET', ''):
+                    with pytest.raises(ValueError, match="SCHWAB_CLIENT_ID"):
+                        Config.validate_schwab()
+
 
 class TestDatabasePaths:
     """Test database path resolution."""
@@ -161,6 +187,7 @@ class TestDatabasePaths:
         assert Config.OVERCAST_DATABASE_PATH.is_absolute()
         assert Config.APPLE_HEALTH_DATABASE_PATH.is_absolute()
         assert Config.BLOG_DATABASE_PATH.is_absolute()
+        assert Config.SCHWAB_DATABASE_PATH.is_absolute()
 
     def test_database_paths_in_data_dir(self):
         """Test that all database paths are in the data directory."""
@@ -172,6 +199,7 @@ class TestDatabasePaths:
         assert Config.OVERCAST_DATABASE_PATH.parent == Config.DATA_DIR
         assert Config.APPLE_HEALTH_DATABASE_PATH.parent == Config.DATA_DIR
         assert Config.BLOG_DATABASE_PATH.parent == Config.DATA_DIR
+        assert Config.SCHWAB_DATABASE_PATH.parent == Config.DATA_DIR
 
     def test_blog_posts_index_url_has_default(self):
         """Test that blog posts JSON export URL has a default."""

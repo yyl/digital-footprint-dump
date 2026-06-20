@@ -27,6 +27,7 @@ Usage:
     python main.py github-analyze    # Analyze GitHub activity
     python main.py oura-sync         # Sync Oura Ring data
     python main.py oura-analyze      # Analyze Oura Ring daily summaries
+    python main.py schwab-sync       # Sync Charles Schwab accounts
     python main.py publish           # Publish monthly report to data repo
     python main.py publish --dry-run # Validate config without publishing
     python main.py publish --skip-sync-analysis # Publish from current analysis data
@@ -125,6 +126,11 @@ def cmd_init():
     from src.oura.database import OuraDatabase
     oura_db = OuraDatabase()
     oura_db.init_tables()
+
+    # Charles Schwab
+    from src.schwab.database import SchwabDatabase
+    schwab_db = SchwabDatabase()
+    schwab_db.init_tables()
     
     print("\nDone!")
 
@@ -700,6 +706,20 @@ def cmd_oura_sync():
     sync_manager.sync()
 
 
+def cmd_schwab_sync():
+    """Sync Charles Schwab account data."""
+    try:
+        Config.validate_schwab()
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+    from src.schwab.sync import SchwabSyncManager
+
+    sync_manager = SchwabSyncManager()
+    sync_manager.sync()
+
+
 def cmd_oura_analyze():
     """Analyze Oura Ring daily summaries."""
     from src.oura.database import OuraDatabase
@@ -807,6 +827,16 @@ def cmd_sync():
         cmd_oura_sync()
     except ValueError as e:
         print(f"Skipping Oura: {e}\n")
+
+    print()
+
+    # Charles Schwab
+    print("--- Charles Schwab ---")
+    try:
+        Config.validate_schwab()
+        cmd_schwab_sync()
+    except ValueError as e:
+        print(f"Skipping Charles Schwab: {e}\n")
 
 
 def cmd_status():
@@ -1158,6 +1188,25 @@ def cmd_status():
     except Exception as e:
         print(f"  Error: {e}")
 
+    print()
+
+    # Charles Schwab
+    print("--- Charles Schwab ---")
+    try:
+        from src.schwab.sync import SchwabSyncManager
+
+        sync_manager = SchwabSyncManager()
+        status = sync_manager.get_status()
+
+        if "error" in status:
+            print(f"  Error: {status['error']}")
+        else:
+            for entity, count in status.get("database_stats", {}).items():
+                print(f"  {entity}: {count}")
+            print(f"  has_token: {status.get('has_token', False)}")
+    except Exception as e:
+        print(f"  Error: {e}")
+
 
 def main():
     """Main entry point."""
@@ -1193,6 +1242,7 @@ def main():
     subparsers.add_parser("github-analyze", help="Analyze GitHub activity")
     subparsers.add_parser("oura-sync", help="Sync Oura Ring data")
     subparsers.add_parser("oura-analyze", help="Analyze Oura Ring daily summaries")
+    subparsers.add_parser("schwab-sync", help="Sync Charles Schwab accounts")
     subparsers.add_parser("status", help="Show sync status")
     subparsers.add_parser("backfill", help="Commit activity data files to configured repos")
     
@@ -1244,6 +1294,7 @@ def main():
         "github-analyze": cmd_github_analyze,
         "oura-sync": cmd_oura_sync,
         "oura-analyze": cmd_oura_analyze,
+        "schwab-sync": cmd_schwab_sync,
         "status": cmd_status,
     }
     

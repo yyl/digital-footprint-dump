@@ -90,7 +90,7 @@ Raw data tables are created during sync/import setup. Derived monthly `analysis`
 
 | Type | Sources | Ingestion Path |
 |------|---------|----------------|
-| API-backed | Readwise, Foursquare, Blog, Hardcover, GitHub, Oura | `api_client.py` + `sync.py` |
+| API-backed | Readwise, Foursquare, Blog, Hardcover, GitHub, Oura, Schwab | `api_client.py` + `sync.py` |
 | File-backed | Letterboxd, Overcast, Strong, Apple Health | `importer.py` |
 
 Letterboxd is hybrid in practice: it uses RSS for incremental sync, plus CSV export seeding when the DB is empty.
@@ -231,6 +231,17 @@ Letterboxd analysis writes:
 - Analysis aggregates daily sleep and readiness scores into monthly medians and averages
 - `publish` includes a "Sleep & Readiness" section with MoM/YoY comparisons
 - `backfill` generates `sleep.yaml` activity files
+
+### Charles Schwab
+
+- Syncs account balance snapshots and trade transactions from the Schwab Trader API into `schwab.db`
+- Uses OAuth2 authorization code flow; tokens are persisted to `.env` and refreshed automatically on 401 when a refresh token is available
+- Calls `/accounts/accountNumbers` to map plain account numbers to Schwab account hashes, then uses those hashes for account-scoped transaction requests
+- Calls `/accounts` once per sync and inserts a new `account_snapshots` row for each returned account
+- Calls `/accounts/{accountNumber}/transactions` per account hash and upserts transactions by account hash plus `activityId`
+- Fetches a one-year transaction window for a new account hash, then uses the latest stored transaction timestamp with a one-day overlap for later syncs
+- Stores common searchable transaction fields as columns and preserves the full transaction response as JSON for later analysis
+- This source is sync-only for now; no monthly analysis or publish output is generated yet
 
 ## Database Schemas
 
@@ -413,6 +424,22 @@ Analysis fields:
 
 (Uses a normalized schema with `year_month`, `source_table`, `metric` as composite primary key, pivoted into these columns during publish/backfill.)
 
+#### Charles Schwab (`schwab.db`)
+
+Data tables:
+
+- `account_snapshots`
+- `transactions`
+- `sync_state`
+
+`account_snapshots` is append-only by design. Each sync run writes one dated snapshot per account hash with balance JSON blobs and a few common balance fields such as equity, liquidation value, cash balance, and buying power.
+
+`transactions` stores one row per account hash plus Schwab `activityId`, with common fields extracted and the full Schwab response stored as JSON.
+
+Analysis fields:
+
+- None yet; this source is sync-only.
+
 ## Comparisons
 
 `src/comparison.py` contains the shared MoM and YoY comparison helpers used by publish.
@@ -466,6 +493,7 @@ Key config areas:
 | Hardcover | `HARDCOVER_ACCESS_TOKEN` |
 | GitHub activity | `CODEBASE_USERNAME`, `BLOG_GITHUB_TOKEN` |
 | Oura Ring | `OURA_CLIENT_ID`, `OURA_CLIENT_SECRET`, `OURA_REDIRECT_URI`, `OURA_ACCESS_TOKEN`, `OURA_REFRESH_TOKEN` |
+| Charles Schwab | `SCHWAB_CLIENT_ID`, `SCHWAB_CLIENT_SECRET`, `SCHWAB_CALLBACK_URL`, `SCHWAB_ACCESS_TOKEN`, `SCHWAB_REFRESH_TOKEN` |
 | GitHub publishing | `DATA_REPO_GITHUB_TOKEN`, `DATA_REPO_OWNER`, `DATA_REPO_NAME`, `DATA_GITHUB_TARGET_BRANCH`, `DATA_REPO_POSTS_DIR`, `BLOG_GITHUB_TOKEN`, `BLOG_REPO_OWNER`, `BLOG_REPO_NAME`, `BLOG_GITHUB_TARGET_BRANCH` |
 | Storage override | `DATA_REPO_LOCAL_PATH` |
 
