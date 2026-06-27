@@ -281,7 +281,8 @@ class SchwabDatabase(BaseDatabase):
         stats = {}
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            for table in ["account_snapshots", "transactions", "transaction_items"]:
+            for table in ["account_snapshots", "transactions", "transaction_items",
+                       "monthly_pnl", "monthly_account_snapshots"]:
                 cursor.execute(f"SELECT COUNT(*) FROM {table}")
                 stats[table] = cursor.fetchone()[0]
         return stats

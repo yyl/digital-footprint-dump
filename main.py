@@ -28,6 +28,7 @@ Usage:
     python main.py oura-sync         # Sync Oura Ring data
     python main.py oura-analyze      # Analyze Oura Ring daily summaries
     python main.py schwab-sync       # Sync Charles Schwab accounts
+    python main.py schwab-analyze    # Analyze Schwab monthly P&L
     python main.py publish           # Publish monthly report to data repo
     python main.py publish --dry-run # Validate config without publishing
     python main.py publish --skip-sync-analysis # Publish from current analysis data
@@ -538,23 +539,29 @@ def cmd_analyze():
     
     print()
     
-    # Oura
-    print("--- Oura ---")
+    print("\n--- Oura ---")
     try:
         from src.oura.database import OuraDatabase
         from src.oura.analytics import OuraAnalytics
-        
+
         # Sync first
         Config.validate_oura()
         cmd_oura_sync()
-        
+
         oura_db = OuraDatabase()
         oura_analytics = OuraAnalytics(db=oura_db)
         count = oura_analytics.analyze_daily_summaries()
         print(f"  {count} monthly records written")
     except Exception as e:
         print(f"  Error/skip: {e}")
-    
+
+    print("\n--- Charles Schwab ---")
+    try:
+        Config.validate_schwab()
+        cmd_schwab_analyze()
+    except Exception as e:
+        print(f"  Error/skip: {e}")
+
     print("\nAnalysis complete!")
 
 
@@ -718,6 +725,27 @@ def cmd_schwab_sync():
 
     sync_manager = SchwabSyncManager()
     sync_manager.sync()
+
+
+def cmd_schwab_analyze():
+    """Analyze Schwab monthly P&L and account snapshots from transactions."""
+    from src.schwab.database import SchwabDatabase
+    from src.schwab.analytics import SchwabAnalytics
+
+    cmd_schwab_sync()
+
+    print("Analyzing Schwab monthly P&L and account snapshots...")
+    db = SchwabDatabase()
+    db.init_tables()
+    analytics = SchwabAnalytics(db=db)
+
+    pnl_count = analytics.analyze_monthly_pnl()
+    snap_count = analytics.analyze_monthly_snapshots()
+
+    print(
+        f"Analysis complete! {pnl_count} P&L records and "
+        f"{snap_count} snapshot records written to schwab.db"
+    )
 
 
 def cmd_oura_analyze():
@@ -1243,6 +1271,7 @@ def main():
     subparsers.add_parser("oura-sync", help="Sync Oura Ring data")
     subparsers.add_parser("oura-analyze", help="Analyze Oura Ring daily summaries")
     subparsers.add_parser("schwab-sync", help="Sync Charles Schwab accounts")
+    subparsers.add_parser("schwab-analyze", help="Analyze Schwab monthly P&L")
     subparsers.add_parser("status", help="Show sync status")
     subparsers.add_parser("backfill", help="Commit activity data files to configured repos")
     
@@ -1295,6 +1324,7 @@ def main():
         "oura-sync": cmd_oura_sync,
         "oura-analyze": cmd_oura_analyze,
         "schwab-sync": cmd_schwab_sync,
+        "schwab-analyze": cmd_schwab_analyze,
         "status": cmd_status,
     }
     

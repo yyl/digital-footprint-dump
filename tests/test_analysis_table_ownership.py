@@ -42,6 +42,9 @@ def test_sync_side_init_only_creates_raw_tables(tmp_path):
     for db in dbs:
         db.init_tables()
         assert _table_exists(db, "analysis") is False
+        if isinstance(db, SchwabDatabase):
+            assert _table_exists(db, "monthly_pnl") is False
+            assert _table_exists(db, "monthly_account_snapshots") is False
 
 
 def test_analytics_creates_analysis_tables_when_missing(tmp_path):
@@ -62,3 +65,17 @@ def test_analytics_creates_analysis_tables_when_missing(tmp_path):
         method_name = [name for name in dir(analytics) if name.startswith("analyze_")][0]
         getattr(analytics, method_name)()
         assert _table_exists(db, "analysis") is True
+
+
+def test_schwab_analytics_creates_schwab_analysis_tables_when_missing(tmp_path):
+    from src.schwab.analytics import SchwabAnalytics
+    db = SchwabDatabase(str(tmp_path / "schwab.db"))
+    db.init_tables()
+    assert _table_exists(db, "monthly_pnl") is False
+    assert _table_exists(db, "monthly_account_snapshots") is False
+
+    analytics = SchwabAnalytics(db=db)
+    analytics.analyze_monthly_pnl()
+    assert _table_exists(db, "monthly_pnl") is True
+    assert _table_exists(db, "monthly_account_snapshots") is True
+

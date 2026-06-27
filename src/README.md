@@ -457,9 +457,20 @@ Data tables:
 
 Fee legs (COMMISSION, SEC_FEE, etc.) are stored with `asset_type = CURRENCY` and `fee_type` populated. Filter them out in queries with `WHERE fee_type IS NULL`.
 
-Analysis fields:
+Analysis fields (`monthly_pnl` table, keyed by `(year_month, account_hash)`):
 
-- None yet; this source is sync-only.
+| Column | Description |
+|---|---|
+| `total_buy_cost` | Sum of `cost` for OPENING trade legs (negative = cash out) |
+| `total_sell_proceeds` | Sum of `cost` for CLOSING trade legs (positive = cash in) |
+| `net_cash_flow` | `total_sell_proceeds + total_buy_cost` — net cash flow for the month |
+| `total_fees` | Sum of `ABS(cost)` for fee legs (COMMISSION, SEC_FEE, TAF_FEE, …) |
+| `trade_count` | Number of non-fee trade legs this month |
+| `opening_count` | Number of OPENING (buy) legs |
+| `closing_count` | Number of CLOSING (sell) legs |
+| `unique_symbols` | Distinct tickers traded this month |
+
+Run `uv run main.py schwab-analyze` to populate. `net_cash_flow` is a cash-flow approximation of realized P&L; true P&L would require a separate cost-basis ledger.
 
 ## Comparisons
 

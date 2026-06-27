@@ -70,6 +70,58 @@ CREATE TABLE IF NOT EXISTS sync_state (
 );
 """
 
+# Monthly P&L from trade cash flows
+CREATE_ANALYSIS_TABLE = """
+CREATE TABLE IF NOT EXISTS monthly_pnl (
+    year_month TEXT NOT NULL,
+    account_hash TEXT NOT NULL,
+    -- Cash-flow totals across trade legs only (excludes fee legs)
+    total_buy_cost REAL NOT NULL DEFAULT 0,
+    total_sell_proceeds REAL NOT NULL DEFAULT 0,
+    net_cash_flow REAL NOT NULL DEFAULT 0,
+    -- Fee totals (fee legs only: COMMISSION, SEC_FEE, etc.)
+    total_fees REAL NOT NULL DEFAULT 0,
+    -- Trade leg counts
+    trade_count INTEGER NOT NULL DEFAULT 0,
+    opening_count INTEGER NOT NULL DEFAULT 0,
+    closing_count INTEGER NOT NULL DEFAULT 0,
+    -- Distinct tickers active this month
+    unique_symbols INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (year_month, account_hash)
+);
+"""
+
+# Month-end account balance snapshot (last snapshot of each calendar month)
+CREATE_MONTHLY_SNAPSHOTS_TABLE = """
+CREATE TABLE IF NOT EXISTS monthly_account_snapshots (
+    year_month TEXT NOT NULL,
+    account_hash TEXT NOT NULL,
+    account_number TEXT,
+    account_type TEXT,
+    snapshot_at TEXT NOT NULL,          -- timestamp of the source snapshot used
+    -- Core balance fields (from currentBalances, falling back to initialBalances)
+    liquidation_value REAL,             -- total account value
+    equity REAL,                        -- equity value
+    cash_balance REAL,                  -- cash on hand
+    buying_power REAL,                  -- available buying power
+    -- Extended fields extracted from current_balances_json
+    long_market_value REAL,             -- value of all long positions
+    short_market_value REAL,            -- value of all short positions
+    margin_balance REAL,                -- margin debit balance (positive = owe)
+    short_balance REAL,                 -- proceeds from short sales held
+    long_margin_value REAL,             -- long market value usable as margin collateral
+    short_margin_value REAL,            -- short market value for margin purposes
+    maintenance_requirement REAL,       -- total margin maintenance requirement
+    money_market_fund REAL,             -- money market fund balance
+    total_cash REAL,                    -- sum of all cash equivalents
+    cash_available_for_trading REAL,    -- settled cash available to trade
+    cash_available_for_withdrawal REAL, -- cash eligible for withdrawal
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (year_month, account_hash)
+);
+"""
+
 RAW_TABLES = [
     CREATE_ACCOUNT_SNAPSHOTS_TABLE,
     CREATE_TRANSACTIONS_TABLE,
@@ -88,3 +140,9 @@ RAW_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_schwab_txn_items_asset_type ON transaction_items(asset_type);",
 ]
 
+ANALYSIS_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_schwab_pnl_year_month ON monthly_pnl(year_month);",
+    "CREATE INDEX IF NOT EXISTS idx_schwab_pnl_account ON monthly_pnl(account_hash);",
+    "CREATE INDEX IF NOT EXISTS idx_schwab_snapshots_month ON monthly_account_snapshots(year_month);",
+    "CREATE INDEX IF NOT EXISTS idx_schwab_snapshots_month_acct ON monthly_account_snapshots(account_hash);",
+]
