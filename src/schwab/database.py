@@ -16,6 +16,7 @@ class SchwabDatabase(BaseDatabase):
     def __init__(self, db_path: Optional[str] = None):
         """Initialize database manager."""
         super().__init__(db_path or str(Config.SCHWAB_DATABASE_PATH))
+        self.use_foreign_keys = True
 
     def init_tables(self) -> None:
         """Create raw sync tables if they don't exist."""
@@ -186,6 +187,7 @@ class SchwabDatabase(BaseDatabase):
             )
             is_new = cur.fetchone() is None
             self._upsert_transaction(cur, params)
+            self._upsert_transaction_items(cur, transaction, account_hash, tid)
             return is_new
 
         if cursor:
@@ -218,6 +220,58 @@ class SchwabDatabase(BaseDatabase):
             params,
         )
 
+    def _upsert_transaction_items(
+        self,
+        cursor: sqlite3.Cursor,
+        transaction: Dict[str, Any],
+        account_hash: str,
+        transaction_id: str,
+    ) -> None:
+        """Upsert all transferItems rows for a transaction."""
+        for idx, item in enumerate(transaction.get("transferItems") or []):
+            instrument = item.get("instrument") or {}
+            cursor.execute(
+                """
+                INSERT INTO transaction_items (
+                    account_hash, transaction_id, item_index,
+                    asset_type, instrument_id, symbol, description,
+                    instrument_type, closing_price,
+                    amount, cost, price, fee_type, position_effect,
+                    raw_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(account_hash, transaction_id, item_index) DO UPDATE SET
+                    asset_type       = excluded.asset_type,
+                    instrument_id    = excluded.instrument_id,
+                    symbol           = excluded.symbol,
+                    description      = excluded.description,
+                    instrument_type  = excluded.instrument_type,
+                    closing_price    = excluded.closing_price,
+                    amount           = excluded.amount,
+                    cost             = excluded.cost,
+                    price            = excluded.price,
+                    fee_type         = excluded.fee_type,
+                    position_effect  = excluded.position_effect,
+                    raw_json         = excluded.raw_json
+                """,
+                (
+                    account_hash,
+                    transaction_id,
+                    idx,
+                    instrument.get("assetType"),
+                    instrument.get("instrumentId"),
+                    instrument.get("symbol"),
+                    instrument.get("description"),
+                    instrument.get("type"),
+                    instrument.get("closingPrice"),
+                    item.get("amount"),
+                    item.get("cost"),
+                    item.get("price"),
+                    item.get("feeType"),
+                    item.get("positionEffect"),
+                    json.dumps(item, sort_keys=True),
+                ),
+            )
+
     # ==========================================================================
     # Statistics
     # ==========================================================================
@@ -227,7 +281,7 @@ class SchwabDatabase(BaseDatabase):
         stats = {}
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            for table in ["account_snapshots", "transactions"]:
+            for table in ["account_snapshots", "transactions", "transaction_items"]:
                 cursor.execute(f"SELECT COUNT(*) FROM {table}")
                 stats[table] = cursor.fetchone()[0]
         return stats

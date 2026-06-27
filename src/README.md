@@ -431,11 +431,31 @@ Data tables:
 
 - `account_snapshots`
 - `transactions`
+- `transaction_items`
 - `sync_state`
 
 `account_snapshots` is append-only by design. Each sync run writes one dated snapshot per account hash with balance JSON blobs and a few common balance fields such as equity, liquidation value, cash balance, and buying power.
 
-`transactions` stores one row per account hash plus Schwab `activityId`, with common fields extracted and the full Schwab response stored as JSON.
+`transactions` stores one row per `(account_hash, activityId)` with top-level fields extracted and the full Schwab response in `raw_json`. No column changes are needed here — the child table carries the detail.
+
+`transaction_items` explodes the `transferItems` array from each transaction into individual rows. Each row is keyed by `(account_hash, transaction_id, item_index)` with a `FOREIGN KEY` back to `transactions`. Extracted columns:
+
+| Column | Source | Notes |
+|---|---|---|
+| `asset_type` | `instrument.assetType` | EQUITY, COLLECTIVE_INVESTMENT, CURRENCY, … |
+| `instrument_id` | `instrument.instrumentId` | Schwab internal ID |
+| `symbol` | `instrument.symbol` | Ticker; CURRENCY_USD for fee legs |
+| `description` | `instrument.description` | Human-readable name |
+| `instrument_type` | `instrument.type` | EXCHANGE_TRADED_FUND, COMMON_STOCK, … |
+| `closing_price` | `instrument.closingPrice` | Previous close at time of trade |
+| `amount` | `amount` | Shares / units |
+| `cost` | `cost` | Dollar cost of this leg (negative = outflow) |
+| `price` | `price` | Execution price per unit; NULL for fee legs |
+| `fee_type` | `feeType` | COMMISSION, SEC_FEE, TAF_FEE, OPT_REG_FEE; NULL for trade legs |
+| `position_effect` | `positionEffect` | OPENING / CLOSING; NULL for fee legs |
+| `raw_json` | — | Full JSON of this `transferItems` element |
+
+Fee legs (COMMISSION, SEC_FEE, etc.) are stored with `asset_type = CURRENCY` and `fee_type` populated. Filter them out in queries with `WHERE fee_type IS NULL`.
 
 Analysis fields:
 
