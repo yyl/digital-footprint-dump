@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Python (pip) ecosystem — alerts for CVEs in PyPI dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions — proposes SHA bumps when actions release new versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

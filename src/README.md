@@ -577,3 +577,35 @@ Common Actions secrets include:
 - `BLOG_REPO_NAME`
 - `BLOG_GITHUB_TARGET_BRANCH`
 - `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY` if you want Letterboxd runtime enrichment in Actions too
+
+## CI Supply-Chain Hardening
+
+The CI workflows apply several measures to reduce the risk of a compromised dependency or action exfiltrating secrets.
+
+### SHA-Pinned Actions
+
+All third-party GitHub Actions (`actions/checkout`, `astral-sh/setup-uv`) are referenced by full commit SHA rather than a mutable tag like `@v6`. Tags can be force-pushed by the action maintainer (or an attacker who compromises their account), silently changing what code runs in CI. A commit SHA is immutable.
+
+Each pinned line includes a trailing comment with the human-readable version for maintainability:
+
+```yaml
+uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+```
+
+### Locked Dependency Installs
+
+CI runs `uv sync --locked` instead of plain `uv sync`. This makes the install fail if `uv.lock` is out of sync with `pyproject.toml`, preventing CI from silently re-resolving dependencies to different (potentially compromised) versions.
+
+When adding or updating a dependency locally, run `uv lock` and commit the updated `uv.lock` alongside the `pyproject.toml` change.
+
+### Dependabot
+
+`.github/dependabot.yml` configures two Dependabot ecosystems:
+
+| Ecosystem | What it does |
+|---|---|
+| `pip` | Opens PRs when a Python dependency has a known CVE |
+| `github-actions` | Opens PRs to bump pinned action SHAs when new releases are available |
+
+Both run on a weekly schedule. Dependabot does not auto-merge; it opens PRs for manual review.
+
