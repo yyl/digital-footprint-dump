@@ -578,6 +578,21 @@ Common Actions secrets include:
 - `BLOG_GITHUB_TARGET_BRANCH`
 - `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY` if you want Letterboxd runtime enrichment in Actions too
 
+### Per-Source Job Isolation
+
+Sources with sensitive credentials run in separate GitHub Actions jobs so that a compromised dependency in one job cannot access another job's secrets. Each job runs on its own ephemeral VM.
+
+Currently isolated:
+
+| Job | Secrets | Rationale |
+|---|---|---|
+| `schwab` | `SCHWAB_CLIENT_ID`, `SCHWAB_CLIENT_SECRET`, `SCHWAB_ACCESS_TOKEN`, `SCHWAB_REFRESH_TOKEN`, `SCHWAB_CALLBACK_URL` | Brokerage account access |
+
+The `schwab` job runs in parallel with the main `pipeline` job. Both commit to the same data repo but modify different database files (`schwab.db` vs everything else), with rebase-retry to handle push races.
+
+The `schwab` job triggers on scheduled runs and on manual `sync`, `analyze`, or `backfill` dispatches. It does not run for `publish` or `publish --dry-run` since Schwab does not contribute to the published report yet.
+
+
 ## CI Supply-Chain Hardening
 
 The CI workflows apply several measures to reduce the risk of a compromised dependency or action exfiltrating secrets.
