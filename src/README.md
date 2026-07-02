@@ -578,19 +578,29 @@ Common Actions secrets include:
 - `BLOG_GITHUB_TARGET_BRANCH`
 - `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY` if you want Letterboxd runtime enrichment in Actions too
 
-### Per-Source Job Isolation
+### Per-Source Job Isolation and Workflows
 
-Sources with sensitive credentials run in separate GitHub Actions jobs so that a compromised dependency in one job cannot access another job's secrets. Each job runs on its own ephemeral VM.
+Sources with sensitive credentials run in separate workflows or jobs so that a compromised dependency in one job cannot access another job's secrets.
 
 Currently isolated:
 
-| Job | Secrets | Rationale |
+| Workflow/Job | Secrets | Schedule / Strategy |
 |---|---|---|
-| `schwab` | `SCHWAB_CLIENT_ID`, `SCHWAB_CLIENT_SECRET`, `SCHWAB_ACCESS_TOKEN`, `SCHWAB_REFRESH_TOKEN`, `SCHWAB_CALLBACK_URL` | Brokerage account access |
+| `schwab` (workflow) | `SCHWAB_CLIENT_ID`, `SCHWAB_CLIENT_SECRET`, `SCHWAB_ACCESS_TOKEN`, `SCHWAB_REFRESH_TOKEN`, `SCHWAB_CALLBACK_URL` | Every 5 days (`schwab-sync.yml`) to maintain OAuth tokens within 7-day TTL |
 
-The `schwab` job runs in parallel with the main `pipeline` job. Both commit to the same data repo but modify different database files (`schwab.db` vs everything else), with rebase-retry to handle push races.
+#### Schwab Sync Workflow & Token Persistence
 
-The `schwab` job triggers on scheduled runs and on manual `sync`, `analyze`, or `backfill` dispatches. It does not run for `publish` or `publish --dry-run` since Schwab does not contribute to the published report yet.
+The Schwab API refresh tokens expire after 7 days. To automate this without giving CI write access to GitHub Secrets (which would require a highly privileged PAT and expand the security blast radius), we use the **private data repository** to persist updated tokens:
+
+1. **Schedule**: Runs every 5 days (`0 10 */5 * *`) via `schwab-sync.yml`.
+2. **Bootstrap/Fallback**: Checks for `data/.schwab_tokens.json` in the checked-out data repository. If it doesn't exist, it falls back to the static `SCHWAB_ACCESS_TOKEN` and `SCHWAB_REFRESH_TOKEN` environment secrets.
+3. **Execution**: Runs `schwab-analyze` (which handles sync).
+4. **Token Refresh**: If the API client refreshes the access token, the new access and refresh tokens are written to `.env`.
+5. **Persistence**: The workflow extracts these tokens from `.env` and writes them to `data/.schwab_tokens.json`.
+6. **Commit**: Commits and pushes both `data/schwab.db` and `data/.schwab_tokens.json` back to the private data repository.
+
+Since both the main pipeline and Schwab workflows commit to the same private data repo, push conflicts are managed via git rebase and retries.
+
 
 
 ## CI Supply-Chain Hardening

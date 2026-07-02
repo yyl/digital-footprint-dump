@@ -1,0 +1,114 @@
+name: Schwab Sync
+
+on:
+  schedule:
+    # Run every 5 days at 10:00 AM UTC to keep Schwab OAuth tokens alive.
+    # Refresh tokens expire after 7 days; a 5-day cadence stays within TTL.
+    - cron: '0 10 */5 * *'
+  workflow_dispatch:
+
+env:
+  DATA_REPO_OWNER: ${{ secrets.DATA_REPO_OWNER || 'yyl' }}
+  DATA_REPO_NAME: ${{ secrets.DATA_REPO_NAME || 'digital-footprint-data' }}
+  DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_GITHUB_TOKEN || secrets.DATA_REPO_PAT || secrets.BLOG_GITHUB_TOKEN }}
+
+concurrency:
+  group: schwab-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  schwab:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Checkout data repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: ${{ env.DATA_REPO_OWNER }}/${{ env.DATA_REPO_NAME }}
+          token: ${{ env.DATA_REPO_TOKEN }}
+          path: _data_repo
+          lfs: true
+
+      - name: Setup data directories
+        run: |
+          mkdir -p _data_repo/data
+          mkdir -p _data_repo/files
+          ln -sf $(pwd)/_data_repo/data $(pwd)/data
+          ln -sf $(pwd)/_data_repo/files $(pwd)/files
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+
+      - name: Set up Python
+        run: uv python install $(cat .python-version)
+
+      - name: Install dependencies
+        run: uv sync --locked --python $(cat .python-version)
+
+      - name: Load Schwab tokens from data repo
+        run: |
+          TOKEN_FILE="_data_repo/data/.schwab_tokens.json"
+          if [ -f "$TOKEN_FILE" ]; then
+            echo "Found tokens in data repo, loading..."
+            ACCESS=$(jq -r '.access_token // empty' "$TOKEN_FILE")
+            REFRESH=$(jq -r '.refresh_token // empty' "$TOKEN_FILE")
+            if [ -n "$ACCESS" ]; then
+              echo "SCHWAB_ACCESS_TOKEN_FILE=$ACCESS" >> "$GITHUB_ENV"
+              echo "✓ Loaded access token from data repo"
+            fi
+            if [ -n "$REFRESH" ]; then
+              echo "SCHWAB_REFRESH_TOKEN_FILE=$REFRESH" >> "$GITHUB_ENV"
+              echo "✓ Loaded refresh token from data repo"
+            fi
+          else
+            echo "No token file found, will use GitHub Secrets for bootstrap"
+          fi
+
+      - name: Sync and analyze Schwab
+        env:
+          SCHWAB_CLIENT_ID: ${{ secrets.SCHWAB_CLIENT_ID }}
+          SCHWAB_CLIENT_SECRET: ${{ secrets.SCHWAB_CLIENT_SECRET }}
+          SCHWAB_ACCESS_TOKEN: ${{ env.SCHWAB_ACCESS_TOKEN_FILE || secrets.SCHWAB_ACCESS_TOKEN }}
+          SCHWAB_REFRESH_TOKEN: ${{ env.SCHWAB_REFRESH_TOKEN_FILE || secrets.SCHWAB_REFRESH_TOKEN }}
+          SCHWAB_CALLBACK_URL: ${{ secrets.SCHWAB_CALLBACK_URL }}
+        run: |
+          echo "Running: uv run main.py schwab-analyze"
+          uv run --python $(cat .python-version) main.py schwab-analyze
+
+      - name: Persist refreshed tokens to data repo
+        if: success()
+        run: |
+          TOKEN_FILE="_data_repo/data/.schwab_tokens.json"
+          ACCESS=$(grep '^SCHWAB_ACCESS_TOKEN=' .env 2>/dev/null | cut -d= -f2-)
+          REFRESH=$(grep '^SCHWAB_REFRESH_TOKEN=' .env 2>/dev/null | cut -d= -f2-)
+
+          if [ -n "$ACCESS" ] && [ -n "$REFRESH" ]; then
+            jq -n --arg a "$ACCESS" --arg r "$REFRESH" \
+              '{"access_token": $a, "refresh_token": $r}' > "$TOKEN_FILE"
+            echo "✓ Refreshed tokens written to data repo"
+          else
+            echo "No refreshed tokens found in .env, skipping persistence"
+          fi
+
+      - name: Commit Schwab database and tokens
+        run: |
+          cd _data_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/schwab.db data/.schwab_tokens.json 2>/dev/null || true
+
+          if git diff --staged --quiet; then
+            echo "No Schwab changes to commit"
+          else
+            git commit -m "Update Schwab database and tokens [automated]"
+            git push || {
+              echo "Push failed, rebasing onto latest remote data repo changes and retrying..."
+              git pull --rebase --autostash
+              git push
+            }
+            echo "Schwab data updated successfully"
+          fi
